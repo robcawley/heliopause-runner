@@ -1,0 +1,19 @@
+{
+  "name": "kuiper-blast-2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Kuiper Blast 2: first-person rewrite of Kuiper Blast. Stage 0 is a feel prototype.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lil-gui": "0.21.0",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "vite": "8.3.1"
+  }
+}

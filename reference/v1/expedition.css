@@ -1,0 +1,28 @@
+.archive-dialog { color: #dce9f0; background: #09141f; border: 1px solid #355565; border-radius: 18px; width: min(620px, calc(100vw - 28px)); max-height: calc(100dvh - 40px); margin: auto; padding: 28px; box-shadow: 0 30px 100px #000a; font-family: Arial, sans-serif; }
+.archive-dialog::backdrop { background: #010610d9; backdrop-filter: blur(12px); }
+.archive-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; font: 10px monospace; letter-spacing: 2px; color: #81c8cd; }
+.archive-close { min-width: 44px; min-height: 44px; color: #e3f6ff; background: #162d3c; border: 1px solid #426070; border-radius: 50%; cursor: pointer; }
+.archive-dialog h1 { font-size: clamp(24px, 6vw, 36px); font-weight: 500; letter-spacing: -1px; margin: 22px 0 12px; }
+.archive-intro { color: #a8bdc9; font-size: 14px; line-height: 1.6; }
+.archive-progress { font: 10px monospace; color: #f2c784; letter-spacing: 1px; padding: 22px 0; }
+.archive-entry { padding: 22px 0; border-top: 1px solid #243846; }
+.archive-entry h2 { font: 12px monospace; letter-spacing: 1.5px; color: #91dfdb; margin-bottom: 8px; }
+.archive-entry small { font-size: 11px; color: #9cabb8; }
+.archive-entry p { font-size: 15px; line-height: 1.8; margin-top: 12px; }
+.archive-entry.locked { opacity: .5; }
+.archive-toast { position: fixed; top: max(95px, 13dvh); left: 50%; transform: translateX(-50%); width: min(320px, 85vw); padding: 12px 16px; border: 1px solid #55969688; border-radius: 8px; background: #07131feb; color: #b9eeeb; font: 11px/1.6 monospace; text-align: center; pointer-events: none; z-index: 12; }
+.archive-status { position: fixed; bottom: max(12px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); white-space: nowrap; font: 9px monospace; letter-spacing: 1px; color: #89a9b8; pointer-events: none; z-index: 5; }
+.archive-toast[hidden], .archive-status[hidden] { display: none; }
+.archive-dialog button:focus-visible { outline: 3px solid #f2c784; outline-offset: 3px; }
+.archive-dossier { position: fixed; right: max(36px, calc(50% - 570px)); top: 28%; width: 220px; color: #8ca6b4; z-index: 4; }
+.dossier-label { font: 10px monospace; color: #d9b782; letter-spacing: 2px; }
+.archive-dossier h2 { font: 500 21px/1.4 Arial, sans-serif; color: #dbeae9; margin: 18px 0; letter-spacing: 1px; }
+.archive-dossier p { font: 13px/1.85 Arial, sans-serif; }
+.dossier-track { display: flex; gap: 5px; margin: 28px 0 12px; }
+.dossier-track span { height: 3px; flex: 1; background: #213b48; }
+.dossier-track .decoded { background: #91e5d1; }
+.archive-dossier small { font: 9px/1.5 monospace; letter-spacing: .5px; }
+.archive-dossier button { display: block; min-height: 44px; padding: 8px 0; margin-top: 16px; color: #8ee1cf; font: 12px Arial, sans-serif; border: none; background: transparent; cursor: pointer; }
+.archive-dossier button:focus-visible { outline: 2px solid #f2c784; outline-offset: 4px; }
+@media (max-width: 1190px) { .archive-dossier { display: none; } }
+@media (max-width: 480px) { .archive-dialog { padding: 20px; } .archive-toast { top: 100px; } }

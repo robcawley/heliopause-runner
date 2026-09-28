@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#040812">
+  <title>Kuiper Blast 2 — feel prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☄️</text></svg>">
+</head>
+<body>
+  <main id="stage" tabindex="-1"></main>
+  <div id="hud"></div>
+
+  <section id="title">
+    <div class="title-block">
+      <h1>Kuiper<br>Blast</h1>
+      <p class="title-sub">From the cockpit. Stage zero: the feel prototype.</p>
+      <button id="launch" type="button">Launch</button>
+      <p class="title-controls">
+        Steer with the mouse, a drag, WASD or a gamepad. Space to phase. Shift to boost.<br>
+        T opens the tuning panel. M mutes. P pauses.
+      </p>
+      <p class="title-meta"><span id="launch-note">Rendering on <span id="backend">…</span></span></p>
+    </div>
+  </section>
+
+  <section id="pause"><p>Paused</p><p class="pause-hint">Click or press P to fly on</p></section>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
