@@ -10,20 +10,59 @@ const reducedMotion =
 
 export const CONFIG = {
   flight: {
-    boundsX: 9,              // lateral half-width of the flyable frame
-    boundsY: 5,              // vertical half-height
-    steering: 'auto',        // 'auto' | 'drag' | 'follow'  (auto: follow for mouse, drag for touch)
-    dragSensitivity: 0.03,   // world units per pixel of drag
-    keySpeed: 16,            // how fast keys/stick move the aim point
-    stiffness: 55,           // spring pulling the ship to its aim point
-    damping: 12,             //   higher = less overshoot
-    bankPerSpeed: 0.042,     // roll per unit of lateral velocity
-    maxBank: 0.6,            // radians
-    pitchPerSpeed: 0.022,
-    yawIntoTurn: 0.012,      // nose leans into the turn
+    // Free flight: input is a stick. The ship accelerates sideways toward
+    // stick x maxLateral, and its nose follows its velocity, so dodging hard
+    // really does point you across the belt.
+    steering: 'auto',        // 'auto' | 'drag' | 'follow'  (auto: follow for a mouse, virtual stick for touch)
+    maxLateral: 34,          // top sideways/vertical speed, units/s
+    agility: 5.5,            // how fast lateral velocity reaches the stick's demand
+    stickRadius: 0.32,       // mouse-follow: pointer distance from centre (share of screen) for full deflection
+    touchStickRadius: 70,    // touch: drag distance in px for full deflection
+    deadzone: 0.06,
+    headingFollow: 0.85,     // how fully the nose turns toward the velocity vector (1 = exactly)
+    bankPerSpeed: 0.022,     // roll from sideways speed
+    bankPerAccel: 0.006,     // extra roll while accelerating into a turn
+    maxBank: 0.85,
     cruiseSpeed: 62,         // forward speed, units/s
     boostSpeed: 120,
-    speedResponse: 2.2,      // how quickly speed chases its target
+    speedResponse: 2.2,
+  },
+
+  roll: {
+    // Evasive barrel roll: a sideways burst plus a full 360.
+    charges: 3,
+    recharge: 2.4,           // seconds per charge
+    duration: 0.42,
+    impulse: 38,             // extra sideways speed at the start of a roll
+    doubleTap: 0.24,         // seconds: double-tap a direction key to roll
+    cameraFollow: 1.0,       // 1 = the pilot rolls with the ship; lower it if rolls feel queasy
+  },
+
+  lane: {
+    // The beacon lane runs along the belt. Inside it you are shielded; outside,
+    // radiation builds and eats the hull.
+    safeRadius: 18,
+    warnRadius: 14,          // guidance arrow appears past this
+    ringSpacing: 150,        // faint lane rings, visual only
+    gateSpacing: 380,        // repair gates
+    gateRadius: 3.4,
+    gateOffset: 0.55,        // gates sit within this share of the safe radius
+    gateRepair: 18,
+    coreRepair: 1.2,         // hull per second while near the lane centre
+    coreRadius: 9,
+  },
+
+  hull: {
+    max: 100,
+    rockDamageBase: 8,
+    rockDamagePerSize: 6,
+  },
+
+  radiation: {
+    riseRate: 26,            // exposure per second per 10 units outside the lane
+    fallRate: 22,            // exposure lost per second inside it
+    hullDamage: 14,          // hull per second at full exposure
+    damageFrom: 35,          // exposure at which the hull starts taking damage
   },
 
   camera: {
@@ -45,9 +84,10 @@ export const CONFIG = {
     dustDepth: 280,
     dustSpread: 55,
     dustStreak: 0.035,       // streak length per unit of speed
-    rockCount: 48,
+    rockCount: 60,
     rockSpawnDepth: 460,
-    rockAimBias: 0.28,        // share of rocks placed on the ship's predicted path
+    rockSpread: 42,          // rocks spawn this far around the ship, so free flight never empties the belt
+    rockAimBias: 0.18,   // share of rocks placed on the ship's predicted path
     rockMinSize: 0.7,
     rockMaxSize: 3.4,
     giantRocks: 6,           // big off-lane rocks for scale and parallax

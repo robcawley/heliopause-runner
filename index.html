@@ -20,10 +20,20 @@
       <p class="title-sub">From the cockpit. Stage zero: the feel prototype.</p>
       <button id="launch" type="button">Launch</button>
       <p class="title-controls">
-        Steer with the mouse, a drag, WASD or a gamepad. Space to phase. Shift to boost.<br>
+        Fly with the mouse, WASD, a gamepad, or a thumb on touch. Q and E, or a double-tap, to roll.<br>
+        Space to phase. Shift to boost. Stay near the beacon lane: outside it, radiation eats the hull.<br>
         T opens the tuning panel. M mutes. P pauses.
       </p>
       <p class="title-meta"><span id="launch-note">Rendering on <span id="backend">…</span></span></p>
+    </div>
+  </section>
+
+  <section id="debrief" aria-live="assertive">
+    <div>
+      <h2>Signal lost</h2>
+      <p class="debrief-reason"></p>
+      <dl class="debrief-stats"></dl>
+      <button id="again" type="button">Fly again</button>
     </div>
   </section>
 

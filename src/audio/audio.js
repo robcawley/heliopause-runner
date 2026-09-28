@@ -157,6 +157,97 @@ export function createAudio() {
     n.connect(hp).connect(g).connect(sfxGain); n.start(t); n.stop(t + duration + 0.3);
   }
 
+  // Geiger counter: random clicks whose rate follows radiation exposure (0..1)
+  let geigerDebt = 0;
+  function geiger(level, dt) {
+    if (!ctx || level <= 0) return;
+    geigerDebt += (level * level * 55 + level * 6) * dt;
+    while (geigerDebt > 0) {
+      geigerDebt -= -Math.log(Math.random() + 1e-6);   // Poisson spacing
+      const t = ctx.currentTime + Math.random() * dt;
+      const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2500;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.006);
+      n.connect(hp).connect(g).connect(sfxGain);
+      n.start(t, Math.random()); n.stop(t + 0.01);
+    }
+  }
+
+  // Two-tone alarm; call once per beat
+  function alarm(urgent) {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const [a, b] = urgent ? [880, 660] : [660, 520];
+    [a, b].forEach((f, i) => {
+      const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = f;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200;
+      const g = ctx.createGain();
+      const s0 = t + i * 0.13;
+      g.gain.setValueAtTime(0.0001, s0);
+      g.gain.exponentialRampToValueAtTime(0.07, s0 + 0.01);
+      g.gain.setValueAtTime(0.07, s0 + 0.1);
+      g.gain.exponentialRampToValueAtTime(0.0001, s0 + 0.12);
+      o.connect(lp).connect(g).connect(sfxGain); o.start(s0); o.stop(s0 + 0.13);
+    });
+  }
+
+  function repair() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    [392, 523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+      const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+      const g = ctx.createGain();
+      const s0 = t + i * 0.055;
+      g.gain.setValueAtTime(0.0001, s0);
+      g.gain.exponentialRampToValueAtTime(0.14, s0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, s0 + 0.9);
+      o.connect(g).connect(sfxGain); o.start(s0); o.stop(s0 + 1);
+    });
+  }
+
+  // The ship's own roll: a quick corkscrew of air noise swept across the stereo field
+  function roll(dir, duration) {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 2.5;
+    bp.frequency.setValueAtTime(500, t);
+    bp.frequency.exponentialRampToValueAtTime(2600, t + duration * 0.5);
+    bp.frequency.exponentialRampToValueAtTime(400, t + duration);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.5, t + duration * 0.4);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + duration + 0.15);
+    const p = ctx.createStereoPanner();
+    p.pan.setValueAtTime(-dir, t);
+    p.pan.linearRampToValueAtTime(dir, t + duration);
+    n.connect(bp).connect(g).connect(p).connect(sfxGain);
+    n.start(t); n.stop(t + duration + 0.2);
+  }
+
+  function death() {
+    if (!ctx) return;
+    hit();
+    const t = ctx.currentTime;
+    musicFilter.frequency.cancelScheduledValues(t);
+    musicFilter.frequency.setValueAtTime(musicFilter.frequency.value, t);
+    musicFilter.frequency.exponentialRampToValueAtTime(260, t + 1.2);
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(30, t + 2.2);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
+    o.connect(g).connect(sfxGain); o.start(t); o.stop(t + 2.5);
+  }
+
+  function revive() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    musicFilter.frequency.cancelScheduledValues(t);
+    musicFilter.frequency.setValueAtTime(Math.max(200, musicFilter.frequency.value), t);
+    musicFilter.frequency.exponentialRampToValueAtTime(20000, t + 1.5);
+  }
+
   function update(speed) {
     if (!ctx) return;
     const f = CONFIG.flight;
@@ -170,7 +261,7 @@ export function createAudio() {
   }
 
   return {
-    start, whoosh, tick, daredevil, hit, phase, update,
+    start, whoosh, tick, daredevil, hit, phase, update, geiger, alarm, repair, roll, death, revive,
     toggleMute() { muted = !muted; return muted; },
     suspend() { ctx?.suspend(); musicEl?.pause(); },
     resume() { ctx?.resume(); musicEl?.play().catch(() => {}); },

@@ -10,17 +10,38 @@ export function createTuning({ onResize }) {
   const flight = gui.addFolder('Flight');
   const f = CONFIG.flight;
   flight.add(f, 'steering', ['auto', 'drag', 'follow']);
-  flight.add(f, 'dragSensitivity', 0.005, 0.08, 0.001);
-  flight.add(f, 'stiffness', 5, 200, 1);
-  flight.add(f, 'damping', 1, 40, 0.5);
-  flight.add(f, 'bankPerSpeed', 0, 0.12, 0.001);
-  flight.add(f, 'maxBank', 0, 1.2, 0.01);
-  flight.add(f, 'pitchPerSpeed', 0, 0.08, 0.001);
-  flight.add(f, 'yawIntoTurn', 0, 0.05, 0.001);
+  flight.add(f, 'maxLateral', 5, 80, 1);
+  flight.add(f, 'agility', 0.5, 20, 0.1);
+  flight.add(f, 'stickRadius', 0.1, 0.6, 0.01);
+  flight.add(f, 'touchStickRadius', 30, 160, 1);
+  flight.add(f, 'deadzone', 0, 0.3, 0.01);
+  flight.add(f, 'headingFollow', 0, 1.2, 0.01);
+  flight.add(f, 'bankPerSpeed', 0, 0.06, 0.001);
+  flight.add(f, 'bankPerAccel', 0, 0.02, 0.0005);
+  flight.add(f, 'maxBank', 0, 1.5, 0.01);
   flight.add(f, 'cruiseSpeed', 10, 200, 1);
   flight.add(f, 'boostSpeed', 20, 300, 1);
-  flight.add(f, 'boundsX', 2, 20, 0.5);
-  flight.add(f, 'boundsY', 1, 12, 0.5);
+
+  const roll = gui.addFolder('Rolls');
+  const ro = CONFIG.roll;
+  roll.add(ro, 'charges', 1, 6, 1);
+  roll.add(ro, 'recharge', 0.2, 8, 0.1);
+  roll.add(ro, 'duration', 0.2, 1, 0.01);
+  roll.add(ro, 'impulse', 0, 80, 1);
+  roll.add(ro, 'cameraFollow', 0, 1, 0.05).name('camera rolls too');
+
+  const lane = gui.addFolder('Lane & hull');
+  const L = CONFIG.lane, R = CONFIG.radiation, H = CONFIG.hull;
+  lane.add(L, 'safeRadius', 5, 50, 0.5);
+  lane.add(L, 'warnRadius', 2, 50, 0.5);
+  lane.add(L, 'gateRepair', 0, 60, 1);
+  lane.add(L, 'coreRepair', 0, 10, 0.1);
+  lane.add(R, 'riseRate', 1, 100, 1).name('radiation rise');
+  lane.add(R, 'fallRate', 1, 100, 1).name('radiation fall');
+  lane.add(R, 'hullDamage', 0, 60, 1).name('radiation damage');
+  lane.add(R, 'damageFrom', 0, 95, 1).name('damage from exposure');
+  lane.add(H, 'rockDamageBase', 0, 50, 1);
+  lane.add(H, 'rockDamagePerSize', 0, 20, 0.5);
 
   const cam = gui.addFolder('Camera');
   const c = CONFIG.camera;
@@ -39,6 +60,7 @@ export function createTuning({ onResize }) {
   const w = CONFIG.world;
   world.add(w, 'rockCount', 0, 150, 1);
   world.add(w, 'rockAimBias', 0, 1, 0.01);
+  world.add(w, 'rockSpread', 10, 100, 1);
   world.add(w, 'rockMinSize', 0.2, 3, 0.1);
   world.add(w, 'rockMaxSize', 0.5, 8, 0.1);
   world.add(w, 'dustStreak', 0, 0.1, 0.001);

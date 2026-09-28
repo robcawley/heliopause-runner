@@ -33,6 +33,7 @@ export function createCameraRig(camera, ship) {
     const f = CONFIG.flight;
     r.t += dt;
 
+
     // Head lag: target is opposite to acceleration, clamped
     let tx = -ship.ax * c.headLag;
     let ty = -ship.ay * c.headLag;
@@ -54,7 +55,9 @@ export function createCameraRig(camera, ship) {
     const rz = smoothNoise(n, 9.4) * c.shakeAngle * shake * 1.4;
 
     camera.position.set(r.hx + sx, r.hy + sy, 0);
-    camera.rotation.set(rx - r.hy * 0.25, ry + r.hx * 0.25, rz);
+    // A roll comfort setting: below 1 the pilot's head partly counter-rotates
+    const rollCounter = -ship.rollAngle * (1 - CONFIG.roll.cameraFollow);
+    camera.rotation.set(rx - r.hy * 0.25, ry + r.hx * 0.25, rz + rollCounter);
 
     // FOV: speed + punches
     const speedT = THREE.MathUtils.clamp((ship.speed - f.cruiseSpeed) / Math.max(1, f.boostSpeed - f.cruiseSpeed), 0, 1);

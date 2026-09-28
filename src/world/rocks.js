@@ -75,24 +75,27 @@ export function createRocks() {
 
   function place(r, ship, initial) {
     const w = CONFIG.world;
-    const f = CONFIG.flight;
     r.z = initial ? -(40 + Math.random() * (w.rockSpawnDepth - 40)) : -w.rockSpawnDepth * (1 + Math.random() * 0.2);
     r.giant = r.index < w.giantRocks;
+
+    // Centre the spawn on where the ship will be when the rock arrives, so free
+    // flight never runs out of belt, whichever way you are heading.
+    const arrive = Math.min(4, -r.z / Math.max(1, ship.speed));
+    const cx = ship.x + ship.vx * arrive * 0.6;
+    const cy = ship.y + ship.vy * arrive * 0.6;
 
     if (r.giant) {
       const side = Math.random() < 0.5 ? -1 : 1;
       r.size = 10 + Math.random() * 16;
-      r.x = side * (f.boundsX + 22 + Math.random() * 40);
-      r.y = (Math.random() - 0.5) * 60;
+      r.x = cx + side * (w.rockSpread + 20 + Math.random() * 45);
+      r.y = cy + (Math.random() - 0.5) * 70;
     } else {
       r.size = w.rockMinSize + Math.pow(Math.random(), 1.8) * (w.rockMaxSize - w.rockMinSize);
-      if (Math.random() < w.rockAimBias) {
-        r.x = ship.x + (Math.random() - 0.5) * 7;
-        r.y = ship.y + (Math.random() - 0.5) * 5;
-      } else {
-        r.x = (Math.random() - 0.5) * (f.boundsX + 7) * 2;
-        r.y = (Math.random() - 0.5) * (f.boundsY + 6) * 2;
-      }
+      const aimed = Math.random() < w.rockAimBias;
+      const sx = aimed ? 4 : w.rockSpread;
+      const sy = aimed ? 3 : w.rockSpread * 0.7;
+      r.x = cx + (Math.random() - 0.5) * 2 * sx;
+      r.y = cy + (Math.random() - 0.5) * 2 * sy;
     }
     r.vx = (Math.random() - 0.5) * (r.giant ? 0.5 : 1.6);
     r.vy = (Math.random() - 0.5) * (r.giant ? 0.5 : 1.2);
@@ -144,7 +147,8 @@ export function createRocks() {
         }
       }
 
-      if (r.z > 30 || (r.giant && r.z > 80)) place(r, ship, false);
+      const tooFar = Math.abs(r.x - ship.x) > CONFIG.world.rockSpread * (r.giant ? 4 : 2.6) && r.z < -40;
+      if (r.z > 30 || (r.giant && r.z > 80) || tooFar) place(r, ship, false);
 
       dq.setFromAxisAngle(r.axis, r.spin * dt);
       r.quat.premultiply(dq);

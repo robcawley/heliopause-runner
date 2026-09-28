@@ -9,15 +9,24 @@ import { createSky } from './world/sky.js';
 import { createDust } from './world/dust.js';
 import { createRocks } from './world/rocks.js';
 import { createShards } from './world/shards.js';
+import { createLane } from './world/lane.js';
 import { createCockpit } from './cockpit/cockpit.js';
 import { createPost } from './fx/post.js';
 import { createAudio } from './audio/audio.js';
 import { createHud } from './ui/hud.js';
 import { createTuning } from './ui/tuning.js';
 
-// Stage 0: the feel prototype. No enemies, no weapons. Just the cockpit, the
-// belt, and the one question that matters: is flying through it fun for thirty
-// seconds? Everything here is in service of that.
+// Stage 0: the feel prototype. No enemies, no weapons. The cockpit, the belt,
+// free flight with rolls, and the beacon lane: shelter and repair inside it,
+// radiation outside. The question: is flying through it fun on its own?
+
+const MICA = {
+  leftLane: ['You are off the lane. Radiation is climbing. Come back to the beacon line.', 'Out of the shield again. Arrows will bring you home.'],
+  radHigh: ['Shielding is failing. Turn back now.', 'Hull is cooking. Lane, now.'],
+  back: ['Back on the line. Good.', 'Shielded. Breathe.'],
+  gate: ['Repair beacon. Fly through them when you can.', 'Patched. Keep them coming.'],
+  hullLow: ['Hull critical. Stay in the lane and find a repair beacon.'],
+};
 
 const MICA_LINES = [
   'Beacon bearing locked. Hold this line.',
@@ -25,6 +34,7 @@ const MICA_LINES = [
   'The ice sings when you pass that near. I like it.',
   'Forty years, and the signal has not drifted once.',
   'Phase drive recharged. It will carry us through anything, briefly.',
+  'Roll hard when the ice closes in. The frame can take it.',
   'Something is growing out there. Not rocks.',
 ];
 
@@ -50,7 +60,8 @@ async function boot() {
   const dust = createDust();
   const rocks = createRocks();
   const shards = createShards();
-  scene.add(sky.mesh, dust.mesh, rocks.mesh, shards.mesh);
+  const lane = createLane();
+  scene.add(sky.mesh, dust.mesh, rocks.mesh, shards.mesh, lane.group);
   rocks.init(ship);
 
   // Reticle: 40 units ahead, riding with the ship, drawn over everything
@@ -68,18 +79,36 @@ async function boot() {
   const tuning = createTuning({ onResize: resize });
 
   // Game state
-  const g = {
-    mode: 'title',        // 'title' | 'flying' | 'paused'
+  const fresh = () => ({
+    mode: 'title',        // 'title' | 'flying' | 'paused' | 'dead'
     score: 0,
     chain: 0, chainTimer: 0,
-    nearMisses: 0, hits: 0, bestChain: 0,
+    nearMisses: 0, hits: 0, bestChain: 0, gates: 0, startTravelled: ship.travelled,
+    hull: CONFIG.hull.max, exposure: 0, deathCause: '', deathTimer: 0,
+    wasOutside: false, alarmTimer: 0, micaCooldown: 0, radFx: 0,
     phaseTime: 0, phaseCooldown: 0,
     hitStop: 0, slowmo: 0, slowmoScale: 1, timeScale: 1,
     aberrationKick: 0, hitFlash: 0, phaseFx: 0,
-    micaTimer: 14, micaIndex: 1,
-  };
+    micaTimer: 16, micaIndex: 1,
+  });
+  const g = fresh();
 
   const clamp = THREE.MathUtils.clamp;
+
+  const micaSay = (key, force = false) => {
+    if (!force && g.micaCooldown > 0) return;
+    const lines = MICA[key];
+    hud.say('MICA', lines[Math.floor(Math.random() * lines.length)], 5);
+    g.micaCooldown = 6;
+    g.micaTimer = Math.max(g.micaTimer, 18);
+  };
+
+  function damage(amount, cause) {
+    const before = g.hull;
+    g.hull = Math.max(0, g.hull - amount);
+    if (before >= 30 && g.hull < 30 && g.hull > 0) micaSay('hullLow', true);
+    if (g.hull <= 0 && g.mode === 'flying') die(cause);
+  }
 
   // ---- Feel rules -------------------------------------------------------
 
@@ -113,6 +142,7 @@ async function boot() {
       audio.hit();
       shards.burst(ship.x + dx * 0.4, ship.y + dy * 0.4, -3, r.size);
       hud.callout('Hull hit', side);
+      damage(CONFIG.hull.rockDamageBase + r.size * CONFIG.hull.rockDamagePerSize, 'rock');
       return 'destroy';
     }
 
@@ -155,7 +185,66 @@ async function boot() {
     audio.phase(CONFIG.phase.duration);
   }
 
-  hud.phaseBtn.addEventListener('pointerdown', (e) => { e.stopPropagation(); tryPhase(); });
+  function tryRoll(dir) {
+    if (g.mode !== 'flying' || !ship.tryRoll(dir)) return;
+    audio.roll(dir, CONFIG.roll.duration);
+    rig.addTrauma(0.12);
+    g.aberrationKick += 0.25;
+  }
+
+  lane.handlers.onGate = () => {
+    if (g.mode !== 'flying') return;
+    const before = g.hull;
+    g.hull = Math.min(CONFIG.hull.max, g.hull + CONFIG.lane.gateRepair);
+    g.gates++;
+    g.score += 150;
+    audio.repair();
+    rig.punch(3);
+    hud.callout(`Repaired +${Math.round(g.hull - before)}`, 1, true);
+    if (g.gates === 1 || Math.random() < 0.3) micaSay('gate');
+  };
+
+  const debrief = document.getElementById('debrief');
+  function die(cause) {
+    g.mode = 'dead';
+    g.deathCause = cause;
+    g.deathTimer = 0;
+    rig.addTrauma(1);
+    g.hitFlash = 1.4;
+    g.hitStop = 0.15;
+    audio.death();
+    shards.burst(ship.x, ship.y - 1, -3, 3, 60);
+    hud.setWarning('');
+    const km = ((ship.travelled - g.startTravelled) / 1000).toFixed(2);
+    const off = Math.max(0, Math.hypot(ship.x, ship.y) - CONFIG.lane.safeRadius);
+    debrief.querySelector('.debrief-reason').textContent = cause === 'radiation'
+      ? `Radiation burned through the hull, ${Math.round(off)} metres outside the beacon lane.`
+      : 'The belt broke through the hull.';
+    debrief.querySelector('.debrief-stats').innerHTML = [
+      ['Score', g.score.toLocaleString()], ['Distance', `${km} km`], ['Near misses', g.nearMisses],
+      ['Best chain', g.bestChain], ['Repair beacons', g.gates], ['Rock hits', g.hits],
+    ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+    setTimeout(() => { debrief.classList.add('on'); document.getElementById('again').focus(); }, 900);
+  }
+
+  function flyAgain() {
+    Object.assign(g, fresh(), { mode: 'flying' });
+    ship.reset();
+    input.state.stickX = input.state.stickY = 0;
+    rocks.init(ship);
+    lane.reset(ship);
+    audio.revive();
+    debrief.classList.remove('on');
+    hud.say('MICA', 'New flight plotted. Stay on the beacon line.', 4);
+    renderer.domElement.focus();
+  }
+  document.getElementById('again').addEventListener('click', flyAgain);
+  addEventListener('keydown', (e) => { if (g.mode === 'dead' && e.key === 'Enter' && debrief.classList.contains('on')) flyAgain(); });
+
+  const tap = (el, fn) => el.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); fn(); });
+  tap(hud.buttons.phase, tryPhase);
+  tap(hud.buttons.rollLeft, () => tryRoll(-1));
+  tap(hud.buttons.rollRight, () => tryRoll(1));
 
   // ---- Launch / pause ----------------------------------------------------
 
@@ -168,13 +257,15 @@ async function boot() {
     title.classList.add('gone');
     g.mode = 'flying';
     hud.say('MICA', MICA_LINES[0], 5);
+    lane.reset(ship);
+    g.startTravelled = ship.travelled;
     renderer.domElement.focus();
   }
   document.getElementById('launch').addEventListener('click', launch);
   addEventListener('keydown', (e) => { if (g.mode === 'title' && e.key === 'Enter') launch(); });
 
   function setPaused(p) {
-    if (g.mode === 'title') return;
+    if (g.mode === 'title' || g.mode === 'dead') return;
     g.mode = p ? 'paused' : 'flying';
     pauseEl.classList.toggle('on', p);
     p ? audio.suspend() : audio.resume();
@@ -186,9 +277,11 @@ async function boot() {
 
   let last = performance.now();
   let fpsAcc = 0, fpsFrames = 0, fps = 0;
+  const guideV = new THREE.Vector3();
 
   // Title screen: the ship drifts on its own so the belt is alive behind the menu
-  const attract = { aimX: 0, aimY: 0, boost: false };
+  const attract = { stickX: 0, stickY: 0, boost: false };
+  const dead = { stickX: 0, stickY: -0.15, boost: false };
 
   function frame(now) {
     const realDt = Math.min(0.05, (now - last) / 1000);
@@ -199,6 +292,8 @@ async function boot() {
     if (input.consume('mutePressed')) hud.say('System', audio.toggleMute() ? 'Audio muted' : 'Audio on', 1.5);
     if (input.consume('tuningPressed')) tuning.toggle();
     if (input.consume('phasePressed')) tryPhase();
+    const rollDir = input.consume('rollPressed');
+    if (rollDir) tryRoll(rollDir);
 
     if (g.mode === 'paused') { post.render(); return; }
 
@@ -211,13 +306,52 @@ async function boot() {
     // The pilot's body runs on real time so controls never feel sluggish in slow-mo
     let steer = input.state;
     if (g.mode === 'title') {
-      attract.aimX = Math.sin(now * 0.00031) * CONFIG.flight.boundsX * 0.6;
-      attract.aimY = Math.sin(now * 0.00047) * CONFIG.flight.boundsY * 0.4;
+      attract.stickX = Math.sin(now * 0.00031) * 0.5 - ship.x * 0.03;
+      attract.stickY = Math.sin(now * 0.00047) * 0.35 - ship.y * 0.03;
       steer = attract;
+    } else if (g.mode === 'dead') {
+      steer = dead;
     }
     ship.update(realDt, dt, steer);
     rocks.update(dt, ship);
     shards.update(dt, ship);
+    lane.update(ship, now / 1000);
+
+    // ---- The beacon lane: radiation outside, repair near the centre ----
+    const L = CONFIG.lane, R = CONFIG.radiation;
+    const laneDist = Math.hypot(ship.x, ship.y);
+    const outside = laneDist - L.safeRadius;
+    g.micaCooldown = Math.max(0, g.micaCooldown - realDt);
+    if (g.mode === 'flying') {
+      if (outside > 0) {
+        g.exposure = Math.min(100, g.exposure + R.riseRate * (0.25 + outside / 10) * dt);
+        if (!g.wasOutside) { micaSay('leftLane'); g.alarmTimer = 0; }
+        if (g.exposure > 70 && g.exposure - R.riseRate * dt <= 70) micaSay('radHigh', true);
+      } else {
+        g.exposure = Math.max(0, g.exposure - R.fallRate * dt);
+        if (g.wasOutside && g.exposure > 20) micaSay('back');
+        if (laneDist < L.coreRadius && g.exposure === 0) g.hull = Math.min(CONFIG.hull.max, g.hull + L.coreRepair * dt);
+      }
+      g.wasOutside = outside > 0;
+      if (g.exposure > R.damageFrom) {
+        damage(R.hullDamage * ((g.exposure - R.damageFrom) / (100 - R.damageFrom)) * dt, 'radiation');
+      }
+
+      // Alarms: faster as exposure rises; a slow low alarm when the hull is critical
+      g.alarmTimer -= realDt;
+      if (g.alarmTimer <= 0 && (outside > 0 || g.hull < 25)) {
+        audio.alarm(g.exposure > 60 || g.hull < 25);
+        g.alarmTimer = outside > 0 ? THREE.MathUtils.lerp(1.1, 0.32, g.exposure / 100) : 1.6;
+      }
+      audio.geiger(outside > 0 ? Math.min(1, 0.12 + g.exposure / 100) : (g.exposure / 100) * 0.4, realDt);
+
+      if (outside > 0) hud.setWarning(g.exposure > 60 ? 'Radiation critical. Return to the lane' : 'Radiation. Return to the lane', g.exposure > 60 ? 2 : 1);
+      else if (g.hull < 25) hud.setWarning('Hull critical', 2);
+      else hud.setWarning('');
+    }
+    if (g.mode === 'dead') g.deathTimer += realDt;
+    g.radFx += ((outside > 0 ? 0.35 : 0) + g.exposure / 150 - g.radFx) * (1 - Math.exp(-4 * realDt));
+    dust.setRadiation(Math.min(1, g.radFx));
 
     // Phase drive
     g.phaseTime = Math.max(0, g.phaseTime - realDt);
@@ -243,29 +377,57 @@ async function boot() {
     post.uniforms.aberration.value = CONFIG.fx.aberration + g.aberrationKick + g.phaseFx * 0.6;
     post.uniforms.phase.value = g.phaseFx;
     post.uniforms.hit.value = g.hitFlash;
+    post.uniforms.radiation.value = Math.min(1, g.radFx);
 
     audio.update(ship.speed);
 
     // MICA, occasionally
-    if (g.mode === 'flying' && (g.micaTimer -= realDt) <= 0) {
+    if (g.mode === 'flying' && outside <= 0 && (g.micaTimer -= realDt) <= 0) {
       hud.say('MICA', MICA_LINES[g.micaIndex++ % MICA_LINES.length], 5);
       g.micaTimer = 22 + Math.random() * 14;
     }
 
+    // Guidance: when drifting from the lane, point back at its centre line
+    ship.group.updateMatrixWorld(true);
+    const showGuide = g.mode === 'flying' && laneDist > L.warnRadius;
+    if (showGuide) {
+      guideV.set(0, 0, -120).project(camera);
+      const behind = guideV.z > 1;
+      let nx = behind ? -guideV.x : guideV.x, ny = behind ? -guideV.y : guideV.y;
+      const w = innerWidth, h = innerHeight;
+      const onScreen = !behind && Math.abs(nx) < 0.82 && Math.abs(ny) < 0.78;
+      if (!onScreen) {
+        if (Math.hypot(nx, ny) < 1e-3) { nx = -ship.x; ny = -ship.y; }
+        const a = Math.atan2(ny * h, nx * w);
+        nx = Math.cos(a) * 0.8; ny = Math.sin(a) * 0.72;
+      }
+      const px = (nx + 1) * 0.5 * w, py = (1 - ny) * 0.5 * h;
+      hud.setGuide({
+        show: true, x: px, y: py, onScreen,
+        angle: Math.atan2(py - h / 2, px - w / 2),
+        danger: outside > 0,
+        label: outside > 0 ? `${Math.ceil(outside)} m to the lane` : 'Lane edge',
+      });
+    } else hud.setGuide({ show: false });
+
+    hud.setHull(g.hull / CONFIG.hull.max);
+    hud.setRadiation(g.exposure / 100);
+    hud.setRolls(ship.rollCharges, CONFIG.roll.charges);
+    hud.setStick(g.mode === 'flying' ? input.state.touchStick : null);
     hud.setScore(g.score);
     hud.update(realDt);
 
     fpsAcc += realDt; fpsFrames++;
     if (fpsAcc > 0.5) { fps = Math.round(fpsFrames / fpsAcc); fpsAcc = 0; fpsFrames = 0; }
     if (tuning.open) {
-      hud.dev(`${backend}  ${fps} fps  speed ${ship.speed.toFixed(0)}  near ${g.nearMisses}  hits ${g.hits}  best chain ${g.bestChain}`);
+      hud.dev(`${backend}  ${fps} fps  speed ${ship.speed.toFixed(0)}  lane ${laneDist.toFixed(1)}  hull ${g.hull.toFixed(0)}  rad ${g.exposure.toFixed(0)}  near ${g.nearMisses}  hits ${g.hits}`);
     } else hud.dev('');
 
     post.render();
   }
 
   renderer.setAnimationLoop(frame);
-  window.__kb2 = { g, ship, CONFIG, backend };   // for the console and tests
+  window.__kb2 = { g, ship, CONFIG, backend, input };   // for the console and tests
   document.body.classList.add('ready');
 }
 
