@@ -13,7 +13,8 @@ the game's flight core: a nimble fighter with full freedom (loop, roll, turn rig
 misses, the phase drive, and the beacon lane (slow radiation outside it, repair beacons inside),
 hull damage and death, with a tuning panel over every number. Civilian couriers cross the lane,
 drifting wreckage adds near-field scale, and distant worlds anchor the sky. Blaster hits chip
-asteroids before they break apart.
+asteroids before they break apart. Every run is a trip: take off from one settlement's pad,
+fly about 10 km of belt, and land on another's (2 to 3 minutes).
 
 ## Run it
 

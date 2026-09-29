@@ -11,6 +11,7 @@ export function createHud(parent) {
   root.innerHTML = `
     <div class="hud-status">
       <div class="hud-score"><span class="hud-score-value">0</span><span class="hud-score-label">clearance points</span></div>
+      <div class="hud-route" style="display:none"></div>
       <div class="hud-meter hull"><span class="hud-meter-label">Hull</span><span class="hud-meter-track"><span class="hud-meter-fill"></span></span></div>
       <div class="hud-meter rad"><span class="hud-meter-label">Radiation</span><span class="hud-meter-track"><span class="hud-meter-fill"></span></span></div>
       <div class="hud-rolls"><span class="hud-meter-label">Rolls</span><span class="hud-roll-pips"></span></div>
@@ -76,6 +77,8 @@ export function createHud(parent) {
   const dock = $('.hud-dock'), dockLabel = $('.hud-dock-label');
   const trafficEl = $('.hud-traffic');
   const heatLabel = $('.heat .hud-meter-label');
+  const routeEl = $('.hud-route');
+  let routeText = null;
   let zoneTimer = 0, heatJammed = false, hitTimer = 0;
 
   let shownScore = 0, targetScore = 0, commsTimer = 0, pipCount = -1;
@@ -97,6 +100,13 @@ export function createHud(parent) {
       zoneRule.textContent = rule;
       zone.classList.add('on');
       zoneTimer = seconds;
+    },
+    // The run's trip: where you are going and how far
+    setRoute(text) {
+      if (text === routeText) return;
+      routeText = text;
+      routeEl.textContent = text;
+      routeEl.style.display = text ? '' : 'none';
     },
     // Latched touch throttle: Boost or Brake stays lit while it is on
     setThrottle(boost, brake) {

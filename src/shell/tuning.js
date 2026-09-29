@@ -101,6 +101,11 @@ export function createTuning(config, { onResize } = {}) {
     ['gateRepair', 0, 60, 1],
     ['coreRepair', 0, 10, 0.1],
   ]);
+  folder('Run', config.run, [
+    ['distance', 3000, 30000, 250, 'pad to pad (m)'],
+    ['distanceJitter', 0, 6000, 250, '+/- spread (m)'],
+    ['takeoffTime', 4, 12, 0.5, 'take-off (s)'],
+  ]);
   folder('Settlements', config.settlement, [
     ['firstAt', 300, 20000, 100, 'first one at (m)'],
     ['spacing', 2000, 40000, 500, 'then every (m)'],

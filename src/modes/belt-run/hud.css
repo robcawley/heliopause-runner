@@ -238,3 +238,7 @@ body.paused .hud-touch-buttons, body.paused .hud-touch-pause { display: none; }
   .hud-touch-buttons.no-rolls { height: 176px; }
   .hud-touch-buttons.no-rolls .hud-btn.pip { right: 23px; bottom: 116px; }
 }
+
+/* The run's trip */
+.hud-route { font-size: .76rem; font-weight: 600; color: var(--sun); letter-spacing: .03em; margin: -2px 0 3px; white-space: nowrap; }
+@media (pointer: coarse) { .hud-route { font-size: .68rem; } }

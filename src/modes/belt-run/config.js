@@ -151,6 +151,15 @@ export const DEFAULTS = {
     coreRadius: 80,
   },
 
+  run: {
+    // Every run is a trip: take off from one settlement's pad, fly the belt, land on
+    // another's. About 10.5 km pad to pad is 2 to 3 minutes, depending on boosting.
+    distance: 10500,         // metres, pad to pad
+    distanceJitter: 1500,    // +/- random spread per run
+    takeoffTime: 7,          // seconds on rails before the pilot has the stick
+    landingBonus: 1000,      // points for setting down
+    hullBonus: 1000,         // up to this many more for hull left
+  },
   settlement: {
     // Towns cut into giant asteroids that straddle the lane: a neon canyon you fly through.
     // Rare on purpose: the first comes up a few km in, then roughly every `spacing` metres

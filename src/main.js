@@ -102,22 +102,27 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
     if (what === 'tuning') tuning.toggle();
   });
 
-  run.on('death', (s) => {
+  const showDebrief = (s) => {
     screen = 'debrief';
     run.setCapture(false);
-    debrief.querySelector('.debrief-reason').textContent = s.cause === 'radiation'
+    debrief.querySelector('h2').textContent = s.landed ? `Landed at ${s.destination}` : 'Signal lost';
+    debrief.querySelector('.debrief-reason').textContent = s.landed
+      ? `Clamps on, engines down. ${s.hull}% of the hull made it.`
+      : s.cause === 'radiation'
       ? `Radiation burned through the hull, ${Math.round(s.laneOffset)} metres outside the beacon lane.`
       : s.cause === 'wall' ? 'You tore the hull open on a canyon wall.' : 'The belt broke through the hull.';
     const mins = Math.floor(s.time / 60), secs = Math.floor(s.time % 60).toString().padStart(2, '0');
     debrief.querySelector('.debrief-stats').innerHTML = [
-      ['Score', s.score.toLocaleString()], ['Flight time', `${mins}:${secs}`],
+      ['Score', s.score.toLocaleString()], ...(s.landed ? [['Landing bonus', `+${(s.landingBonus + s.hullBonus).toLocaleString()}`]] : []), ['Flight time', `${mins}:${secs}`],
       ['Distance flown', `${(s.distance / 1000).toFixed(2)} km`], ['Along the lane', `${(s.laneProgress / 1000).toFixed(2)} km`],
       ['Near misses', s.nearMisses], ['Best chain', s.bestChain], ['Repair beacons', s.gates],
       ['Rocks destroyed', s.rocksDestroyed], ['Blaster accuracy', s.shots ? `${Math.round((s.shotsHit / s.shots) * 100)}%` : '–'],
       ['Rock hits taken', s.hits], ['PIP rescues', s.pipRescues], ['Settlements passed', s.settlements ?? 0],
     ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
     setTimeout(() => { debrief.classList.add('on'); document.getElementById('again').focus(); }, 900);
-  });
+  };
+  run.on('death', showDebrief);
+  run.on('landed', showDebrief);
 
   // ---- Loop -----------------------------------------------------------
   let last = performance.now();

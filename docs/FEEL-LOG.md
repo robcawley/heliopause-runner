@@ -189,3 +189,24 @@ Rolls → automatic dodge rolls.
 
 To judge: does it feel like your ship's reflexes, or like the game playing itself? If it saves you
 too often, cut the charges (2) or the warning (0.25 s); if it rolls too late to help, raise the warning.
+
+## 2026-09-29 — Trips: take-off and landing
+
+Rob: "every run now needs a take off and a landing sequence; the average flight should take 2-3 mins."
+
+A run is now a trip between two named settlements, 10.5 km pad to pad (+/- 1.5 km). At cruise
+(70 m/s) that is about 2.5 minutes of flying; boosting brings it towards 2. The route and the
+distance left sit under the score.
+
+- Take-off (7 s, on rails): engines strain on the clamps, clamps release, the ship lifts off the
+  home pad to the lane's centre line and accelerates down the canyon to cruise. "You have the
+  stick" while still inside the town; the pilot flies out of the mouth.
+- Landing (about 15 s, on rails): docking control captures the ship 150 to 400 m in front of
+  either mouth of the destination's canyon, heading in, inside a funnel round its axis (60 m wide
+  at the near end, up to 150 m at the far end). It curves onto
+  the canyon line, slows through the town, hovers over the home pad and sets down. Overfly it
+  and you can turn round and come in from the other end.
+- Score: +1,000 for landing, plus up to +1,000 for hull left. The debrief reads "Landed at …".
+
+To judge: is 7 s of take-off too long on the tenth run (we could let a tap skip it)? Is the landing
+satisfying to watch, or should the pilot fly more of it (a pad to hit, a speed limit at the mouth)?

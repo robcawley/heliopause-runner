@@ -163,6 +163,36 @@ export function createShip(config) {
     group.quaternion.copy(s.quat).multiply(bankQ);
   };
 
+  // Take-off and landing fly the ship on rails: place it directly. The velocity comes from
+  // the move, so the flight model, the camera's head lag and the sound all carry on smoothly.
+  s.setPose = (pos, quat, vel, dt) => {
+    prevVel.copy(s.vel);
+    s.prevZ = s.pos.z;
+    s.distance += pos.distanceTo(s.pos);
+    s.pos.copy(pos);
+    s.quat.copy(quat);
+    axes();
+    s.vel.copy(vel);
+    s.base.copy(vel);
+    s.dodge.set(0, 0, 0);
+    s.speed = vel.length();
+    s.yawRate = s.pitchRate = s.rollRate = 0;
+    s.rollAngle = 0; s.rollTime = 0;
+    s.bank *= Math.exp(-6 * dt);
+    s.laneProgress = Math.max(s.laneProgress, -s.pos.z);
+    if (dt > 0) {
+      accel.copy(s.vel).sub(prevVel).divideScalar(Math.max(dt, 1e-4));
+      qInv.copy(s.quat).invert();
+      accel.applyQuaternion(qInv);
+      const ka = 1 - Math.exp(-12 * dt);
+      s.localAx += (accel.x - s.localAx) * ka;
+      s.localAy += (accel.y - s.localAy) * ka;
+    }
+    group.position.copy(s.pos);
+    bankQ.setFromAxisAngle(Z, s.bank);
+    group.quaternion.copy(s.quat).multiply(bankQ);
+  };
+
   s.reset();
   return s;
 }

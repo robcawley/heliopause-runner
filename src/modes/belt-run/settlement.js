@@ -150,15 +150,26 @@ export function createSettlement(config) {
     cables.push([0, y, z, S.canyonWidth + 24, 0.35, 0.35]);
     for (let x = -half + 4; x < half - 3; x += 7 + rand() * 4) neon.push([x, y - 0.9, z, 0.6, 0.6, 0.6, pal, rand() * 6.28]);
   }
+  // The home pad: where every trip takes off and lands, on the canyon floor
+  const HOME_Z = 120;
+  const homeY = FLOOR - floorNoise(0, HOME_Z) + 0.6;   // top of the pad
+  const PAD_REST = homeY + 2.6;                         // the ship's centre, sat on it
   // Landing pads on the floor
   for (let i = 0; i < 4; i++) {
     const x = (rand() - 0.5) * 36, z = -220 + i * 145 + rand() * 30;
+    if (Math.abs(z - HOME_Z) < 40) continue;          // leave room for the home pad
     const y = FLOOR - floorNoise(x, z) + 0.4, pal = Math.floor(rand() * 3), ph = rand() * 6.28;
     boxes.push({ min: new V3(x - 9, y - 1, z - 9), max: new V3(x + 9, y + 0.4, z + 9) });
     bodies.push([x, y - 0.3, z, 18, 1.4, 18]);
     neon.push([x, y + 0.5, z - 9, 18, 0.3, 0.3, pal, ph], [x, y + 0.5, z + 9, 18, 0.3, 0.3, pal, ph],
       [x - 9, y + 0.5, z, 0.3, 0.3, 18, pal, ph], [x + 9, y + 0.5, z, 0.3, 0.3, 18, pal, ph]);
   }
+  boxes.push({ min: new V3(-12, homeY - 1.2, HOME_Z - 12), max: new V3(12, homeY, HOME_Z + 12) });
+  bodies.push([0, homeY - 0.6, HOME_Z, 24, 1.2, 24]);
+  for (const [x, z, sx, sz] of [[0, HOME_Z - 12, 24, 0.5], [0, HOME_Z + 12, 24, 0.5], [-12, HOME_Z, 0.5, 24], [12, HOME_Z, 0.5, 24], [0, HOME_Z, 10, 0.35], [0, HOME_Z, 0.35, 10]]) {
+    neon.push([x, homeY + 0.3, z, sx, 0.3, sz, 0, 0]);
+  }
+  for (const [x, z] of [[-12, HOME_Z - 12], [12, HOME_Z - 12], [-12, HOME_Z + 12], [12, HOME_Z + 12]]) blinks.push([x, homeY + 0.8, z, 0.9, 0.3, 3.2, 0.6, 0]);
   // A lit frame at each canyon mouth: seen from far off, it shows you the way in
   for (const zs of [-1, 1]) {
     const z = zs * (MOUTH - 5), px = half - 14, top = 95;
@@ -264,9 +275,10 @@ export function createSettlement(config) {
   const qRot = new THREE.Quaternion(), qInv = new THREE.Quaternion();
   const local = new V3(), tmp = new V3(), nL = new V3(), nW = new V3(), q = new V3(), nn = new V3();
   let index = -1;
+  let route = null;          // a run's trip: { originZ, destZ, originName, destName, tilt }
   const api = { group, name: '', index: -1 };
 
-  const zAt = (k) => -(S.firstAt + k * S.spacing
+  const zAt = (k) => route ? (k === 0 ? route.originZ : route.destZ) : -(S.firstAt + k * S.spacing
     + (k === 0 ? 0 : (hash1(k * 7.31 + 0.5) - 0.5) * 2 * Math.min(S.jitter, S.spacing * 0.45)));
   const toLocal = (p, out) => out.copy(p).sub(group.position).applyQuaternion(qInv);
   const near = (p, extra) => Math.abs(p.z - group.position.z) < CLEAR + extra && Math.hypot(p.x, p.y) < CLEAR_R + extra;
@@ -283,11 +295,11 @@ export function createSettlement(config) {
     index = k;
     api.index = k;
     group.position.set(0, 0, zAt(k));
-    group.rotation.set(0, 0, k === 0 ? 0.1 : (hash1(k * 3.7 + 1.1) - 0.5) * 1.8);   // each town tilts its own way
+    group.rotation.set(0, 0, route && k === 1 ? route.tilt : k === 0 ? 0.1 : (hash1(k * 3.7 + 1.1) - 0.5) * 1.8);   // each town tilts its own way
     group.updateMatrixWorld(true);
     qRot.copy(group.quaternion);
     qInv.copy(qRot).invert();
-    api.name = NAMES[Math.floor(hash1(k * 5.13 + 2.2) * NAMES.length)];
+    api.name = route ? (k === 0 ? route.originName : route.destName) : NAMES[Math.floor(hash1(k * 5.13 + 2.2) * NAMES.length)];
     setPalette(PALETTES[k % PALETTES.length]);
   }
 
@@ -366,9 +378,45 @@ export function createSettlement(config) {
     return -1;
   };
 
+  // ---- A run's trip: take off from one town's pad, land on the other's ----
+  const FLIP = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+  api.names = NAMES;
+  api.HOME_Z = HOME_Z;
+  api.MOUTH = MOUTH;
+  api.setRoute = (r) => { route = r; index = -1; };
+  api.hasRoute = () => !!route;
+  api.destName = () => route?.destName ?? '';
+  // Metres along the lane to the destination pad
+  api.routeRemaining = (ship) => (route ? Math.abs(ship.pos.z - (route.destZ + HOME_Z)) : 0);
+  api.padRestY = PAD_REST;
+  // Where a ship sits on the current town's home pad; side -1 faces the other way (+z)
+  api.padPose = (pos, quat, side = 1) => {
+    pos.set(0, PAD_REST, HOME_Z).applyQuaternion(qRot).add(group.position);
+    quat.copy(qRot);
+    if (side < 0) quat.multiply(FLIP);
+    return pos;
+  };
+  api.toWorld = (v) => v.applyQuaternion(qRot).add(group.position);
+  api.townUp = (out) => out.set(0, 1, 0).applyQuaternion(qRot);
+  // Docking control's capture window, in front of either mouth of the destination's canyon:
+  // returns the side (+1 / -1) the ship is coming in from, or 0
+  api.captureSide = (ship) => {
+    if (!route || index !== 1) return 0;
+    toLocal(ship.pos, local);
+    const az = Math.abs(local.z);
+    if (az < MOUTH + 150 || az > MOUTH + 400) return 0;
+    // A funnel: the closer to the mouth, the nearer the canyon's line you must be, so the
+    // curve in never cuts through the lip of the rock
+    if (Math.hypot(local.x, local.y) > Math.min(150, 60 + (az - MOUTH - 150) * 0.5)) return 0;
+    const side = Math.sign(local.z);
+    tmp.copy(ship.vel).applyQuaternion(qInv);
+    return tmp.z * side < -5 ? side : 0;
+  };
+
   api.update = (ship, now = 0) => {
     let k = 0;
-    while (zAt(k) > ship.pos.z + PASS && k < 100000) k++;
+    const maxK = route ? 1 : 100000;           // on a trip there are only the two towns
+    while (zAt(k) > ship.pos.z + PASS && k < maxK) k++;
     if (k !== index) apply(k);
     const level = clamp01(1 - (Math.abs(ship.pos.z - group.position.z) - 250) / 700);
     lights.forEach((l) => { l.intensity = level * 6000; });

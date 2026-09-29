@@ -65,6 +65,15 @@ const TOWN_LINES = [
   'Settlement ahead: %. No-fire zone, so the guns will lock. Take the canyon.',
   '%, dead ahead. Keep it clean in the canyon; they do not forgive scratches.',
 ];
+// MICA, as the trip's destination comes up, and docking control taking over
+const ARRIVE_LINES = [
+  '% ahead. That is our stop. Line up on the canyon; docking control takes it from the mouth.',
+  'There she is: %. Bring us to the canyon mouth and docking control will set us down.',
+];
+const DOCK_LINES = [
+  '% docking control. We have you, pilot. Hands off the stick.',
+  'Docking control, %. Guidance locked. The home pad is yours.',
+];
 const clamp = THREE.MathUtils.clamp;
 
 export function createBeltRun({ engine, audio, hudParent = document.body, overrides } = {}) {
@@ -130,7 +139,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     paused: false,
     score: 0, chain: 0, chainTimer: 0,
     nearMisses: 0, hits: 0, bestChain: 0, gates: 0, rolls: 0, rocksDestroyed: 0, pipRescues: 0,
-    hull: config.hull.max, exposure: 0, deathCause: '', flightTime: 0,
+    hull: config.hull.max, exposure: 0, deathCause: '', flightTime: 0, tripTime: 0,
     wasOutside: false, alarmTimer: 0, micaCooldown: 0, micaTimer: 18, micaIdle: 0, wrongWayTime: 0,
     radFx: 0,
     phaseTime: 0, phaseCooldown: 0,
@@ -149,7 +158,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   };
 
   const stats = () => ({
-    score: g.score, distance: ship.distance, laneProgress: ship.laneProgress, time: g.flightTime,
+    score: g.score, distance: ship.distance, laneProgress: ship.laneProgress, time: g.tripTime,
+    hull: Math.round((g.hull / config.hull.max) * 100),
     nearMisses: g.nearMisses, bestChain: g.bestChain, gates: g.gates, hits: g.hits, rolls: g.rolls,
     rocksDestroyed: g.rocksDestroyed, shots: blasters.state.shots, shotsHit: blasters.state.hits, pipRescues: g.pipRescues, settlements: g.settlements,
     cause: g.deathCause, laneOffset: Math.max(0, Math.hypot(ship.pos.x, ship.pos.y) - config.lane.safeRadius),
@@ -361,6 +371,136 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     }
   }
 
+  // ---- Take-off and landing ------------------------------------------
+  // Every run is a trip from one settlement's home pad to another's. Both ends fly the
+  // ship on rails (modes 'takeoff', 'landing', then 'landed'); the pilot flies between.
+  const seq = {
+    t: 0, side: 1, T1: 0, T2: 0, vG: 60, lift: 0, cue: false, touched: false,
+    P0: new THREE.Vector3(), V0: new THREE.Vector3(), Q0: new THREE.Quaternion(), level: new THREE.Quaternion(),
+    G: new THREE.Vector3(), H: new THREE.Vector3(), R: new THREE.Vector3(), D: new THREE.Vector3(), U: new THREE.Vector3(),
+  };
+  const sPos = new THREE.Vector3(), sVel = new THREE.Vector3(), sDir = new THREE.Vector3();
+  const sM0 = new THREE.Vector3(), sM1 = new THREE.Vector3(), ZERO = new THREE.Vector3();
+  const sQ = new THREE.Quaternion(), sQ2 = new THREE.Quaternion(), sMat = new THREE.Matrix4();
+  const onRails = () => g.mode === 'takeoff' || g.mode === 'landing' || g.mode === 'landed';
+  const smooth01 = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+  // Cubic Hermite: from p0 (tangent m0) to p1 (tangent m1); tangents are velocity × duration
+  function hermite(out, p0, m0, p1, m1, s) {
+    const s2 = s * s, s3 = s2 * s;
+    return out.copy(p0).multiplyScalar(2 * s3 - 3 * s2 + 1).addScaledVector(m0, s3 - 2 * s2 + s)
+      .addScaledVector(p1, -2 * s3 + 3 * s2).addScaledVector(m1, s3 - s2);
+  }
+  function lookAlong(out, dir, up) {
+    if (dir.lengthSq() < 1e-8) return out;
+    sMat.lookAt(ZERO, dir, up);
+    return out.setFromRotationMatrix(sMat);
+  }
+  function placeShip(pos, quat, dt) {
+    sVel.copy(pos).sub(ship.pos).divideScalar(Math.max(dt, 1e-4));
+    ship.setPose(pos, quat, sVel, dt);
+  }
+  function newRoute() {
+    const R = config.run, names = settlement.names;
+    const distance = Math.max(1500, R.distance + (Math.random() * 2 - 1) * R.distanceJitter);
+    const a = Math.floor(Math.random() * names.length);
+    let b = Math.floor(Math.random() * (names.length - 1));
+    if (b >= a) b++;
+    return {
+      originZ: -settlement.HOME_Z,                 // puts the take-off pad at z = 0
+      destZ: -distance - settlement.HOME_Z,        // and the landing pad `distance` down the lane
+      originName: names[a], destName: names[b], tilt: (Math.random() - 0.5) * 1.6,
+    };
+  }
+
+  function beginTakeoff() {
+    g.mode = 'takeoff';
+    seq.t = 0;
+    seq.cue = false;
+    settlement.padPose(seq.P0, seq.Q0, 1);
+    settlement.townUp(seq.U);
+    seq.D.set(0, 0, -1).applyQuaternion(seq.Q0);
+    seq.lift = clamp(-settlement.padRestY, 20, 80);   // up to the lane's centre line
+    ship.setPose(seq.P0, seq.Q0, ZERO, 0);
+    g.inSettlement = true;
+    hud.showZone(settlement.name, 'Departure \u00b7 clamps on', 4);
+  }
+  // Spool on the clamps, lift off the pad, then accelerate down the canyon to cruise
+  function runTakeoff(dt) {
+    const T = config.run.takeoffTime;
+    seq.t += dt;
+    const t = seq.t, accelTime = 3.6, a = config.flight.cruiseSpeed / accelTime;
+    const tau = Math.max(0, t - (T - accelTime));
+    sPos.copy(seq.P0).addScaledVector(seq.U, seq.lift * smooth01((t - 1.4) / 2.4)).addScaledVector(seq.D, 0.5 * a * tau * tau);
+    if (t < 1.4) sPos.addScaledVector(seq.U, Math.sin(t * 60) * 0.04 * t);   // straining at the clamps
+    placeShip(sPos, seq.Q0, dt);
+    if (!seq.cue && t > 1.4) { seq.cue = true; hud.callout('Clamps released', 1); sfx.impact(false); rig.addTrauma(0.15); }
+    if (t >= T) {
+      g.mode = 'flying';
+      hud.callout('You have the stick', 1, true);
+    }
+  }
+
+  function beginLanding(side) {
+    g.mode = 'landing';
+    seq.t = 0;
+    seq.side = side;
+    seq.touched = false;
+    setThrottle(false, false);
+    pip.reset();
+    seq.P0.copy(ship.pos);
+    seq.V0.copy(ship.vel);
+    seq.Q0.copy(ship.quat);
+    settlement.townUp(seq.U);
+    settlement.padPose(seq.R, seq.level, side);                 // sat on the pad, facing along the approach
+    seq.D.set(0, 0, -1).applyQuaternion(seq.level);
+    settlement.toWorld(seq.G.set(0, 0, side * (settlement.MOUTH + 80)));   // on the canyon line, clear of the rock
+    seq.H.copy(seq.R).addScaledVector(seq.U, 12);              // hover over the pad
+    const distB = seq.G.distanceTo(seq.H);
+    seq.vG = clamp(distB / 3, 45, 100);
+    seq.T2 = (2 * distB) / seq.vG;
+    seq.T1 = clamp((2 * seq.P0.distanceTo(seq.G)) / (seq.V0.length() + seq.vG), 2, 9);
+    hud.showZone(settlement.name, 'Docking control has you', 5);
+    hud.say('Dock', pick(DOCK_LINES).replace('%', settlement.name), 5);
+    g.micaCooldown = 8;
+  }
+  // Curve onto the canyon line, slow through the town, hover over the pad, set down
+  function runLanding(dt) {
+    seq.t += dt;
+    const t = seq.t, T1 = seq.T1, T2 = seq.T2, T3 = 2.8;
+    if (t < T1) {
+      hermite(sPos, seq.P0, sM0.copy(seq.V0).multiplyScalar(T1), seq.G, sM1.copy(seq.D).multiplyScalar(seq.vG * T1), t / T1);
+      lookAlong(sQ2, sDir.copy(sPos).sub(ship.pos), seq.U);
+      sQ.slerpQuaternions(seq.Q0, sQ2, smooth01(t / 0.8));
+    } else if (t < T1 + T2) {
+      const s = (t - T1) / T2;
+      hermite(sPos, seq.G, sM0.copy(seq.D).multiplyScalar(seq.vG * T2), seq.H, ZERO, s);
+      lookAlong(sQ2, sDir.copy(sPos).sub(ship.pos), seq.U);
+      sQ.copy(sQ2).slerp(seq.level, smooth01(s * 1.3));
+    } else if (t < T1 + T2 + T3) {
+      sPos.lerpVectors(seq.H, seq.R, smooth01((t - T1 - T2) / T3));
+      sQ.copy(seq.level);
+    } else {
+      sPos.copy(seq.R);
+      sQ.copy(seq.level);
+      if (!seq.touched) {
+        seq.touched = true;
+        sfx.impact(false);
+        rig.addTrauma(0.3);
+        hud.callout('Touchdown', 1, true);
+      }
+    }
+    placeShip(sPos, sQ, dt);
+    if (seq.touched && g.mode === 'landing' && t > T1 + T2 + T3 + 1.4) finishLanding();
+  }
+  function finishLanding() {
+    g.mode = 'landed';
+    const landingBonus = config.run.landingBonus;
+    const hullBonus = Math.round((g.hull / config.hull.max) * config.run.hullBonus);
+    g.score += landingBonus + hullBonus;
+    hud.callout(`Landed +${(landingBonus + hullBonus).toLocaleString()}`, -1, true);
+    events.emit('landed', { ...stats(), landed: true, destination: settlement.name, landingBonus, hullBonus });
+  }
+
   // ---- Lifecycle ------------------------------------------------------
   function resetWorld(mode) {
     g = fresh(mode);
@@ -370,7 +510,9 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     shards.clear();
     blasters.reset();
     pip.reset();
+    settlement.setRoute(mode === 'flying' ? newRoute() : null);
     settlement.reset(ship);
+    if (mode === 'flying') beginTakeoff();
     rocks.init(ship);
     debris.reset(ship);
     traffic.reset(ship);
@@ -415,11 +557,14 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     } else if (g.mode === 'dead') steer = deadStick;
     else if (pip.driving) steer = pip.stick;
 
-    ship.update(realDt, dt, steer);
+    if (g.mode === 'takeoff') runTakeoff(dt);
+    else if (g.mode === 'landing' || g.mode === 'landed') runLanding(dt);
+    else ship.update(realDt, dt, steer);
+
 
     // Settlements: the canyon is solid rock, and inside the dock limits the guns are jammed
     settlement.update(ship, now);
-    const contact = settlement.collide(ship);
+    const contact = onRails() ? null : settlement.collide(ship);
     g.wallCooldown = Math.max(0, g.wallCooldown - realDt);
     if (contact && g.mode === 'flying' && g.wallCooldown <= 0) {
       g.wallCooldown = 0.6;
@@ -455,10 +600,13 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
           if (!g.jamWarned) { g.jamWarned = true; hud.callout('Blasters jammed', 1); }
         }
       } else g.jamClick = 0;
+      // Docking control takes over in front of the destination's canyon
+      const dockSide = settlement.captureSide(ship);
+      if (dockSide) beginLanding(dockSide);
       const ahead = settlement.distanceAhead(ship);
       if (ahead > 0 && ahead < 1600 && g.townAnnounced !== settlement.index) {
         g.townAnnounced = settlement.index;
-        hud.say('MICA', pick(TOWN_LINES).replace('%', settlement.name), 6);
+        hud.say('MICA', pick(settlement.hasRoute() && settlement.index === 1 ? ARRIVE_LINES : TOWN_LINES).replace('%', settlement.name), 6);
         g.micaCooldown = 6;
         g.micaTimer = Math.max(g.micaTimer, 18);
       }
@@ -470,6 +618,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     lane.update(ship, now);
     sunFollow();
     if (g.mode === 'flying') g.flightTime += dt;
+    if (g.mode === 'flying' || g.mode === 'takeoff' || g.mode === 'landing') g.tripTime += dt;
 
     // ---- The beacon lane: radiation outside, repair near the centre ----
     const L = config.lane, R = config.radiation;
@@ -551,9 +700,9 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     post.uniforms.fade.value = g.fade;
     renderer.toneMappingExposure = config.fx.exposure;
 
-    if (g.mode === 'flying') sfx.update(ship.speed, ship.yawRate / config.flight.yawRate);
+    if (g.mode === 'flying' || g.mode === 'takeoff' || g.mode === 'landing') sfx.update(ship.speed, ship.yawRate / config.flight.yawRate);
     else sfx.silence();
-    sfx.ambience(g.mode === 'flying' ? settlement.proximity(ship.pos) : 0);
+    sfx.ambience(g.mode === 'flying' || onRails() ? settlement.proximity(ship.pos) : 0);
     audio.update();
 
     // MICA, occasionally, when nothing else is going on
@@ -598,6 +747,15 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       }
     }
     if (!dockShown) hud.setDock({ show: false });
+
+    // The trip, under the score
+    let routeText = '';
+    if (settlement.hasRoute()) {
+      if (g.mode === 'takeoff') routeText = `Departing ${settlement.name}`;
+      else if (g.mode === 'landing' || g.mode === 'landed') routeText = `Docking at ${settlement.name}`;
+      else if (g.mode === 'flying') routeText = `To ${settlement.destName()} \u00b7 ${(settlement.routeRemaining(ship) / 1000).toFixed(1)} km`;
+    }
+    hud.setRoute(routeText);
 
     let trafficShown = false, trafficDistance = 300;
     if (g.mode === 'flying') for (const courier of traffic.ships) {
