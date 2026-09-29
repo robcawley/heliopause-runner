@@ -40,9 +40,9 @@ export function createHud(parent) {
     <div class="hud-pip"><span class="hud-pip-key">R</span><span class="hud-pip-text"></span></div>
     <div class="hud-hint"></div>
     <div class="hud-touch-buttons">
-      <button class="hud-btn roll-left" type="button" aria-label="Barrel roll left">↶</button>
+      <button class="hud-btn roll-left" type="button" aria-label="Barrel roll left"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg><span class="lbl">Roll</span></button>
       <button class="hud-btn phase" type="button" aria-label="Phase drive">Phase</button>
-      <button class="hud-btn roll-right" type="button" aria-label="Barrel roll right">↷</button>
+      <button class="hud-btn roll-right" type="button" aria-label="Barrel roll right"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span class="lbl">Roll</span></button>
       <button class="hud-btn fire" type="button" aria-label="Fire blasters">Fire</button>
       <button class="hud-btn pip" type="button" aria-label="Call PIP">PIP</button>
       <button class="hud-btn boost" type="button" aria-label="Hold to boost">Boost</button>
@@ -51,6 +51,11 @@ export function createHud(parent) {
     <button class="hud-touch-pause" type="button" aria-label="Pause game">Ⅱ</button>
   `;
   const $ = (s) => root.querySelector(s);
+  // Touch buttons light up while held, so a thumb can feel where it landed
+  for (const b of root.querySelectorAll('.hud-btn, .hud-touch-pause')) {
+    b.addEventListener('pointerdown', () => b.classList.add('down'));
+    for (const ev of ['pointerup', 'pointercancel', 'pointerleave', 'lostpointercapture']) b.addEventListener(ev, () => b.classList.remove('down'));
+  }
   const scoreEl = $('.hud-score-value');
   const hullMeter = $('.hud-meter.hull'), hullFill = $('.hull .hud-meter-fill');
   const radMeter = $('.hud-meter.rad'), radFill = $('.rad .hud-meter-fill');
@@ -92,6 +97,11 @@ export function createHud(parent) {
       zoneRule.textContent = rule;
       zone.classList.add('on');
       zoneTimer = seconds;
+    },
+    // Latched touch throttle: Boost or Brake stays lit while it is on
+    setThrottle(boost, brake) {
+      $('.hud-btn.boost').classList.toggle('on', boost);
+      $('.hud-btn.brake').classList.toggle('on', brake);
     },
     // The canyon-mouth marker: { show, x, y (px), label }
     setDock(d) {

@@ -166,3 +166,69 @@ body.paused .hud-touch-buttons, body.paused .hud-touch-pause { display: none; }
 .hud-meter.heat.jammed .hud-meter-label { color: var(--beacon); }
 .hud-meter.heat.jammed .hud-meter-track { background-image: repeating-linear-gradient(45deg, rgba(255, 107, 79, .5) 0 4px, transparent 4px 8px); }
 @media (prefers-reduced-motion: reduce) { .hud-zone { transition: none; } }
+
+/* ---- Touch controls -------------------------------------------------------------------
+   The left thumb steers anywhere on the left of the screen. The right thumb rests on Fire,
+   in the corner, with the other actions on an arc around it: Phase to its left, the two
+   rolls above (left roll on the left), PIP at the top, and the latching Boost/Brake pair
+   beyond Phase. Nothing overlaps and every target is at least 44 px. */
+@media (pointer: coarse) {
+  .hud-touch-buttons { display: block; width: 262px; height: 252px; max-width: none; right: max(10px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); }
+  .hud-touch-buttons .hud-btn {
+    position: absolute; display: grid; place-items: center; align-content: center; padding: 0;
+    font-size: .8rem; font-weight: 600; letter-spacing: .02em; -webkit-user-select: none; user-select: none;
+    backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+    transition: transform .06s, background-color .08s, box-shadow .08s;
+  }
+  .hud-btn.fire { width: 92px; height: 92px; right: 0; bottom: 0; font-size: 1rem; }
+  .hud-btn.phase { width: 66px; height: 66px; right: 118px; bottom: 12px; }
+  .hud-btn.roll-left { width: 56px; height: 56px; right: 92px; bottom: 98px; }
+  .hud-btn.roll-right { width: 56px; height: 56px; right: 18px; bottom: 124px; }
+  .hud-btn.pip { width: 46px; height: 46px; right: 23px; bottom: 202px; font-size: .72rem; }
+  .hud-btn.boost, .hud-btn.brake { width: 60px; height: 40px; right: 200px; border-radius: 10px; font-size: .74rem; }
+  .hud-btn.boost { bottom: 58px; }
+  .hud-btn.brake { bottom: 10px; }
+  .hud-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .hud-btn .lbl { font-size: .6rem; font-weight: 500; opacity: .85; line-height: 1; margin-top: 1px; }
+  .hud-btn.down { transform: scale(.92); background-color: rgba(79, 214, 200, .38); box-shadow: 0 0 18px rgba(79, 214, 200, .6); }
+  .hud-btn.fire.down { background-color: rgba(255, 107, 79, .45); box-shadow: 0 0 22px rgba(255, 107, 79, .7); }
+  .hud-btn.boost.on { background-color: rgba(255, 212, 154, .5); color: var(--deep); box-shadow: 0 0 16px rgba(255, 212, 154, .7); }
+  .hud-btn.brake.on { background-color: rgba(79, 214, 200, .5); color: var(--deep); box-shadow: 0 0 16px rgba(79, 214, 200, .7); }
+  .hud-touch-pause { width: 44px; height: 44px; right: max(12px, env(safe-area-inset-right)); }
+  .hud-touch-pause.down { background: rgba(79, 214, 200, .35); }
+  .hud-dev { display: none; }
+}
+
+/* Phone upright: a compact status block top left, the mission card top right under pause,
+   and MICA's line and the hints up in the sky, clear of both thumbs */
+@media (pointer: coarse) and (orientation: portrait) {
+  .hud-status { left: 14px; width: 158px; gap: 4px; }
+  .hud-score-value { font-size: 1.55rem; }
+  .hud-score-label { font-size: .68rem; margin-top: 2px; }
+  .hud-meter, .hud-rolls { grid-template-columns: 3.9rem 1fr; gap: 6px; }
+  .hud-meter-label { font-size: .7rem; }
+  .hud-mission { top: calc(max(16px, env(safe-area-inset-top)) + 54px); bottom: auto; right: 12px; left: auto; width: 150px; padding: 8px 10px; }
+  .hud-mission-title { font-size: .62rem; margin-bottom: 4px; }
+  .hud-mission-item { font-size: .64rem; margin-top: 3px; gap: 5px; }
+  .hud-warning { top: 23%; font-size: 1.1rem; }
+  .hud-zone { top: 19%; }
+  .hud-zone-name { font-size: 1.3rem; }
+  .hud-comms { top: 29%; bottom: auto; left: 14px; right: 14px; transform: none; max-width: none; font-size: .88rem; }
+  .hud-hint { top: 38%; font-size: .82rem; max-width: 88vw; }
+  .hud-pip { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 262px); right: 12px; font-size: .82rem; }
+}
+
+/* Phone sideways: status and mission stacked on the left, PIP's card top right,
+   MICA's line and the hints bottom centre between the two thumbs */
+@media (pointer: coarse) and (orientation: landscape) {
+  .hud-status { top: max(10px, env(safe-area-inset-top)); left: max(16px, env(safe-area-inset-left)); width: 176px; gap: 4px; }
+  .hud-score-value { font-size: 1.6rem; }
+  .hud-score-label { font-size: .7rem; margin-top: 2px; }
+  .hud-meter-label { font-size: .72rem; }
+  .hud-mission { top: calc(max(10px, env(safe-area-inset-top)) + 138px); bottom: auto; left: max(16px, env(safe-area-inset-left)); right: auto; width: 176px; padding: 7px 10px; }
+  .hud-mission-title { font-size: .62rem; margin-bottom: 4px; }
+  .hud-mission-item { font-size: .64rem; margin-top: 3px; }
+  .hud-comms { bottom: max(12px, env(safe-area-inset-bottom)); max-width: max(240px, calc(100vw - 600px)); font-size: .88rem; }
+  .hud-hint { top: auto; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 74px); max-width: max(240px, calc(100vw - 600px)); font-size: .82rem; }
+  .hud-pip { top: max(10px, env(safe-area-inset-top)); bottom: auto; right: calc(max(10px, env(safe-area-inset-right)) + 60px); font-size: .82rem; }
+}

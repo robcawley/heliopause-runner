@@ -18,6 +18,8 @@ export const DEFAULTS = {
     mouseRecentre: 1.1,      // captured mouse: how fast the stick eases back to centre (0 = never)
     stickRadius: 0.3,        // mouse: pointer distance from centre (share of the short screen side) for full deflection
     touchStickRadius: 70,    // touch: drag distance in px for full deflection
+    touchThrottleLatch: true, // touch: Boost and Brake are taps that stay on (tap again, or tap the other, to stop),
+                              // so the right thumb never has to hold one down while it holds Fire
     deadzone: 0.04,
     stickCurve: 1.35,        // >1 gives finer control near the centre
     doubleTap: 0.24,

@@ -40,6 +40,7 @@ export function createTuning(config, { onResize } = {}) {
     ['stickCurve', 0.5, 3, 0.05, 'centre precision'],
     ['deadzone', 0, 0.3, 0.01],
     ['touchStickRadius', 30, 160, 1],
+    ['touchThrottleLatch', 'touch boost/brake latch'],
     ['doubleTapSteerKeys', 'dodge on A / D double-tap'],
   ]);
   folder('Blasters', config.blasters, [

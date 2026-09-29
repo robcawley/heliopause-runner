@@ -331,16 +331,39 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   tap(hud.buttons.rollRight, () => tryRoll(1));
   tap(hud.buttons.pip, callPip);
   tap(hud.buttons.pause, () => events.emit('request', 'pause'));
-  hud.buttons.fire.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); input.setTouchFire(true); });
-  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) hud.buttons.fire.addEventListener(ev, () => input.setTouchFire(false));
-  for (const [button, setter] of [[hud.buttons.boost, input.setTouchBoost], [hud.buttons.brake, input.setTouchBrake]]) {
-    button.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); button.setPointerCapture(e.pointerId); setter(true); });
-    for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(ev, () => setter(false));
+  // Fire holds while the thumb stays down, even if it drifts off the button
+  hud.buttons.fire.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); hud.buttons.fire.setPointerCapture(e.pointerId); input.setTouchFire(true); });
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) hud.buttons.fire.addEventListener(ev, () => input.setTouchFire(false));
+  // Boost and brake: latching taps by default (config.input.touchThrottleLatch), so the right
+  // thumb never has to hold one while it is holding Fire. Held buttons when the latch is off.
+  let latchBoost = false, latchBrake = false;
+  function setThrottle(boost, brake) {
+    latchBoost = boost;
+    latchBrake = brake;
+    input.setTouchBoost(boost);
+    input.setTouchBrake(brake);
+    hud.setThrottle(boost, brake);
+  }
+  for (const [button, which] of [[hud.buttons.boost, 'boost'], [hud.buttons.brake, 'brake']]) {
+    button.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (config.input.touchThrottleLatch) {
+        if (which === 'boost') setThrottle(!latchBoost, false); else setThrottle(false, !latchBrake);
+      } else {
+        button.setPointerCapture(e.pointerId);
+        setThrottle(which === 'boost', which === 'brake');
+      }
+    });
+    for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+      button.addEventListener(ev, () => { if (!config.input.touchThrottleLatch) setThrottle(false, false); });
+    }
   }
 
   // ---- Lifecycle ------------------------------------------------------
   function resetWorld(mode) {
     g = fresh(mode);
+    setThrottle(false, false);
     ship.reset();
     rig.reset();
     shards.clear();
@@ -652,6 +675,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     pause(p) {
       if (g.mode === 'dead') return;
       input.clearActions();          // presses made on the pause screen never fire on resume
+      setThrottle(false, false);
       g.paused = p;
       if (p) hud.setHint('');
       p ? audio.suspend() : audio.resume();

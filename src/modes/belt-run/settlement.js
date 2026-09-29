@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu';
 import {
-  Fn, vec3, float, uniform, uv, positionLocal, instancedBufferAttribute,
+  Fn, vec3, uniform, uv, positionLocal, instancedBufferAttribute,
   floor, fract, hash, mix, step, abs, smoothstep, sin, time, saturate, mx_noise_float,
 } from 'three/tsl';
 

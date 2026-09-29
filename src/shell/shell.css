@@ -97,3 +97,7 @@ body[data-controls="gamepad"] .pause-hint.controls-gamepad, body[data-controls="
 /* Hide the mode HUD behind the title and debrief screens */
 body:has(#title:not(.gone)) .belt-hud > *:not(.hud-dev),
 body:has(#debrief.on) .belt-hud > * { opacity: 0; visibility: hidden; }
+
+/* Touch: a held thumb must never select text, open a callout or zoom the page */
+html, body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+input, textarea, select, .lil-gui { -webkit-user-select: text; user-select: text; }

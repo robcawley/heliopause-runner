@@ -146,3 +146,22 @@ A code-level QA found ten places where the game broke its own promises. Fixed:
 Checked headlessly against the real flight, rock and blaster code (all pass). Still to judge by hand:
 does converging on the target make the guns feel too easy at range? Does PIP's automatic phase read
 as competent or as a cheat? Is 45 the right ceiling for a giant?
+
+## 2026-09-29 — Phone controls: a thumb arc
+
+Rob's first phone run (iPhone, portrait) was a mess: the seven touch buttons were flex-wrapped
+into a 205 px box, so Phase and both rolls overlapped and Fire sat mid-cluster; iOS started
+text selection on a held thumb; MICA's line and the hints sat on top of the buttons; and
+Boost/Brake had to be held by the same thumb that holds Fire.
+
+Changes: Fire in the corner (92 px) with Phase, the rolls (proper icons), PIP and Boost/Brake
+on an arc around it, none overlapping, all 44 px or more, each lighting up when pressed. Fire
+keeps firing if the thumb drifts off it. Boost and Brake latch by default (tap on, tap again or
+tap the other to stop; tuning panel: Stick → touch boost/brake latch). Text selection, callout
+menus and pinch-zoom are off. Portrait and landscape each get their own HUD layout, with the
+comms line and hints kept clear of both thumbs.
+
+To judge on the phone:
+- Does Fire in the corner with Phase to its left feel natural, or should Phase and Fire swap?
+- Latching Boost/Brake: freeing, or do you forget they are on?
+- Portrait or landscape: is portrait worth supporting properly, or should we ask for landscape?

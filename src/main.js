@@ -36,7 +36,11 @@ async function boot() {
   if (navigator.getGamepads?.().some((pad) => pad?.connected)) document.body.dataset.controls = 'gamepad';
   run.on('device', (device) => { document.body.dataset.controls = device; });
   window.addEventListener('gamepadconnected', () => { document.body.dataset.controls = 'gamepad'; });
-  window.addEventListener('gamepaddisconnected', () => { document.body.dataset.controls = matchMedia('(pointer: coarse)').matches ? 'touch' : 'keyboard'; });
+  // Touch: a held thumb must never select text, open a callout menu or pinch-zoom the page
+for (const ev of ['selectstart', 'contextmenu', 'gesturestart']) {
+  document.addEventListener(ev, (e) => { if (!e.target.closest?.('input, textarea, select, .lil-gui')) e.preventDefault(); }, { passive: false });
+}
+window.addEventListener('gamepaddisconnected', () => { document.body.dataset.controls = matchMedia('(pointer: coarse)').matches ? 'touch' : 'keyboard'; });
 
   const tuning = createTuning(run.config, { onResize: engine.resize });
 
