@@ -51,6 +51,9 @@ export const DEFAULTS = {
   },
 
   roll: {
+    auto: true,              // dodge rolls happen by themselves just before a rock would hit: no roll
+                             // buttons, no roll meter, no double-tap (holding Q / E still banks)
+    autoLookahead: 0.35,     // seconds of warning the auto-roll acts on
     charges: 3,
     recharge: 2.0,           // seconds per charge
     duration: 0.4,

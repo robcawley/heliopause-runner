@@ -232,3 +232,9 @@ body.paused .hud-touch-buttons, body.paused .hud-touch-pause { display: none; }
   .hud-hint { top: auto; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 74px); max-width: max(240px, calc(100vw - 600px)); font-size: .82rem; }
   .hud-pip { top: max(10px, env(safe-area-inset-top)); bottom: auto; right: calc(max(10px, env(safe-area-inset-right)) + 60px); font-size: .82rem; }
 }
+
+/* Automatic rolls: no roll buttons, so PIP drops into the gap above Fire */
+@media (pointer: coarse) {
+  .hud-touch-buttons.no-rolls { height: 176px; }
+  .hud-touch-buttons.no-rolls .hud-btn.pip { right: 23px; bottom: 116px; }
+}

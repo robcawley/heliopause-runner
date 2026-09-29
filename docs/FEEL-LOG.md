@@ -177,3 +177,15 @@ gives a full-rate turn. Mouse, keyboard and gamepad are unchanged.
 
 To judge: still twitchy → raise touch reach (100–110) or the curve (1.8); now sluggish → lower the
 smoothing first (0.03), then the curve.
+
+## 2026-09-29 — Automatic dodge rolls
+
+Rob: "we don't need roll or roll UI, it should happen automatically." Barrel-roll dodges now fire by
+themselves when a rock is predicted to hit within 0.35 s (the same prediction PIP uses), rolling
+away from it, one roll per threat. They still spend the 3 recharging charges, now invisible: when
+all three are spent you take the hit. The roll buttons, the Rolls meter and the double-tap Q / E /
+bumper dodges are gone; holding Q / E or a bumper still banks the wings. Toggle: tuning panel →
+Rolls → automatic dodge rolls.
+
+To judge: does it feel like your ship's reflexes, or like the game playing itself? If it saves you
+too often, cut the charges (2) or the warning (0.25 s); if it rolls too late to help, raise the warning.

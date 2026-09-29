@@ -41,7 +41,7 @@ robcawley.com. Not doing that yet.
 | Fire blasters | Left click, F, gamepad right trigger, Fire button (touch) |
 | PIP (fly me home) | R, gamepad Y, PIP button (touch). Press again or push the stick hard to take over. |
 | Roll | Hold Q / E or gamepad LB / RB. Let go and the wings ease back to level (tunable). |
-| Barrel roll | Double-tap Q or E (A / D too, if switched on under Stick in the tuning panel); double-tap a bumper; tap ↶ / ↷ on touch. Three charges. |
+| Barrel roll | Automatic: the ship rolls clear of a rock a split second before it would hit (three recharging charges, then you take the hit). Manual rolls come back if you switch off Rolls → automatic dodge rolls in the tuning panel. |
 | Boost / brake | Shift / X, gamepad B or X / left trigger, hold Boost / Brake on touch |
 | Phase drive | Space, second finger or Phase button (touch), gamepad A |
 | Tuning panel | T |

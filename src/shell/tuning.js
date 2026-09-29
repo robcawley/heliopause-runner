@@ -62,6 +62,8 @@ export function createTuning(config, { onResize } = {}) {
     ['overrideStick', 0.2, 1, 0.05, 'stick to take over'],
   ]);
   folder('Rolls', config.roll, [
+    ['auto', 'automatic dodge rolls'],
+    ['autoLookahead', 0.1, 0.8, 0.01, 'auto-roll warning (s)'],
     ['charges', 1, 6, 1],
     ['recharge', 0.2, 8, 0.1],
     ['duration', 0.2, 1, 0.01],

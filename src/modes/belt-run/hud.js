@@ -154,7 +154,12 @@ export function createHud(parent) {
       radMeter.classList.toggle('on', frac > 0.01);
       radMeter.classList.toggle('high', frac > 0.6);
     },
-    setRolls(charges, max) {
+    setRolls(charges, max, show = true) {
+      // Automatic rolls need no meter and no buttons
+      pipsEl.parentElement.style.display = show ? '' : 'none';
+      $('.hud-btn.roll-left').style.display = show ? '' : 'none';
+      $('.hud-btn.roll-right').style.display = show ? '' : 'none';
+      $('.hud-touch-buttons').classList.toggle('no-rolls', !show);
       const full = Math.floor(charges);
       if (full !== pipCount || pipsEl.children.length !== max) {
         pipCount = full;

@@ -134,7 +134,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     wasOutside: false, alarmTimer: 0, micaCooldown: 0, micaTimer: 18, micaIdle: 0, wrongWayTime: 0,
     radFx: 0,
     phaseTime: 0, phaseCooldown: 0,
-    missionComplete: false, giantWarned: false,
+    missionComplete: false, giantWarned: false, autoRollWait: 0,
     settlements: 0, inSettlement: false, jamWarned: false, jamClick: 0, wallCooldown: 0, townAnnounced: -1,
     hitStop: 0, slowmo: 0, slowmoScale: 1, timeScale: 1,
     aberrationKick: 0, hitFlash: 0, phaseFx: 0, fade: 0,
@@ -318,11 +318,12 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   }
 
   function tryRoll(dir) {
-    if (g.mode !== 'flying' || !ship.tryRoll(dir)) return;
+    if (g.mode !== 'flying' || !ship.tryRoll(dir)) return false;
     g.rolls++;
     sfx.roll(dir, config.roll.duration);
     rig.addTrauma(0.12);
     g.aberrationKick += 0.25;
+    return true;
   }
 
   const tap = (el, fn) => el.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); fn(); });
@@ -394,8 +395,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     if (input.consume('confirm')) events.emit('request', 'confirm');
     if (g.paused) { input.clearActions(); post.render(); return; }
     if (input.consume('phase') && modeAtInput === 'flying') tryPhase();
-    if (input.consume('rollLeft')) tryRoll(-1);
-    if (input.consume('rollRight')) tryRoll(1);
+    if (input.consume('rollLeft') && !config.roll.auto) tryRoll(-1);
+    if (input.consume('rollRight') && !config.roll.auto) tryRoll(1);
     if (input.consume('droid')) callPip();
 
     // Time: hit-stop freezes the world, slow-mo eases back
@@ -476,13 +477,14 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     const outside = laneDist - L.safeRadius;
     pip.update(realDt, ship, laneDist, g.mode === 'flying', input.state);
 
-    // PIP must never fly you into a rock: on a predicted hit it phases through, or
-    // barrel-rolls away from it if the phase drive is still recharging
-    if (pip.driving && g.mode === 'flying' && g.phaseTime <= 0) {
-      const threat = rocks.predictHit(ship, 0.35);
+    // Dodging: on a predicted hit the ship barrel-rolls away by itself (config.roll.auto), as long
+    // as it has a roll charge. PIP, when it is flying, phases through first if the drive is ready.
+    g.autoRollWait = Math.max(0, g.autoRollWait - realDt);
+    if (g.mode === 'flying' && g.phaseTime <= 0 && g.autoRollWait <= 0 && (pip.driving || config.roll.auto)) {
+      const threat = rocks.predictHit(ship, pip.driving ? 0.35 : config.roll.autoLookahead);
       if (threat) {
-        if (g.phaseCooldown <= 0) { tryPhase(); sfx.chirp('drive'); }
-        else tryRoll(threat.side > 0 ? -1 : 1);
+        if (pip.driving && g.phaseCooldown <= 0) { tryPhase(); sfx.chirp('drive'); }
+        else if (tryRoll(threat.side > 0 ? -1 : 1)) g.autoRollWait = config.roll.duration + 0.1;   // one roll per threat
       }
     }
     g.micaCooldown = Math.max(0, g.micaCooldown - realDt);
@@ -612,7 +614,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
 
     hud.setHull(g.hull / config.hull.max);
     hud.setRadiation(g.exposure / 100);
-    hud.setRolls(ship.rollCharges, config.roll.charges);
+    hud.setRolls(ship.rollCharges, config.roll.charges, !config.roll.auto);
     hud.setStick(g.mode === 'flying' && input.state.device === 'touch' ? input.state.touchStick : null);
     hud.setMouseStick(g.mode === 'flying' && !pip.driving ? input.state.mouseStick : null);
     hud.setHeat(blasters.state.heat / 100, blasters.state.overheated, jammed && g.mode === 'flying');
@@ -628,7 +630,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     if (!wantsCapture && g.mode === 'flying') {
       if (g.flightTime < 6) tutorial = touch ? 'Drag on the left to steer. Hold FIRE to shoot.' : input.state.device === 'gamepad' ? 'Left stick steers. Right trigger fires.' : 'Steer with the mouse or WASD. Hold click or F to fire.';
       else if (g.flightTime < 12) tutorial = touch ? 'Hold BOOST for speed; use PHASE to pass through rocks.' : input.state.device === 'gamepad' ? 'A phases through rocks. B or X boosts; left trigger brakes.' : 'Space phases through danger. Shift boosts; X brakes.';
-      else if (g.flightTime < 18) tutorial = touch ? 'Tap ↶ or ↷ to dodge sideways.' : input.state.device === 'gamepad' ? 'Hold bumpers to roll; double-tap to dodge.' : 'Double-tap Q or E for a barrel roll.';
+      else if (g.flightTime < 18) tutorial = config.roll.auto ? 'Your ship rolls clear of rocks by itself. Close calls still score.' : touch ? 'Tap ↶ or ↷ to dodge sideways.' : input.state.device === 'gamepad' ? 'Hold bumpers to roll; double-tap to dodge.' : 'Double-tap Q or E for a barrel roll.';
     }
     hud.setHint(wantsCapture ? 'Click the view to take the controls. Esc releases the mouse.' : tutorial);
 
