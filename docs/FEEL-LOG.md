@@ -70,3 +70,24 @@ Also: at full radiation the screen washed out to amber static, which read as a c
 bleed now stays at the edges, grain is much lighter, and the centre is always clear. Deaths are
 calmer: a radiation death has no debris and fades out; a rock breach throws a small spray that
 travels with the ship instead of a wall of shards in the pilot's face.
+
+## 2026-09-29 — PIP, blasters, and mouse flight that stays put
+
+Rob: it is quite easy to lose control with the mouse; wants a droid that pops up when you drift
+far and can take you back to the safe lane; and wants to test blasters.
+
+Changes:
+- Mouse: click the view to capture it. Mouse movement now pushes a virtual stick that eases back to
+  centre (mouseRecentre 1.1, mouseRange 260 px), shown as a dot in a ring at screen centre. Esc
+  releases the mouse and pauses.
+- PIP: a small droid on the right of the dash. Pops up at 85% of the lane radius with a chirp and an
+  offer; R hands it the stick; it flies you to 45% of the radius and hands back once you are inside
+  60% and pointing down the lane. Hard stick input or R takes over. R also works as a panic button.
+- Blasters: left click / F / right trigger. Nine shots a second alternating barrels, converging at
+  160 m, heat 5.5 per shot, cools 32 a second, overheat locks until 35. Rocks take size x size x 1.2
+  hits; small ones pop in one or two, big ones take a burst; giants cannot be broken. Visible gun
+  barrels at the bottom corners of the canopy.
+
+To judge next: does the captured mouse feel controllable (too twitchy: raise mouse travel; drifts
+back too fast: lower self-centring)? Is PIP's timing right, and does its flying look competent? Do
+the blasters feel punchy: fire rate, bolt visibility, heat?

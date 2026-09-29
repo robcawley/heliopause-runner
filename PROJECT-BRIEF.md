@@ -25,6 +25,9 @@ Phase 0 of the production plan, the flight prototype, is done in first form:
 - The beacon lane (safe radius 160 m along -z, wide enough to be a combat arena): radiation outside builds slowly, harmless at first,
   then eats the hull. Guidance arrows, Geiger clicks, alarms, MICA lines. Repair gates inside.
   Death leads to a debrief screen.
+- Blasters: twin cannons that converge ahead of the nose, heat and overheat; rocks chip and break.
+- PIP, a small droid on the dash: pops up when you stray and, on R, flies you back to the lane.
+- Captured-mouse flight (pointer lock) with a self-centring virtual stick.
 - A live tuning panel (T) over every feel number.
 
 Next: Rob plays the fighter build and judges it; then Phase 1, combat.
@@ -52,6 +55,9 @@ Layers: `src/engine/` (shared), `src/modes/belt-run/` (the flight prototype as o
    nimble, responsive, fun star fighter.
 4. It will become part of a bigger game.
 5. The bigger game is Heliopause Runner (design document supplied by Rob, 28 Sept).
+7. Mouse flight made it too easy to lose control; wanted a droid that pops up when you drift and
+   can fly you back to the lane; and wanted to test blasters. (Done 29 Sept: captured mouse with a
+   self-centring stick, PIP, blasters.)
 6. The safe zone should be much wider, because attack ships and more are coming: much more room to
    fly around, turn around, fly free. (Done 29 Sept: lane 160 m, full six-way freedom.)
 

@@ -47,6 +47,7 @@ async function boot() {
     title.classList.add('gone');
     screen = 'flying';
     run.start();
+    run.setCapture(true);
   }
   document.getElementById('launch').addEventListener('click', launch);
 
@@ -55,6 +56,7 @@ async function boot() {
     screen = p ? 'paused' : 'flying';
     pauseEl.classList.toggle('on', p);
     run.pause(p);
+    run.setCapture(!p);
   }
   pauseEl.addEventListener('click', () => setPaused(false));
   document.addEventListener('visibilitychange', () => { if (document.hidden && screen === 'flying') setPaused(true); });
@@ -64,6 +66,7 @@ async function boot() {
     debrief.classList.remove('on');
     screen = 'flying';
     run.restart();
+    run.setCapture(true);
   }
   document.getElementById('again').addEventListener('click', flyAgain);
 
@@ -76,12 +79,14 @@ async function boot() {
   // ---- Mode events ----------------------------------------------------
   run.on('request', (what) => {
     if (what === 'pause') setPaused(screen === 'flying');
+    if ((what === 'escape' || what === 'lockLost') && screen === 'flying') setPaused(true);
     if (what === 'mute') run.hud.say('System', audio.toggleMute() ? 'Audio muted' : 'Audio on', 1.5);
     if (what === 'tuning') tuning.toggle();
   });
 
   run.on('death', (s) => {
     screen = 'debrief';
+    run.setCapture(false);
     debrief.querySelector('.debrief-reason').textContent = s.cause === 'radiation'
       ? `Radiation burned through the hull, ${Math.round(s.laneOffset)} metres outside the beacon lane.`
       : 'The belt broke through the hull.';
@@ -89,7 +94,9 @@ async function boot() {
     debrief.querySelector('.debrief-stats').innerHTML = [
       ['Score', s.score.toLocaleString()], ['Flight time', `${mins}:${secs}`],
       ['Distance flown', `${(s.distance / 1000).toFixed(2)} km`], ['Along the lane', `${(s.laneProgress / 1000).toFixed(2)} km`],
-      ['Near misses', s.nearMisses], ['Best chain', s.bestChain], ['Repair beacons', s.gates], ['Rock hits', s.hits],
+      ['Near misses', s.nearMisses], ['Best chain', s.bestChain], ['Repair beacons', s.gates],
+      ['Rocks destroyed', s.rocksDestroyed], ['Blaster accuracy', s.shots ? `${Math.round((s.shotsHit / s.shots) * 100)}%` : '–'],
+      ['Rock hits taken', s.hits], ['PIP rescues', s.pipRescues],
     ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
     setTimeout(() => { debrief.classList.add('on'); document.getElementById('again').focus(); }, 900);
   });

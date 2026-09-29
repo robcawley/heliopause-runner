@@ -14,6 +14,7 @@ export function createHud(parent) {
       <div class="hud-meter hull"><span class="hud-meter-label">Hull</span><span class="hud-meter-track"><span class="hud-meter-fill"></span></span></div>
       <div class="hud-meter rad"><span class="hud-meter-label">Radiation</span><span class="hud-meter-track"><span class="hud-meter-fill"></span></span></div>
       <div class="hud-rolls"><span class="hud-meter-label">Rolls</span><span class="hud-roll-pips"></span></div>
+      <div class="hud-meter heat"><span class="hud-meter-label">Blasters</span><span class="hud-meter-track"><span class="hud-meter-fill"></span></span></div>
     </div>
     <div class="hud-warning"></div>
     <div class="hud-guide">
@@ -25,10 +26,15 @@ export function createHud(parent) {
     <div class="hud-comms" aria-live="polite"><span class="hud-comms-who"></span><span class="hud-comms-text"></span></div>
     <div class="hud-dev"></div>
     <div class="hud-stick"><span class="hud-stick-knob"></span></div>
+    <div class="hud-mstick"><span class="hud-mstick-dot"></span></div>
+    <div class="hud-pip"><span class="hud-pip-key">R</span><span class="hud-pip-text"></span></div>
+    <div class="hud-hint"></div>
     <div class="hud-touch-buttons">
       <button class="hud-btn roll-left" type="button" aria-label="Roll left">Roll</button>
       <button class="hud-btn phase" type="button" aria-label="Phase drive">Phase</button>
       <button class="hud-btn roll-right" type="button" aria-label="Roll right">Roll</button>
+      <button class="hud-btn fire" type="button" aria-label="Fire blasters">Fire</button>
+      <button class="hud-btn pip" type="button" aria-label="Call PIP">PIP</button>
     </div>
   `;
   const $ = (s) => root.querySelector(s);
@@ -42,11 +48,31 @@ export function createHud(parent) {
   const comms = $('.hud-comms'), commsWho = $('.hud-comms-who'), commsText = $('.hud-comms-text');
   const dev = $('.hud-dev');
   const stick = $('.hud-stick'), knob = $('.hud-stick-knob');
+  const heatMeter = $('.hud-meter.heat'), heatFill = $('.heat .hud-meter-fill');
+  const mstick = $('.hud-mstick'), mdot = $('.hud-mstick-dot');
+  const pipEl = $('.hud-pip'), pipText = $('.hud-pip-text');
+  const hint = $('.hud-hint');
 
   let shownScore = 0, targetScore = 0, commsTimer = 0, pipCount = -1;
 
   return {
-    buttons: { phase: $('.hud-btn.phase'), rollLeft: $('.hud-btn.roll-left'), rollRight: $('.hud-btn.roll-right') },
+    buttons: { phase: $('.hud-btn.phase'), rollLeft: $('.hud-btn.roll-left'), rollRight: $('.hud-btn.roll-right'), fire: $('.hud-btn.fire'), pip: $('.hud-btn.pip') },
+    setHeat(frac, overheated) {
+      heatFill.style.transform = `scaleX(${Math.max(0, Math.min(1, frac))})`;
+      heatMeter.classList.toggle('over', !!overheated);
+    },
+    // Captured-mouse stick: a ring at screen centre and a dot for the deflection
+    setMouseStick(s) {
+      mstick.classList.toggle('on', !!s);
+      if (s) mdot.style.transform = `translate(${s.x * 46}px, ${-s.y * 46}px)`;
+    },
+    // PIP's prompt: text, or null to hide. state: 'offer' | 'driving'
+    setPip(text, state) {
+      pipEl.classList.toggle('on', !!text);
+      pipEl.classList.toggle('driving', state === 'driving');
+      if (text) pipText.textContent = text;
+    },
+    setHint(text) { hint.textContent = text || ''; hint.classList.toggle('on', !!text); },
     setScore(v) { targetScore = v; },
     setHull(frac) {
       hullFill.style.transform = `scaleX(${Math.max(0, frac)})`;
@@ -97,6 +123,7 @@ export function createHud(parent) {
     },
     say(who, text, seconds = 5) {
       commsWho.textContent = who;
+      comms.dataset.who = who.toLowerCase();
       commsText.textContent = text;
       comms.classList.add('on');
       commsTimer = seconds;

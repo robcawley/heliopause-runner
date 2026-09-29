@@ -33,11 +33,28 @@ export function createTuning(config, { onResize } = {}) {
     ['maxBank', 0, 1.6, 0.01],
   ]);
   folder('Stick', config.input, [
-    ['steering', ['auto', 'drag', 'follow']],
+    ['steering', ['auto', 'mouse', 'follow', 'drag']],
+    ['mouseRange', 80, 600, 5, 'mouse travel for full turn'],
+    ['mouseRecentre', 0, 5, 0.05, 'mouse self-centring (0 = off)'],
     ['stickRadius', 0.1, 0.6, 0.01, 'mouse reach'],
     ['stickCurve', 0.5, 3, 0.05, 'centre precision'],
     ['deadzone', 0, 0.3, 0.01],
     ['touchStickRadius', 30, 160, 1],
+  ]);
+  folder('Blasters', config.blasters, [
+    ['fireRate', 1, 30, 0.5],
+    ['boltSpeed', 100, 2000, 10],
+    ['convergence', 30, 500, 5],
+    ['damage', 0.2, 10, 0.1],
+    ['heatPerShot', 0, 20, 0.5],
+    ['coolRate', 0, 100, 1],
+    ['spread', 0, 0.05, 0.001],
+  ]);
+  folder('PIP', config.droid, [
+    ['popUpAt', 0.3, 1.5, 0.01, 'pops up at (share of lane)'],
+    ['returnTo', 0.1, 0.9, 0.01, 'flies you to (share of lane)'],
+    ['steerGain', 0.3, 5, 0.1],
+    ['overrideStick', 0.2, 1, 0.05, 'stick to take over'],
   ]);
   folder('Rolls', config.roll, [
     ['charges', 1, 6, 1],

@@ -212,6 +212,97 @@ export function createSfx(a, config) {
 
   function revive() { a.filterMusic(20000, 1.5); }
 
+
+  // Blaster shot: a bright saw zap with a fast pitch drop, panned to the barrel
+  function laser(barrel) {
+    if (!bus) return;
+    const ctx = a.ctx;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(1500 + Math.random() * 120, t);
+    o.frequency.exponentialRampToValueAtTime(180, t + 0.12);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(5200, t); lp.frequency.exponentialRampToValueAtTime(900, t + 0.12);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.16, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+    const p = ctx.createStereoPanner(); p.pan.value = barrel ? 0.35 : -0.35;
+    o.connect(lp).connect(g).connect(p).connect(bus);
+    o.start(t); o.stop(t + 0.16);
+  }
+
+  // A bolt striking ice: short bright crack
+  function impact() {
+    if (!bus) return;
+    const ctx = a.ctx;
+    const t = ctx.currentTime;
+    const n = ctx.createBufferSource(); n.buffer = a.noise;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2400 + Math.random() * 800; bp.Q.value = 1.4;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+    n.connect(bp).connect(g).connect(bus);
+    n.start(t, Math.random()); n.stop(t + 0.1);
+  }
+
+  // A rock breaking up: a thump sized to the rock, plus crumbling grit
+  function rockBreak(size) {
+    if (!bus) return;
+    const ctx = a.ctx;
+    const t = ctx.currentTime;
+    const k = Math.min(1, size / 3.5);
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(140 - k * 70, t); o.frequency.exponentialRampToValueAtTime(35, t + 0.35);
+    const og = ctx.createGain();
+    og.gain.setValueAtTime(0.25 + k * 0.4, t); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+    o.connect(og).connect(bus); o.start(t); o.stop(t + 0.45);
+    const n = ctx.createBufferSource(); n.buffer = a.noise;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(3500, t); lp.frequency.exponentialRampToValueAtTime(300, t + 0.5);
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.2 + k * 0.25, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+    n.connect(lp).connect(ng).connect(bus); n.start(t, Math.random()); n.stop(t + 0.6);
+  }
+
+  function overheat() {
+    if (!bus) return;
+    const ctx = a.ctx;
+    const t = ctx.currentTime;
+    const n = ctx.createBufferSource(); n.buffer = a.noise;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 4000;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.2, t + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+    n.connect(hp).connect(g).connect(bus); n.start(t); n.stop(t + 1);
+    const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 220;
+    const og = ctx.createGain();
+    og.gain.setValueAtTime(0.06, t); og.gain.setValueAtTime(0.0001, t + 0.08);
+    og.gain.setValueAtTime(0.06, t + 0.14); og.gain.setValueAtTime(0.0001, t + 0.22);
+    o.connect(og).connect(bus); o.start(t); o.stop(t + 0.25);
+  }
+
+  // PIP's voice: a burst of gliding blips. Mood shapes the contour.
+  function chirp(mood = 'idle') {
+    if (!bus) return;
+    const ctx = a.ctx;
+    const n = 3 + Math.floor(Math.random() * 3);
+    let t = ctx.currentTime;
+    for (let i = 0; i < n; i++) {
+      const dur = 0.05 + Math.random() * 0.07;
+      const base = mood === 'warn' ? 900 : mood === 'drive' ? 1300 : 1100;
+      const f0 = base * Math.pow(2, (Math.random() * 14 - 7) / 12);
+      const f1 = mood === 'warn' ? f0 * 0.7 : mood === 'drive' ? f0 * 1.5 : f0 * (0.8 + Math.random() * 0.6);
+      const o = ctx.createOscillator(); o.type = i % 2 ? 'triangle' : 'sine';
+      o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      const p = ctx.createStereoPanner(); p.pan.value = 0.4;          // PIP sits right of centre on the dash
+      o.connect(g).connect(p).connect(bus); o.start(t); o.stop(t + dur + 0.02);
+      t += dur + 0.015;
+    }
+  }
+
   // Engine pitch follows speed; a turn adds a little strain
   function update(speed, turn = 0) {
     if (!bus) return;
@@ -225,5 +316,5 @@ export function createSfx(a, config) {
 
   function silence() { if (engineGain) engineGain.gain.setTargetAtTime(0, a.ctx.currentTime, 0.2); }
 
-  return { start, whoosh, tick, daredevil, hit, phase, geiger, alarm, repair, roll, death, revive, update, silence };
+  return { start, whoosh, tick, daredevil, hit, phase, geiger, alarm, repair, roll, death, revive, laser, impact, rockBreak, overheat, chirp, update, silence };
 }

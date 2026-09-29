@@ -86,3 +86,34 @@
 .hud-btn.phase { width: 84px; height: 84px; margin-bottom: 30px; }
 @media (pointer: coarse) { .hud-touch-buttons { display: flex; } .hud-dev { right: 20px; top: 70px; } }
 
+
+/* Blaster heat */
+.heat .hud-meter-fill { background: linear-gradient(90deg, #ffb46b, var(--beacon)); box-shadow: 0 0 8px rgba(255, 140, 80, 0.6); transition: transform 0.05s linear; }
+.hud-meter.heat.over .hud-meter-label { color: var(--beacon); animation: blink 0.4s steps(2) infinite; }
+
+/* Captured-mouse stick */
+.hud-mstick { position: absolute; left: 50%; top: 50%; width: 0; height: 0; opacity: 0; transition: opacity 0.3s; }
+.hud-mstick.on { opacity: 1; }
+.hud-mstick::before { content: ''; position: absolute; left: -46px; top: -46px; width: 92px; height: 92px; border-radius: 50%; border: 1px solid rgba(212, 236, 246, 0.14); }
+.hud-mstick-dot { position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--ice); opacity: 0.75; box-shadow: 0 0 6px rgba(212, 236, 246, 0.8); }
+
+/* PIP */
+.hud-comms[data-who="pip"] .hud-comms-who { color: var(--sun); }
+.hud-pip {
+  position: absolute; right: 28px; bottom: 26%; display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px 8px 8px; border-radius: 3px; background: rgba(4, 8, 18, 0.55);
+  border: 1px solid rgba(255, 212, 154, 0.35); opacity: 0; transform: translateY(8px);
+  transition: opacity 0.3s, transform 0.3s; font-size: 0.95rem;
+}
+.hud-pip.on { opacity: 1; transform: none; }
+.hud-pip-key { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 3px; background: var(--sun); color: var(--deep); font-weight: 700; }
+.hud-pip.driving { border-color: rgba(120, 230, 140, 0.5); }
+.hud-pip.driving .hud-pip-key { background: #7fe39a; }
+
+.hud-hint { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); font-size: 0.9rem; color: var(--ice-dim); opacity: 0; transition: opacity 0.4s; }
+.hud-hint.on { opacity: 1; }
+
+@media (pointer: coarse) { .hud-pip-key { display: none; } }
+.hud-touch-buttons { flex-wrap: wrap; max-width: 240px; justify-content: flex-end; }
+.hud-btn.fire { width: 84px; height: 84px; background: rgba(255, 107, 79, 0.18); border-color: rgba(255, 107, 79, 0.7); }
+.hud-btn.pip { border-color: rgba(255, 212, 154, 0.7); background: rgba(255, 212, 154, 0.14); }

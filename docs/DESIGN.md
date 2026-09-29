@@ -30,6 +30,17 @@ How the first-person flight and the belt run feel, and why. For the whole game, 
   all about the ship's own axes: loop, turn right round, fly inverted. Rates reach their demand in
   ~80 ms (`turnResponse`). Mouse and stick have a response curve (`stickCurve`) so small movements
   aim finely and full deflection turns hard.
+- **Mouse flight.** Click to capture the mouse (pointer lock). Mouse movement pushes a virtual
+  stick, shown as a dot in a faint ring at the centre of the screen, which eases back to centre on
+  its own (`mouseRecentre`). Before, the pointer's position was the stick, so a mouse left
+  off-centre kept the ship turning: easy to lose control.
+- **PIP.** A droid in a hatch on the dash. Past 85% of the lane radius it pops up and offers to
+  fly you home; on R it takes the stick, turns you round, levels you, boosts when lined up, and
+  hands back control once you are well inside the lane and pointing down it. A hard push on the
+  stick, or R again, takes over. Also a panic button any time you are lost.
+- **Blasters.** Twin cannons under the canopy, alternating, converging 160 m ahead. Heat builds
+  per shot; overheat locks the guns until they cool. Bolts are swept segments, so they never
+  tunnel through small rocks. Rocks have hit points by size and break into shards.
 - **Auto-level.** Let go of roll and the wings ease back level with the lane's horizon, so you
   never lose your bearings for long. It stands back while you pull hard on pitch (loops stay
   loops) and fades out pointing straight up or down. `autoLevel` 0 turns it off.

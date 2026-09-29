@@ -11,6 +11,8 @@ import { createDust } from './dust.js';
 import { createRocks } from './rocks.js';
 import { createShards } from './shards.js';
 import { createLane } from './lane.js';
+import { createBlasters } from './blasters.js';
+import { createDroid } from './droid.js';
 import { createSfx } from './sfx.js';
 import { createHud } from './hud.js';
 import musicUrl from './assets/audio/sidewinding.mp3';
@@ -21,7 +23,7 @@ import musicUrl from './assets/audio/sidewinding.mp3';
 // events, and disposes of it when the player moves on.
 //
 //   const run = createBeltRun({ engine, audio, hudParent, overrides });
-//   run.on('death', (stats) => ...);          // also: 'gate', 'nearMiss', 'hit', 'request'
+//   run.on('death', (stats) => ...);          // also: 'gate', 'nearMiss', 'hit', 'rockDestroyed', 'request'
 //   run.attract();                             // autopilot, for behind a menu
 //   run.start();                               // a fresh flight
 //   loop: run.frame(realDt, nowSeconds);       // simulates and renders
@@ -29,7 +31,9 @@ import musicUrl from './assets/audio/sidewinding.mp3';
 //   run.dispose();
 //
 // 'request' events carry host-level asks from the pilot's controls:
-// 'pause', 'mute', 'tuning'. The mode never touches the host's UI.
+// 'pause', 'mute', 'tuning', 'lockLost' (the mouse was released). The mode
+// never touches the host's UI. run.setCapture(bool) lets the host allow or
+// release mouse capture (pointer lock) around its menus.
 // ---------------------------------------------------------------------------
 
 const MICA = {
@@ -81,7 +85,10 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   const rocks = createRocks(config);
   const shards = createShards();
   const lane = createLane(config);
-  scene.add(sky.mesh, dust.mesh, rocks.mesh, shards.mesh, lane.group);
+  const blasters = createBlasters(config);
+  const pip = createDroid(config);
+  scene.add(sky.mesh, dust.mesh, rocks.mesh, shards.mesh, lane.group, blasters.group);
+  ship.group.add(blasters.muzzleGroup, pip.group);
 
   // Keep the lane's sunward side lit: the light follows the ship
   const sunFollow = () => { sun.position.copy(ship.pos).addScaledVector(sunDir, 100); sun.target.position.copy(ship.pos); };
@@ -103,7 +110,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     mode,                     // 'attract' | 'flying' | 'dead'
     paused: false,
     score: 0, chain: 0, chainTimer: 0,
-    nearMisses: 0, hits: 0, bestChain: 0, gates: 0, rolls: 0,
+    nearMisses: 0, hits: 0, bestChain: 0, gates: 0, rolls: 0, rocksDestroyed: 0, pipRescues: 0,
     hull: config.hull.max, exposure: 0, deathCause: '', flightTime: 0,
     wasOutside: false, alarmTimer: 0, micaCooldown: 0, micaTimer: 18, micaIdle: 0, wrongWayTime: 0,
     radFx: 0,
@@ -123,6 +130,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   const stats = () => ({
     score: g.score, distance: ship.distance, laneProgress: ship.laneProgress, time: g.flightTime,
     nearMisses: g.nearMisses, bestChain: g.bestChain, gates: g.gates, hits: g.hits, rolls: g.rolls,
+    rocksDestroyed: g.rocksDestroyed, shots: blasters.state.shots, shotsHit: blasters.state.hits, pipRescues: g.pipRescues,
     cause: g.deathCause, laneOffset: Math.max(0, Math.hypot(ship.pos.x, ship.pos.y) - config.lane.safeRadius),
   });
 
@@ -230,6 +238,43 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     events.emit('gate', { index: i, hull: g.hull });
   };
 
+  // ---- Blasters --------------------------------------------------------
+  blasters.handlers.onFire = (barrel) => {
+    sfx.laser(barrel);
+    rig.punch(-0.12);
+    g.aberrationKick += 0.02;
+  };
+  blasters.handlers.onImpact = (hit, destroyed) => {
+    if (destroyed) {
+      g.rocksDestroyed++;
+      const pts = Math.round(10 * destroyed.size) * 5;
+      if (g.mode === 'flying') g.score += pts;
+      shards.burst(destroyed.pos, destroyed.vel, destroyed.size * 0.5, Math.round(8 + destroyed.size * 6));
+      sfx.rockBreak(destroyed.size);
+      const d = destroyed.pos.distanceTo(ship.pos);
+      if (d < 60) rig.addTrauma(0.25 * (1 - d / 60) * Math.min(1, destroyed.size / 2));
+      events.emit('rockDestroyed', { size: destroyed.size, score: g.score });
+    } else {
+      shards.burst(hit.point, hit.rock.vel, 0.25, 3);
+      sfx.impact();
+    }
+  };
+  blasters.handlers.onOverheat = () => {
+    sfx.overheat();
+    hud.callout('Guns overheated', 1);
+  };
+
+  // ---- PIP ------------------------------------------------------------
+  pip.handlers.onSay = (text) => { hud.say('PIP', text, 4.5); g.micaCooldown = 6; };
+  pip.handlers.onChirp = (mood) => sfx.chirp(mood);
+
+  function callPip() {
+    if (g.mode !== 'flying') return;
+    const wasDriving = pip.driving;
+    pip.request();
+    if (!wasDriving && pip.driving) g.pipRescues++;
+  }
+
   function tryPhase() {
     if (g.phaseCooldown > 0 || g.mode !== 'flying') return;
     g.phaseTime = config.phase.duration;
@@ -251,6 +296,9 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   tap(hud.buttons.phase, tryPhase);
   tap(hud.buttons.rollLeft, () => tryRoll(-1));
   tap(hud.buttons.rollRight, () => tryRoll(1));
+  tap(hud.buttons.pip, callPip);
+  hud.buttons.fire.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); input.setTouchFire(true); });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) hud.buttons.fire.addEventListener(ev, () => input.setTouchFire(false));
 
   // ---- Lifecycle ------------------------------------------------------
   function resetWorld(mode) {
@@ -258,6 +306,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     ship.reset();
     rig.reset();
     shards.clear();
+    blasters.reset();
+    pip.reset();
     rocks.init(ship);
     lane.reset();
   }
@@ -271,11 +321,12 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
 
   function frame(realDt, now) {
     input.update(realDt);
-    for (const a of ['pause', 'mute', 'tuning']) if (input.consume(a)) events.emit('request', a);
+    for (const a of ['pause', 'escape', 'mute', 'tuning', 'lockLost']) if (input.consume(a)) events.emit('request', a);
     if (g.paused) { post.render(); return; }
     if (input.consume('phase')) tryPhase();
     if (input.consume('rollLeft')) tryRoll(-1);
     if (input.consume('rollRight')) tryRoll(1);
+    if (input.consume('droid')) callPip();
 
     // Time: hit-stop freezes the world, slow-mo eases back
     if (g.hitStop > 0) { g.hitStop -= realDt; g.timeScale = 0.02; }
@@ -291,8 +342,10 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       attractStick.stickY = clamp(autoTarget.y / 120, -0.5, 0.5) + Math.sin(now * 0.47) * 0.2;
       steer = attractStick;
     } else if (g.mode === 'dead') steer = deadStick;
+    else if (pip.driving) steer = pip.stick;
 
     ship.update(realDt, dt, steer);
+    blasters.update(realDt, dt, ship, g.mode === 'flying' && input.state.fire, rocks);
     rocks.update(realDt, dt, ship);
     shards.update(dt);
     lane.update(ship, now);
@@ -303,6 +356,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     const L = config.lane, R = config.radiation;
     const laneDist = Math.hypot(ship.pos.x, ship.pos.y);
     const outside = laneDist - L.safeRadius;
+    pip.update(realDt, ship, laneDist, g.mode === 'flying', input.state);
     g.micaCooldown = Math.max(0, g.micaCooldown - realDt);
     if (g.mode === 'flying') {
       if (outside > 0) {
@@ -405,6 +459,17 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     hud.setRadiation(g.exposure / 100);
     hud.setRolls(ship.rollCharges, config.roll.charges);
     hud.setStick(g.mode === 'flying' ? input.state.touchStick : null);
+    hud.setMouseStick(g.mode === 'flying' && !pip.driving ? input.state.mouseStick : null);
+    hud.setHeat(blasters.state.heat / 100, blasters.state.overheated);
+    const touch = input.state.lastPointer === 'touch';
+    hud.setPip(
+      g.mode !== 'flying' || pip.state === 'hidden' ? null
+        : pip.driving ? (touch ? 'PIP is flying. Tap PIP or steer to take over' : 'PIP is flying. R or a hard push on the stick to take over')
+        : (touch ? 'Tap PIP to fly back to the lane' : 'PIP: fly back to the lane'),
+      pip.driving ? 'driving' : 'offer',
+    );
+    const wantsCapture = g.mode === 'flying' && !input.state.locked && !touch && config.input.steering === 'auto';
+    hud.setHint(wantsCapture ? 'Click the view to take the controls. Esc releases the mouse.' : '');
     hud.setScore(g.score);
     hud.update(realDt);
 
@@ -434,6 +499,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       sfx.revive();
       hud.say('MICA', pick(MICA.restart), 4);
     },
+    setCapture(enabled) { input.setCapture(enabled); },
     pause(p) {
       if (g.mode === 'dead') return;
       g.paused = p;

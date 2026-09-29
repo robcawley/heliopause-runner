@@ -66,6 +66,9 @@ funding or a publisher, or bring in help.
 
 **Goal:** fighting in first person is as good as flying.
 
+*Started 29 Sept 2026: blasters with heat and breakable rocks are in, for feel testing before the
+first pirate.*
+
 - Target lock and a lead indicator; lasers with heat; hit sparks and damage feedback.
 - Shields (front and rear) over hull; shield recharge; engine damage that limits speed.
 - One pirate fighter with simple behaviours: approach, attack run, break off, flee when hurt.

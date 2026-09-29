@@ -11,7 +11,9 @@ const reducedMotion =
 
 export const DEFAULTS = {
   input: {
-    steering: 'auto',        // 'auto' | 'drag' | 'follow'
+    steering: 'auto',        // 'auto' | 'mouse' | 'follow' | 'drag'  (auto: mouse once captured, drag on touch)
+    mouseRange: 260,         // captured mouse: pixels of movement for full stick deflection
+    mouseRecentre: 1.1,      // captured mouse: how fast the stick eases back to centre (0 = never)
     stickRadius: 0.3,        // mouse: pointer distance from centre (share of the short screen side) for full deflection
     touchStickRadius: 70,    // touch: drag distance in px for full deflection
     deadzone: 0.04,
@@ -46,6 +48,29 @@ export const DEFAULTS = {
     duration: 0.4,
     impulse: 34,             // sideways burst, units/s
     cameraFollow: 1.0,       // 1 = the pilot rolls with the ship; lower it if rolls feel queasy
+  },
+
+  blasters: {
+    // Twin cannons under the canopy, converging ahead of the nose
+    fireRate: 9,             // shots per second (alternating barrels)
+    boltSpeed: 700,          // units/s on top of the ship's own velocity
+    boltLife: 0.9,           // seconds
+    convergence: 160,        // metres ahead where the two streams meet
+    damage: 1,               // per bolt; rocks have roughly size x size x 1.2 hit points
+    heatPerShot: 5.5,
+    coolRate: 32,            // heat lost per second
+    overheatRecover: 35,     // after overheating, guns are locked until heat falls to this
+    spread: 0.004,           // radians of random scatter
+  },
+
+  droid: {
+    // PIP, the pilot-intervention probe: pops up from the dash when you stray
+    // and, on request (R / gamepad Y), flies you back into the lane.
+    popUpAt: 0.85,           // share of the lane's safe radius at which PIP appears
+    returnTo: 0.45,          // share of the safe radius PIP aims for when bringing you home
+    handBackAt: 0.6,         // PIP hands control back once you are inside this share, heading down the lane
+    steerGain: 1.8,
+    overrideStick: 0.7,      // stick input stronger than this takes control back from PIP
   },
 
   camera: {

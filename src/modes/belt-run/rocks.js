@@ -98,6 +98,8 @@ export function createRocks(config) {
     r.spin = (Math.random() * 0.8 + 0.1) / Math.sqrt(r.size);
     r.vel.randomDirection().multiplyScalar(Math.random() * (big ? 0.4 : 1.6));
     r.nearest = Infinity; r.approached = false; r.closing = false; r.phased = false;
+    r.giant = big;
+    r.hp = big ? Infinity : Math.max(1, r.size * r.size * 1.2);
   }
 
   function place(r, ship, initial) {
@@ -210,7 +212,38 @@ export function createRocks(config) {
     mesh.instanceMatrix.needsUpdate = true;
   }
 
+  // Blasters: the first rock a segment (a to b) passes through, or null.
+  // Uses a slightly shrunk sphere so hits land on the visible surface.
+  const seg = new THREE.Vector3(), oc = new THREE.Vector3();
+  function raycast(a, b) {
+    seg.subVectors(b, a);
+    const len = seg.length();
+    if (len < 1e-6) return null;
+    seg.divideScalar(len);
+    let best = null, bestT = Infinity;
+    for (const r of rocks) {
+      const rr = r.radius * 0.85;
+      oc.subVectors(r.pos, a);
+      const t = oc.dot(seg);
+      if (t < -rr || t > len + rr) continue;
+      const d2 = oc.lengthSq() - t * t;
+      if (d2 > rr * rr) continue;
+      const hitT = Math.max(0, t - Math.sqrt(rr * rr - d2));
+      if (hitT <= len && hitT < bestT) { bestT = hitT; best = r; }
+    }
+    return best ? { rock: best, point: a.clone().addScaledVector(seg, bestT), normal: a.clone().addScaledVector(seg, bestT).sub(best.pos).normalize() } : null;
+  }
+
+  // Returns what was destroyed (position, velocity, size), or null if it survived
+  function damage(r, amount, ship) {
+    r.hp -= amount;
+    if (r.hp > 0) return null;
+    const gone = { pos: r.pos.clone(), vel: r.vel.clone(), size: r.size };
+    place(r, ship, false);
+    return gone;
+  }
+
   function dispose() { mesh.geometry.dispose(); mesh.material.dispose(); }
 
-  return { mesh, init, update, handlers, rocks, dispose };
+  return { mesh, init, update, handlers, rocks, raycast, damage, dispose };
 }

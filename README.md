@@ -35,13 +35,15 @@ robcawley.com. Not doing that yet.
 
 | | |
 |---|---|
-| Turn and pitch | Mouse (distance from centre is how hard you turn), WASD / arrows, gamepad left stick, thumb-stick on touch |
+| Turn and pitch | Mouse (click the view to capture it; it eases back to centre on its own), WASD / arrows, gamepad left stick, thumb-stick on touch |
+| Fire blasters | Left click, F, gamepad right trigger, Fire button (touch) |
+| PIP (fly me home) | R, gamepad Y, PIP button (touch). Press again or push the stick hard to take over. |
 | Roll | Hold Q / E, gamepad LB / RB. Let go and the wings ease back to level (tunable). |
 | Barrel roll | Double-tap Q, E, A or D; double-tap a bumper; Roll buttons (touch). Three charges. |
-| Boost / brake | Shift / X or Ctrl, gamepad right / left trigger |
+| Boost / brake | Shift / X or Ctrl, gamepad X / left trigger |
 | Phase drive | Space, second finger, the Phase button (touch), gamepad A |
 | Tuning panel | T |
-| Mute / pause | M / P or Esc |
+| Mute / pause | M / P or Esc (Esc also releases the mouse) |
 
 Pitch is not inverted by default. Flight-sim players can flip it in the tuning panel (Flight, invert pitch).
 
