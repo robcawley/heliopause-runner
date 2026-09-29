@@ -97,11 +97,17 @@ async function boot() {
   // ---- Loop -----------------------------------------------------------
   let last = performance.now();
   let fpsAcc = 0, fpsFrames = 0, fps = 0;
+  const seenErrors = new Set();
 
   engine.renderer.setAnimationLoop((now) => {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    run.frame(dt, now / 1000);
+    // A bug in one frame must never freeze the game: log it once, keep flying
+    try { run.frame(dt, now / 1000); }
+    catch (err) {
+      const key = String(err);
+      if (!seenErrors.has(key)) { seenErrors.add(key); console.error('Frame error (logged once):', err); }
+    }
 
     fpsAcc += dt; fpsFrames++;
     if (fpsAcc > 0.5) { fps = Math.round(fpsFrames / fpsAcc); fpsAcc = 0; fpsFrames = 0; }

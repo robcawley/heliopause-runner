@@ -21,6 +21,7 @@ export function createPost(renderer, scene, camera, fx) {
     phase: uniform(0),
     hit: uniform(0),
     radiation: uniform(0),
+    fade: uniform(0),        // 0..1 fade to black (death, transitions)
     vignette: uniform(fx.vignette),
     grain: uniform(fx.grain),
   };
@@ -44,11 +45,12 @@ export function createPost(renderer, scene, camera, fx) {
     const edge = smoothstep(0.15, 0.75, d);
     c.addAssign(vec3(1.0, 0.22, 0.12).mul(u.hit).mul(edge.mul(0.7).add(0.04)));
 
-    // Radiation: amber-green bleed from the edges, a nervous flicker, heavier grain
-    const flicker = hash(floor(time.mul(30.0))).mul(0.35).add(0.65);
-    const radEdge = smoothstep(0.2, 0.8, d);
-    c.assign(mix(c, c.mul(vec3(1.25, 1.1, 0.55)), u.radiation.mul(0.7)));
-    c.addAssign(vec3(0.5, 0.42, 0.05).mul(u.radiation).mul(radEdge).mul(flicker).mul(0.35));
+    // Radiation: an amber bleed from the edges and a nervous flicker. Kept off
+    // the centre of the screen so you can always see where you are flying.
+    const flicker = hash(floor(time.mul(30.0))).mul(0.3).add(0.7);
+    const radEdge = smoothstep(0.3, 0.85, d);
+    c.assign(mix(c, c.mul(vec3(1.18, 1.06, 0.7)), u.radiation.mul(0.35)));
+    c.addAssign(vec3(0.5, 0.36, 0.05).mul(u.radiation).mul(radEdge).mul(flicker).mul(0.22));
 
     // Vignette
     c.mulAssign(mix(float(1), smoothstep(0.95, 0.28, d.mul(u.vignette)), 0.85));
@@ -56,7 +58,9 @@ export function createPost(renderer, scene, camera, fx) {
     // Grain, locked to pixels so it reads as film, not noise crawl
     const px = floor(screenUV.mul(screenSize));
     const g = hash(px.x.add(px.y.mul(1931.0)).add(floor(time.mul(24.0)).mul(7919.0))).sub(0.5);
-    c.addAssign(g.mul(u.grain.add(u.radiation.mul(0.22))).mul(lum.mul(0.6).add(0.4)));
+    c.addAssign(g.mul(u.grain.add(u.radiation.mul(0.05))).mul(lum.mul(0.6).add(0.4)));
+
+    c.mulAssign(float(1).sub(u.fade));
 
     return vec4(c, 1.0);
   })();

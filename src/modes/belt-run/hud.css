@@ -28,7 +28,7 @@
 @keyframes blink { 50% { opacity: 0.35; } }
 
 .hud-warning {
-  position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
+  position: absolute; top: 15%; left: 50%; transform: translateX(-50%); white-space: nowrap;
   font-size: 1.35rem; font-weight: 700; color: var(--rad); letter-spacing: 0.02em;
   text-shadow: 0 0 18px rgba(232, 197, 71, 0.7); opacity: 0; transition: opacity 0.25s;
 }

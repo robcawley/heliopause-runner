@@ -55,3 +55,18 @@ when you let go of roll; it stands back while you pull hard on pitch.
 
 To judge next: is 160 m roomy enough, or too roomy for the belt to feel dangerous? Does auto-level
 help or fight you (try 0 and 4 in Flight)? Is roll rate 2.8 right?
+
+## 2026-09-29 — the freeze off the lane
+
+Rob: straying far from the safe zone tends to freeze and visually crash.
+
+Cause: a bug, not the design. The radiation alarm's code reused the name `a` for its two tones,
+hiding the audio system of the same name, so the alarm threw an error the first time it sounded.
+That stopped every frame from finishing, which froze the picture. Fixed, and `npm run lint` now
+catches this class of mistake. The host also catches a frame error, logs it once and keeps flying,
+so one bug can never freeze the game again.
+
+Also: at full radiation the screen washed out to amber static, which read as a crash in itself. The
+bleed now stays at the edges, grain is much lighter, and the centre is always clear. Deaths are
+calmer: a radiation death has no debris and fades out; a rock breach throws a small spray that
+travels with the ship instead of a wall of shards in the pilot's face.

@@ -109,7 +109,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     radFx: 0,
     phaseTime: 0, phaseCooldown: 0,
     hitStop: 0, slowmo: 0, slowmoScale: 1, timeScale: 1,
-    aberrationKick: 0, hitFlash: 0, phaseFx: 0,
+    aberrationKick: 0, hitFlash: 0, phaseFx: 0, fade: 0,
   });
   let g = fresh('attract');
 
@@ -136,11 +136,16 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   function die(cause) {
     g.mode = 'dead';
     g.deathCause = cause;
-    rig.addTrauma(1);
-    g.hitFlash = 1.4;
-    g.hitStop = 0.15;
+    rig.addTrauma(cause === 'rock' ? 1 : 0.6);
+    g.hitFlash = cause === 'rock' ? 1.2 : 0.6;
+    g.hitStop = 0.12;
     sfx.death();
-    shards.burst(ship.pos.clone().addScaledVector(ship.fwd, 3), ship.vel.clone().multiplyScalar(0.3), 3, 60);
+    // A rock breach throws a spray of hull fragments that travel with the ship,
+    // so they tumble away from the canopy instead of filling the view. A
+    // radiation death has no debris: the systems just fail and the view fades.
+    if (cause === 'rock') {
+      shards.burst(ship.pos.clone().addScaledVector(ship.fwd, 8), ship.vel, 0.8, 24);
+    }
     hud.setWarning('');
     events.emit('death', stats());
   }
@@ -322,7 +327,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       }
       sfx.geiger(outside > 0 ? Math.min(1, 0.08 + g.exposure / 110) : (g.exposure / 100) * 0.3, realDt);
 
-      if (hurting) hud.setWarning('Radiation burning the hull. Return to the lane', 2);
+      if (hurting) hud.setWarning('Hull burning. Return to the lane', 2);
       else if (outside > 0 && g.exposure > R.damageFrom * 0.5) hud.setWarning('Radiation rising', 1);
       else if (g.hull < 25) hud.setWarning('Hull critical', 2);
       else hud.setWarning('');
@@ -350,6 +355,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     dust.update(ship);
     reticle.material.opacity = g.mode === 'flying' ? 0.55 * (1 - g.phaseFx * 0.7) : 0;
 
+    if (g.mode === 'dead') g.fade = Math.min(0.88, g.fade + realDt / 1.6);
     g.aberrationKick *= Math.exp(-5 * realDt);
     g.hitFlash *= Math.exp(-4 * realDt);
     post.sync();
@@ -357,6 +363,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     post.uniforms.phase.value = g.phaseFx;
     post.uniforms.hit.value = g.hitFlash;
     post.uniforms.radiation.value = Math.min(1, g.radFx);
+    post.uniforms.fade.value = g.fade;
     renderer.toneMappingExposure = config.fx.exposure;
 
     if (g.mode === 'flying') sfx.update(ship.speed, ship.yawRate / config.flight.yawRate);

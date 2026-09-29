@@ -75,6 +75,6 @@ export function createDust(config) {
       uGlow.value = 0.8 + (speed / config.flight.boostSpeed) * 0.9;
     },
     // Radiation turns the grit a sickly amber
-    setRadiation(k) { uTint.value.setRGB(1 + k * 0.6, 1 + k * 0.25, 1 - k * 0.7); },
+    setRadiation(k) { uTint.value.setRGB(1 + k * 0.35, 1 + k * 0.15, 1 - k * 0.5); },
   };
 }

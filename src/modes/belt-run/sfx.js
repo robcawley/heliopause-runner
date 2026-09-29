@@ -147,8 +147,8 @@ export function createSfx(a, config) {
     if (!bus) return;
     const ctx = a.ctx;
     const t = ctx.currentTime;
-    const [a, b] = urgent ? [880, 660] : [660, 520];
-    [a, b].forEach((f, i) => {
+    const tones = urgent ? [880, 660] : [660, 520];
+    tones.forEach((f, i) => {
       const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = f;
       const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200;
       const g = ctx.createGain();
