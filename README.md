@@ -1,19 +1,24 @@
-# Kuiper Blast 2
+# Heliopause Runner
 
-A first-person rebuild of [Kuiper Blast](https://robcawley.com/kuiper-blast/): the same belt, the same
-Orison story, seen from inside the cockpit.
+A first-person starfighter smuggling and expansion game: arcade spaceflight, tactical planning,
+ship management and light tycoon progression, set on the push outward past the heliopause.
 
-**Current stage: 0, the feel prototype.** No enemies, no weapons. A cockpit, a nimble fighter that
-turns and flies where it points, barrel rolls, near misses, the phase drive, the beacon lane (slow
-radiation outside it, repair beacons inside), hull damage and death, and a tuning panel. The only question this stage answers: is flying through the belt
-fun for thirty seconds on its own?
+- **The game:** `docs/GAME-DESIGN.md`
+- **The plan:** `docs/PRODUCTION-PLAN.md`
+- **Picking it up cold:** `PROJECT-BRIEF.md`
+
+**Where it stands: Phase 0, the flight prototype.** The project began as Kuiper Blast 2, a
+first-person rebuild of [Kuiper Blast](https://robcawley.com/kuiper-blast/), and that work is now
+the game's flight core: a nimble fighter that turns and flies where it points, barrel rolls, near
+misses, the phase drive, and the beacon lane (slow radiation outside it, repair beacons inside),
+hull damage and death, with a tuning panel over every number.
 
 ## Run it
 
 Double-click **Play Prototype.command**, or in Terminal:
 
 ```
-cd ~/Desktop/"Kuiper Blast 2"
+cd ~/Desktop/"Heliopause Runner"
 npm install      # first time only
 npm run dev
 ```
@@ -61,9 +66,10 @@ src/
     hud.js hud.css          the mode's HUD, scoped to .belt-hud
     assets/audio/           Sidewinding.mp3
 docs/
-  DESIGN.md                 pillars and how the feel is built
+  DESIGN.md                 flight pillars and how the feel is built
   INTEGRATION.md            how a host game uses a mode
-  ROADMAP.md                stages from here to a finished game
+  GAME-DESIGN.md            the whole game
+  PRODUCTION-PLAN.md        phases and milestones from here to launch
   FEEL-LOG.md               dated notes from each tuning session
 reference/v1/               the original 2D game, read-only, for porting
 ```

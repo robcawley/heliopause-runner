@@ -1,4 +1,7 @@
-# Design
+# Flight design
+
+How the first-person flight and the belt run feel, and why. For the whole game, see
+`GAME-DESIGN.md`; for the plan, `PRODUCTION-PLAN.md`.
 
 ## Pillars (working assumptions, confirm or overturn)
 

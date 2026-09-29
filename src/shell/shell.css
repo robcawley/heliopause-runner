@@ -21,10 +21,10 @@ html, body { margin: 0; height: 100%; background: var(--deep); color: var(--ice)
   transition: opacity 0.9s ease, visibility 0.9s;
 }
 #title.gone { opacity: 0; visibility: hidden; }
-.title-block { max-width: 34rem; }
+.title-block { max-width: 48rem; }
 h1 {
   margin: 0; font-weight: 700; line-height: 0.82; letter-spacing: -0.02em;
-  font-size: clamp(4.5rem, 14vw, 10.5rem); color: var(--ice);
+  font-size: clamp(3.4rem, 11vw, 9rem); color: var(--ice);
 }
 .title-sub { margin: 1.4rem 0 2rem; font-size: 1.15rem; color: var(--sun); }
 #launch {

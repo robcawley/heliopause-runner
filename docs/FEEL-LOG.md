@@ -1,5 +1,8 @@
 # Feel log
 
+The project was called Kuiper Blast 2 until 28 Sept 2026, when it became the flight core of
+Heliopause Runner.
+
 After a tuning session, paste the values you changed (T, then Copy values) with a line on why.
 
 ## 2026-09-28 — first build

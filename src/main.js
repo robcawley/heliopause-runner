@@ -111,7 +111,7 @@ async function boot() {
     } else run.hud.dev('');
   });
 
-  window.__kb2 = { run, engine };      // for the console and tests
+  window.__game = { run, engine };      // for the console and tests
   document.body.classList.add('ready');
 }
 

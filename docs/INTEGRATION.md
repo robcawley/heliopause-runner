@@ -1,6 +1,8 @@
 # Using a mode inside a bigger game
 
-Kuiper Blast 2 is built as layers so the belt run can become one part of a larger game.
+Heliopause Runner is built in layers so each way of playing (the belt run today; station, hangar and
+star map later) is a self-contained mode the game's shell can swap in and out. The production plan's
+systems architecture (`PRODUCTION-PLAN.md`) grows from this.
 
 **engine/** is shared by the whole game and never knows about any particular mode:
 `createEngine` (one WebGPU/WebGL2 renderer, resize, camera tracking), `createAudio` (the audio
