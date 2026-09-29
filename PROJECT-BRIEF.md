@@ -17,11 +17,12 @@ shooter Kuiper Blast (v1 on robcawley.com; source in `reference/v1/` and
 
 Phase 0 of the production plan, the flight prototype, is done in first form:
 
-- A nimble arcade fighter: the stick sets turn rates, the ship flies where it points with a little
-  drift, boost and brake, three barrel-roll charges, a phase drive with i-frames.
+- A nimble arcade fighter with full freedom: pitch, yaw and roll about its own axes (loops, turning
+  right round, flying inverted), auto-level when you let go of roll, flies where it points with a
+  little drift, boost and brake, three barrel-roll charges, a phase drive with i-frames.
 - A 3D belt: ~650 ambient rocks plus path rocks along your heading, GPU dust streaks, shader sky.
 - Near misses with hit-stop, slow motion, chains; hits shatter rocks and damage the hull.
-- The beacon lane (safe radius 30 m along -z): radiation outside builds slowly, harmless at first,
+- The beacon lane (safe radius 160 m along -z, wide enough to be a combat arena): radiation outside builds slowly, harmless at first,
   then eats the hull. Guidance arrows, Geiger clicks, alarms, MICA lines. Repair gates inside.
   Death leads to a debrief screen.
 - A live tuning panel (T) over every feel number.
@@ -51,6 +52,8 @@ Layers: `src/engine/` (shared), `src/modes/belt-run/` (the flight prototype as o
    nimble, responsive, fun star fighter.
 4. It will become part of a bigger game.
 5. The bigger game is Heliopause Runner (design document supplied by Rob, 28 Sept).
+6. The safe zone should be much wider, because attack ships and more are coming: much more room to
+   fly around, turn around, fly free. (Done 29 Sept: lane 160 m, full six-way freedom.)
 
 ## Open questions
 

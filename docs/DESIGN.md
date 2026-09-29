@@ -10,7 +10,8 @@ How the first-person flight and the belt run feel, and why. For the whole game, 
    world, not a wall: the beacon lane shields you, and outside it radiation builds slowly. A short
    excursion is free; a long one becomes a decision; staying out for good kills you. Repair beacons
    sit inside the lane, so coming home is how you heal.
-   (Revised 2026-09-28 twice: first the bounded frame was too tight to dodge in; then strafing in a
+   (Revised 2026-09-29: the lane is now 160 m wide, an arena rather than a corridor, because attack
+   ships are coming and the pilot needs room to turn and fight inside shelter. Revised 2026-09-28 twice: first the bounded frame was too tight to dodge in; then strafing in a
    corridor still did not feel like flying, and radiation was too punishing.)
 2. **Feel first.** If an empty belt is not fun to fly through, nothing added on top will fix it.
 3. **Near miss is the core verb.** In v1 it is a scoring bonus. In first person, a rock sliding past
@@ -25,10 +26,13 @@ How the first-person flight and the belt run feel, and why. For the whole game, 
 
 ## How the feel is built
 
-- **Rate-based turning.** The stick sets yaw and pitch *rates*, which reach the stick's demand in
+- **Rate-based turning, full freedom.** The stick sets pitch and yaw *rates*, Q / E the roll rate,
+  all about the ship's own axes: loop, turn right round, fly inverted. Rates reach their demand in
   ~80 ms (`turnResponse`). Mouse and stick have a response curve (`stickCurve`) so small movements
-  aim finely and full deflection turns hard. Pitch stops short of vertical so the horizon never
-  flips; yaw is unlimited.
+  aim finely and full deflection turns hard.
+- **Auto-level.** Let go of roll and the wings ease back level with the lane's horizon, so you
+  never lose your bearings for long. It stands back while you pull hard on pitch (loops stay
+  loops) and fades out pointing straight up or down. `autoLevel` 0 turns it off.
 - **Grip.** Velocity swings round to the nose at `grip`, so hard turns carry a little drift.
 - **Bank and head.** Bank comes from turn rate. The pilot's head is thrown against g-force on a
   spring and glances into the turn (`lookIntoTurn`).

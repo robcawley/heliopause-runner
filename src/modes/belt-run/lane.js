@@ -14,7 +14,7 @@ export function createLane(config) {
   const group = new THREE.Group();
   const L = config.lane;
 
-  const ringGeo = new THREE.TorusGeometry(1, 0.008, 6, 160);
+  const ringGeo = new THREE.TorusGeometry(1, 0.004, 6, 256);
   const rings = Array.from({ length: RINGS }, () => {
     const m = new THREE.MeshBasicNodeMaterial({ color: new THREE.Color(0.25, 0.9, 0.85), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
     const ring = new THREE.Mesh(ringGeo, m);
@@ -62,8 +62,9 @@ export function createLane(config) {
       const z = (base + k) * S;
       ring.position.set(0, 0, z);
       ring.scale.setScalar(L.safeRadius);
-      const d = ship.pos.distanceTo(ring.position);
-      ring.material.opacity = 0.9 * (1 - ss(d, far * 0.4, far)) * ss(Math.abs(ship.pos.z - z), 6, 40);
+      // Distance to the nearest point on the hoop, not its centre (the hoops are huge)
+      const d = Math.hypot(ship.pos.z - z, Math.hypot(ship.pos.x, ship.pos.y) - L.safeRadius);
+      ring.material.opacity = 0.9 * (1 - ss(d, far * 0.45, far)) * ss(d, 4, 30);
     });
 
     // Gates nearest the ship

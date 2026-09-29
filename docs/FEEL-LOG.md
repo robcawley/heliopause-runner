@@ -41,3 +41,17 @@ it, so you can turn right round. Lane widened to 30 m. Radiation reworked: harml
 To judge next: is the turn rate right with a mouse? Too twitchy, raise stickCurve or lower yawRate;
 too floaty, raise turnResponse. Does 30 m of lane feel roomy? Is ~45 s just outside the lane long
 enough?
+
+## 2026-09-29 — an arena, not a corridor
+
+Rob: the safe zone circles should be much wider. Attack ships and more are coming; the pilot needs
+much more ability to fly around, turn around, fly free.
+
+Changes: lane safe radius 30 → 160 m (warn at 135, rings every 260 m, repair gates within 64 m of
+the centre, core repair within 80 m). Flight moved from yaw/pitch angles to a true orientation:
+pitch, yaw and roll about the ship's own axes, so loops and inverted flight work. Q / E now roll
+(hold); barrel roll is any double-tap (Q, E, A, D, or a bumper). Auto-level eases the wings back
+when you let go of roll; it stands back while you pull hard on pitch.
+
+To judge next: is 160 m roomy enough, or too roomy for the belt to feel dangerous? Does auto-level
+help or fight you (try 0 and 4 in Flight)? Is roll rate 2.8 right?

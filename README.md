@@ -9,7 +9,7 @@ ship management and light tycoon progression, set on the push outward past the h
 
 **Where it stands: Phase 0, the flight prototype.** The project began as Kuiper Blast 2, a
 first-person rebuild of [Kuiper Blast](https://robcawley.com/kuiper-blast/), and that work is now
-the game's flight core: a nimble fighter that turns and flies where it points, barrel rolls, near
+the game's flight core: a nimble fighter with full freedom (loop, roll, turn right round), barrel rolls, near
 misses, the phase drive, and the beacon lane (slow radiation outside it, repair beacons inside),
 hull damage and death, with a tuning panel over every number.
 
@@ -36,7 +36,8 @@ robcawley.com. Not doing that yet.
 | | |
 |---|---|
 | Turn and pitch | Mouse (distance from centre is how hard you turn), WASD / arrows, gamepad left stick, thumb-stick on touch |
-| Barrel roll | Q / E, double-tap A or D, gamepad LB / RB, Roll buttons (touch). Three charges. |
+| Roll | Hold Q / E, gamepad LB / RB. Let go and the wings ease back to level (tunable). |
+| Barrel roll | Double-tap Q, E, A or D; double-tap a bumper; Roll buttons (touch). Three charges. |
 | Boost / brake | Shift / X or Ctrl, gamepad right / left trigger |
 | Phase drive | Space, second finger, the Phase button (touch), gamepad A |
 | Tuning panel | T |

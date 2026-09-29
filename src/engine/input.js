@@ -1,4 +1,4 @@
-// Input is reduced to intent: a stick (-1..1 on each axis) plus actions.
+// Input is reduced to intent: a stick (-1..1 on each axis), a roll axis, plus actions.
 // Modes decide what the stick means; for the belt run it turns the ship.
 //
 // Steering modes (options.steering)
@@ -10,6 +10,7 @@
 export function createInput(canvas, options) {
   const state = {
     stickX: 0, stickY: 0,
+    roll: 0,                    // -1 roll left .. +1 roll right
     boost: false, brake: false,
     lastPointer: 'mouse',
     touchStick: null,           // {x, y, dx, dy} in px, for a HUD to draw
@@ -48,15 +49,14 @@ export function createInput(canvas, options) {
   listen(canvas, 'pointerleave', () => { pointer = null; });
   listen(canvas, 'contextmenu', (e) => e.preventDefault());
 
-  const DIR_KEYS = { a: 'rollLeft', arrowleft: 'rollLeft', d: 'rollRight', arrowright: 'rollRight' };
+  // Double-tap any of these for a barrel roll that way
+  const DIR_KEYS = { a: 'rollLeft', arrowleft: 'rollLeft', q: 'rollLeft', d: 'rollRight', arrowright: 'rollRight', e: 'rollRight' };
 
   listen(window, 'keydown', (e) => {
     if (e.repeat) return;
     const k = e.key.toLowerCase();
     keys.add(k);
     if (k === ' ') { pressed.add('phase'); e.preventDefault(); }
-    if (k === 'q') pressed.add('rollLeft');
-    if (k === 'e') pressed.add('rollRight');
     if (k in DIR_KEYS) {
       const now = performance.now() / 1000;
       if (lastTap[k] && now - lastTap[k] < (options.doubleTap ?? 0.24)) { pressed.add(DIR_KEYS[k]); lastTap[k] = 0; }
@@ -71,7 +71,8 @@ export function createInput(canvas, options) {
 
   const padWas = {};
   const edge = (pad, i) => { const now = !!pad.buttons[i]?.pressed; const was = padWas[i]; padWas[i] = now; return now && !was; };
-  let keyX = 0, keyY = 0;
+  let keyX = 0, keyY = 0, keyR = 0;
+  const padTap = {};
 
   function update(dt) {
     let sx = 0, sy = 0;
@@ -85,6 +86,9 @@ export function createInput(canvas, options) {
     const kr = 1 - Math.exp(-dt / 0.07);
     keyX += (kx - keyX) * kr; keyY += (ky - keyY) * kr;
     sx += keyX; sy += keyY;
+    const kroll = (keys.has('e') ? 1 : 0) - (keys.has('q') ? 1 : 0);
+    keyR += (kroll - keyR) * kr;
+    let roll = keyR;
     state.boost = keys.has('shift');
     state.brake = keys.has('control') || keys.has('x');
 
@@ -96,8 +100,15 @@ export function createInput(canvas, options) {
       if ((pad.buttons[7]?.value ?? 0) > 0.3) state.boost = true;
       if ((pad.buttons[6]?.value ?? 0) > 0.3) state.brake = true;
       if (edge(pad, 0)) pressed.add('phase');
-      if (edge(pad, 4)) pressed.add('rollLeft');
-      if (edge(pad, 5)) pressed.add('rollRight');
+      // Bumpers: hold to roll, double-tap for a barrel roll
+      roll += (pad.buttons[5]?.pressed ? 1 : 0) - (pad.buttons[4]?.pressed ? 1 : 0);
+      for (const [b, act] of [[4, 'rollLeft'], [5, 'rollRight']]) {
+        if (edge(pad, b)) {
+          const now = performance.now() / 1000;
+          if (padTap[b] && now - padTap[b] < (options.doubleTap ?? 0.24)) { pressed.add(act); padTap[b] = 0; }
+          else padTap[b] = now;
+        }
+      }
       if (edge(pad, 9)) pressed.add('pause');
     }
 
@@ -123,6 +134,7 @@ export function createInput(canvas, options) {
       sx *= curved / len; sy *= curved / len;
     }
     state.stickX = sx; state.stickY = sy;
+    state.roll = Math.max(-1, Math.min(1, roll));
   }
 
   return {

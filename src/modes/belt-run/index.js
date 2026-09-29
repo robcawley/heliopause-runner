@@ -257,8 +257,10 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     lane.reset();
   }
 
-  const attractStick = { stickX: 0, stickY: 0, boost: false, brake: false };
-  const deadStick = { stickX: 0.08, stickY: -0.1, boost: false, brake: true };
+  const attractStick = { stickX: 0, stickY: 0, roll: 0, boost: false, brake: false };
+  const autoTarget = new THREE.Vector3();
+  const autoInv = new THREE.Quaternion();
+  const deadStick = { stickX: 0.08, stickY: -0.1, roll: 0.3, boost: false, brake: true };
   const guideV = new THREE.Vector3();
   const laneFwd = new THREE.Vector3(0, 0, -1);
 
@@ -278,9 +280,10 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
 
     let steer = input.state;
     if (g.mode === 'attract') {
-      // Autopilot: a lazy weave that drifts back to the lane's centre
-      attractStick.stickX = Math.sin(now * 0.31) * 0.35 + clamp(-ship.pos.x * 0.02 + ship.yaw * 0.8, -0.5, 0.5);
-      attractStick.stickY = Math.sin(now * 0.47) * 0.25 - clamp(ship.pos.y * 0.02 + ship.pitch * 0.8, -0.5, 0.5);
+      // Autopilot: a lazy weave, steering for a point on the lane ahead
+      autoTarget.set(0, 0, ship.pos.z - 300).sub(ship.pos).applyQuaternion(autoInv.copy(ship.quat).invert());
+      attractStick.stickX = clamp(autoTarget.x / 120, -0.5, 0.5) + Math.sin(now * 0.31) * 0.3;
+      attractStick.stickY = clamp(autoTarget.y / 120, -0.5, 0.5) + Math.sin(now * 0.47) * 0.2;
       steer = attractStick;
     } else if (g.mode === 'dead') steer = deadStick;
 
@@ -370,7 +373,9 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     ship.group.updateMatrixWorld(true);
     const showGuide = g.mode === 'flying' && laneDist > L.warnRadius;
     if (showGuide) {
-      guideV.set(0, 0, ship.pos.z - 150).project(camera);
+      // Aim at the nearest point on the lane's edge, a little ahead
+      const k = config.lane.safeRadius * 0.7 / Math.max(1, laneDist);
+      guideV.set(ship.pos.x * k, ship.pos.y * k, ship.pos.z - 120).project(camera);
       const behind = guideV.z > 1;
       let nx = behind ? -guideV.x : guideV.x, ny = behind ? -guideV.y : guideV.y;
       const w = innerWidth, h = innerHeight;

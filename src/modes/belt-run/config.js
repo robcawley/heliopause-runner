@@ -20,14 +20,16 @@ export const DEFAULTS = {
   },
 
   flight: {
-    // A nimble arcade fighter. The stick sets turn *rates*; the ship flies
-    // where it points. Pitch is limited short of straight up or down so the
-    // horizon never flips, and yaw is free: you can turn right round.
+    // A nimble arcade fighter with full freedom: the stick sets pitch and yaw
+    // *rates*, Q / E roll, and the ship flies where it points. Loop, turn
+    // right round, fly inverted. Auto-level eases the wings back to the lane's
+    // horizon when you let go of roll.
     invertY: false,          // true: stick up = nose down, like a flight sim
     yawRate: 2.3,            // rad/s at full deflection (~130 degrees a second)
     pitchRate: 2.1,
-    turnResponse: 13,        // how quickly turn rate reaches the stick's demand (higher = snappier)
-    maxPitch: 1.4,           // radians
+    rollRate: 2.8,
+    turnResponse: 13,        // how quickly turn rates reach the stick's demand (higher = snappier)
+    autoLevel: 2.0,          // how firmly the wings return to level when not rolling (0 = off)
     grip: 7,                 // how quickly velocity swings round to the nose (lower = more drift)
     cruiseSpeed: 70,
     boostSpeed: 150,
@@ -97,15 +99,17 @@ export const DEFAULTS = {
   },
 
   lane: {
-    safeRadius: 30,          // shielded inside this distance from the lane's centre line
-    warnRadius: 24,          // guidance appears past this
-    ringSpacing: 160,
-    gateSpacing: 400,
-    gateRadius: 4,
-    gateOffset: 0.5,
+    // Wide enough to be an arena: room to turn, loop and, later, fight
+    // attack ships without ever leaving shelter.
+    safeRadius: 160,         // shielded inside this distance from the lane's centre line
+    warnRadius: 135,         // guidance appears past this
+    ringSpacing: 260,
+    gateSpacing: 450,
+    gateRadius: 6,
+    gateOffset: 0.4,         // gates sit within this share of the safe radius
     gateRepair: 20,
-    coreRepair: 1.5,         // hull per second near the centre line
-    coreRadius: 14,
+    coreRepair: 1.5,         // hull per second in the lane's core
+    coreRadius: 80,
   },
 
   hull: {

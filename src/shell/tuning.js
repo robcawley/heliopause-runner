@@ -21,6 +21,8 @@ export function createTuning(config, { onResize } = {}) {
   const flight = folder('Flight', config.flight, [
     ['yawRate', 0.5, 5, 0.05, 'turn rate'],
     ['pitchRate', 0.5, 5, 0.05, 'pitch rate'],
+    ['rollRate', 0.5, 6, 0.05, 'roll rate'],
+    ['autoLevel', 0, 6, 0.1, 'auto-level (0 = off)'],
     ['turnResponse', 2, 40, 0.5, 'turn snap'],
     ['grip', 0.5, 20, 0.1, 'grip (low = drift)'],
     ['invertY', 'invert pitch'],
@@ -29,7 +31,6 @@ export function createTuning(config, { onResize } = {}) {
     ['brakeSpeed', 5, 100, 1],
     ['bankPerTurn', 0, 1.2, 0.01],
     ['maxBank', 0, 1.6, 0.01],
-    ['maxPitch', 0.3, 1.55, 0.01],
   ]);
   folder('Stick', config.input, [
     ['steering', ['auto', 'drag', 'follow']],
@@ -71,8 +72,8 @@ export function createTuning(config, { onResize } = {}) {
     ['slowmoScale', 0.05, 1, 0.01],
   ]);
   folder('Lane', config.lane, [
-    ['safeRadius', 5, 80, 0.5],
-    ['warnRadius', 2, 80, 0.5],
+    ['safeRadius', 10, 500, 1],
+    ['warnRadius', 5, 500, 1],
     ['gateRepair', 0, 60, 1],
     ['coreRepair', 0, 10, 0.1],
   ]);
