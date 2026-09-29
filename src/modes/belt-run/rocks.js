@@ -95,6 +95,8 @@ export function createRocks(config) {
       : w.rockMinSize + Math.pow(Math.random(), 1.8) * (w.rockMaxSize - w.rockMinSize);
     r.stretch = [0.8 + Math.random() * 0.45, 0.75 + Math.random() * 0.4, 0.8 + Math.random() * 0.5];
     r.radius = r.size * Math.max(...r.stretch) * 1.05;
+    r.baseRadius = r.radius;
+    r.damageScale = 1;
     r.quat.random();
     r.axis.randomDirection();
     r.spin = (Math.random() * 0.8 + 0.1) / Math.sqrt(r.size);
@@ -102,9 +104,10 @@ export function createRocks(config) {
     r.nearest = Infinity; r.approached = false; r.closing = false; r.phased = false;
     r.giant = big;
     r.hp = big ? Infinity : Math.max(1, r.size * r.size * 1.2);
+    r.maxHp = r.hp;
   }
 
-  function place(r, ship, initial) {
+  function placeOnce(r, ship, initial) {
     const w = config.world;
     const dir = heading(ship);
     perpA.set(0, 1, 0); if (Math.abs(dir.y) > 0.9) perpA.set(1, 0, 0);
@@ -136,6 +139,17 @@ export function createRocks(config) {
     size(r, big && r.pos.distanceTo(ship.pos) > 120);
   }
 
+  // Settlements (or anything else) can clear airspace: a rock that lands inside it is placed
+  // again, and if nowhere will do this frame it is parked out of range to try the next
+  let exclude = null;
+  function place(r, ship, initial) {
+    for (let i = 0; i < 8; i++) {
+      placeOnce(r, ship, initial);
+      if (!exclude || !exclude(r.pos, r.radius)) return;
+    }
+    r.pos.copy(ship.pos).addScaledVector(heading(ship), config.world.fieldRadius * 2);
+  }
+
   function init(ship) {
     rocks.length = 0;
     const w = config.world;
@@ -161,6 +175,7 @@ export function createRocks(config) {
 
     for (const r of rocks) {
       r.pos.addScaledVector(r.vel, worldDt);
+      if (exclude && exclude(r.pos, r.radius)) { place(r, ship, false); continue; }
       rel.subVectors(r.pos, ship.pos);
       const d2 = rel.lengthSq();
 
@@ -213,7 +228,7 @@ export function createRocks(config) {
 
       dq.setFromAxisAngle(r.axis, r.spin * worldDt);
       r.quat.premultiply(dq);
-      scl.set(r.size * r.stretch[0], r.size * r.stretch[1], r.size * r.stretch[2]);
+      scl.set(r.size * r.stretch[0], r.size * r.stretch[1], r.size * r.stretch[2]).multiplyScalar(r.damageScale);
       m4.compose(r.pos, r.quat, scl);
       mesh.setMatrixAt(r.index, m4);
     }
@@ -245,7 +260,15 @@ export function createRocks(config) {
   // Returns what was destroyed (position, velocity, size), or null if it survived
   function damage(r, amount, ship) {
     r.hp -= amount;
-    if (r.hp > 0) return null;
+    if (r.hp > 0) {
+      // Each impact breaks away some of the silhouette, and the collision
+      // sphere follows it. Even a large rock changes shape as shots land.
+      if (!r.giant) {
+        r.damageScale = 0.68 + 0.32 * (r.hp / r.maxHp);
+        r.radius = r.baseRadius * r.damageScale;
+      }
+      return null;
+    }
     const gone = { pos: r.pos.clone(), vel: r.vel.clone(), size: r.size };
     place(r, ship, false);
     return gone;
@@ -277,5 +300,5 @@ export function createRocks(config) {
 
   function dispose() { mesh.geometry.dispose(); mesh.material.dispose(); }
 
-  return { mesh, init, update, handlers, rocks, raycast, damage, predictHit, dispose };
+  return { mesh, init, update, handlers, rocks, raycast, damage, predictHit, dispose, setExclusion(fn) { exclude = fn; } };
 }

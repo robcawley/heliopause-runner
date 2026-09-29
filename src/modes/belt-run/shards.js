@@ -38,6 +38,22 @@ export function createShards() {
     }
   }
 
+  function chip(at, normal, carry, size) {
+    const count = Math.min(14, 7 + Math.round(size * 2));
+    for (let i = 0; i < count; i++) {
+      if (list.length >= MAX) list.shift();
+      const dir = normal.clone().multiplyScalar(0.65).add(new THREE.Vector3().randomDirection().multiplyScalar(0.65)).normalize();
+      const speed = 9 + Math.random() * 24;
+      list.push({
+        x: at.x, y: at.y, z: at.z,
+        vx: carry.x + dir.x * speed, vy: carry.y + dir.y * speed, vz: carry.z + dir.z * speed,
+        s: (0.07 + Math.random() * 0.15) * Math.min(1.6, size),
+        q: new THREE.Quaternion().random(), axis: new THREE.Vector3().randomDirection(),
+        spin: 8 + Math.random() * 12, life: 0.7 + Math.random() * 0.55,
+      });
+    }
+  }
+
   function update(dt) {
     let n = 0;
     for (let i = list.length - 1; i >= 0; i--) {
@@ -58,5 +74,5 @@ export function createShards() {
   }
 
   function clear() { list.length = 0; mesh.count = 0; }
-  return { mesh, burst, update, clear };
+  return { mesh, burst, chip, update, clear };
 }

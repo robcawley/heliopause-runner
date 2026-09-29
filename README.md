@@ -11,7 +11,9 @@ ship management and light tycoon progression, set on the push outward past the h
 first-person rebuild of [Kuiper Blast](https://robcawley.com/kuiper-blast/), and that work is now
 the game's flight core: a nimble fighter with full freedom (loop, roll, turn right round), barrel rolls, near
 misses, the phase drive, and the beacon lane (slow radiation outside it, repair beacons inside),
-hull damage and death, with a tuning panel over every number.
+hull damage and death, with a tuning panel over every number. Civilian couriers cross the lane,
+drifting wreckage adds near-field scale, and distant worlds anchor the sky. Blaster hits chip
+asteroids before they break apart.
 
 ## Run it
 
@@ -67,7 +69,7 @@ src/
     ship.js                 the fighter's flight model
     cameraRig.js            head lag, look-into-turn, trauma, FOV
     cockpit.js              greybox cockpit and dash instruments
-    sky.js dust.js rocks.js shards.js lane.js   the world
+    sky.js planets.js dust.js debris.js rocks.js shards.js lane.js traffic.js   the world
     sfx.js                  synthesised sound effects
     hud.js hud.css          the mode's HUD, scoped to .belt-hud
     assets/audio/           Sidewinding.mp3

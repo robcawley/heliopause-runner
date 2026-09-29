@@ -8,6 +8,8 @@
 
 const reducedMotion =
   typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+// ?town in the URL brings the first settlement up after 600 m, for testing
+const quickTown = typeof location !== 'undefined' && new URLSearchParams(location.search).has('town');
 
 export const DEFAULTS = {
   input: {
@@ -98,6 +100,8 @@ export const DEFAULTS = {
     fieldRadius: 420,        // the belt is simulated in a sphere this big around the ship
     ambientRocks: 650,       // scattered through the whole sphere: scenery, parallax, stray hazards
     pathRocks: 44,           // placed along where you are heading: the dodging
+    trafficCount: 4,         // civilian craft crossing the lane
+    debrisCount: 110,        // non-colliding wreckage fragments
     pathSpread: 24,          // how far off your line path rocks sit
     rockMinSize: 0.7,
     rockMaxSize: 3.6,
@@ -139,6 +143,17 @@ export const DEFAULTS = {
     coreRadius: 80,
   },
 
+  settlement: {
+    // Towns cut into giant asteroids that straddle the lane: a neon canyon you fly through.
+    // Rare on purpose: the first comes up a few km in, then roughly every `spacing` metres
+    // (at cruise, a couple of minutes apart).
+    firstAt: quickTown ? 600 : 3000,   // metres down the lane to the first settlement
+    spacing: 11000,          // metres between settlements
+    jitter: 2500,            // +/- random spread on that spacing
+    canyonWidth: 90,         // wall to wall, metres (restart to rebuild)
+    jamBlasters: true,       // no-fire zone: guns lock inside the dock limits (an upgrade can lift this later)
+    wallDamage: 5,           // hull lost scraping a canyon wall or a building
+  },
   hull: {
     max: 100,
     rockDamageBase: 8,

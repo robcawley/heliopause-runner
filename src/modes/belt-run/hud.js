@@ -17,6 +17,10 @@ export function createHud(parent) {
       <div class="hud-meter heat"><span class="hud-meter-label">Blasters</span><span class="hud-meter-track"><span class="hud-meter-fill"></span></span></div>
     </div>
     <div class="hud-warning"></div>
+    <div class="hud-hitmarker" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="hud-zone"><b class="hud-zone-name"></b><span class="hud-zone-rule"></span></div>
+    <div class="hud-dock"><svg viewBox="-20 -20 40 40" aria-hidden="true"><path d="M0 -14 L14 0 L0 14 L-14 0 Z"/></svg><span class="hud-dock-label"></span></div>
+    <div class="hud-traffic"><span class="hud-traffic-bracket">⌜　⌝</span><span class="hud-traffic-label">COURIER</span></div>
     <div class="hud-mission">
       <div class="hud-mission-title"><span>Field test</span><b class="hud-mission-bonus">+1,000</b></div>
       <div class="hud-mission-item distance"><i></i><span>Fly the lane</span><b>0 / 2.0 km</b></div>
@@ -52,6 +56,7 @@ export function createHud(parent) {
   const radMeter = $('.hud-meter.rad'), radFill = $('.rad .hud-meter-fill');
   const pipsEl = $('.hud-roll-pips');
   const warning = $('.hud-warning');
+  const hitmarker = $('.hud-hitmarker');
   const guide = $('.hud-guide'), arrow = $('.hud-guide-arrow'), marker = $('.hud-guide-marker'), guideLabel = $('.hud-guide-label');
   const callouts = $('.hud-callouts');
   const comms = $('.hud-comms'), commsWho = $('.hud-comms-who'), commsText = $('.hud-comms-text');
@@ -62,14 +67,42 @@ export function createHud(parent) {
   const pipEl = $('.hud-pip'), pipText = $('.hud-pip-text');
   const hint = $('.hud-hint');
   const mission = $('.hud-mission');
+  const zone = $('.hud-zone'), zoneName = $('.hud-zone-name'), zoneRule = $('.hud-zone-rule');
+  const dock = $('.hud-dock'), dockLabel = $('.hud-dock-label');
+  const trafficEl = $('.hud-traffic');
+  const heatLabel = $('.heat .hud-meter-label');
+  let zoneTimer = 0, heatJammed = false, hitTimer = 0;
 
   let shownScore = 0, targetScore = 0, commsTimer = 0, pipCount = -1;
 
   return {
     buttons: { phase: $('.hud-btn.phase'), rollLeft: $('.hud-btn.roll-left'), rollRight: $('.hud-btn.roll-right'), fire: $('.hud-btn.fire'), pip: $('.hud-btn.pip'), boost: $('.hud-btn.boost'), brake: $('.hud-btn.brake'), pause: $('.hud-touch-pause') },
-    setHeat(frac, overheated) {
+    setHeat(frac, overheated, jammed = false) {
       heatFill.style.transform = `scaleX(${Math.max(0, Math.min(1, frac))})`;
       heatMeter.classList.toggle('over', !!overheated);
+      if (jammed !== heatJammed) {
+        heatJammed = jammed;
+        heatMeter.classList.toggle('jammed', jammed);
+        heatLabel.textContent = jammed ? 'Jammed' : 'Blasters';
+      }
+    },
+    // A settlement's name and house rule, across the top of the view
+    showZone(name, rule, seconds = 5) {
+      zoneName.textContent = name;
+      zoneRule.textContent = rule;
+      zone.classList.add('on');
+      zoneTimer = seconds;
+    },
+    // The canyon-mouth marker: { show, x, y (px), label }
+    setDock(d) {
+      dock.classList.toggle('on', !!d.show);
+      if (!d.show) return;
+      dock.style.transform = `translate(${d.x}px, ${d.y}px)`;
+      dockLabel.textContent = d.label;
+    },
+    setTraffic(t) {
+      trafficEl.classList.toggle('on', !!t.show);
+      if (t.show) trafficEl.style.transform = `translate(${t.x}px, ${t.y}px)`;
     },
     // Captured-mouse stick: a ring at screen centre and a dot for the deflection
     setMouseStick(s) {
@@ -83,6 +116,11 @@ export function createHud(parent) {
       if (text) pipText.textContent = text;
     },
     setHint(text) { hint.textContent = text || ''; hint.classList.toggle('on', !!text); },
+    hitConfirm(destroyed) {
+      hitmarker.classList.add('on');
+      hitmarker.classList.toggle('break', !!destroyed);
+      hitTimer = destroyed ? 0.32 : 0.15;
+    },
     setMission(progress, complete = false) {
       const values = {
         distance: `${Math.min(2, progress.distance / 1000).toFixed(1)} / 2.0 km`,
@@ -158,6 +196,8 @@ export function createHud(parent) {
       shownScore += (targetScore - shownScore) * Math.min(1, dt * 10);
       scoreEl.textContent = Math.round(shownScore).toLocaleString();
       if (commsTimer > 0 && (commsTimer -= dt) <= 0) comms.classList.remove('on');
+      if (zoneTimer > 0 && (zoneTimer -= dt) <= 0) zone.classList.remove('on');
+      if (hitTimer > 0 && (hitTimer -= dt) <= 0) hitmarker.classList.remove('on', 'break');
     },
   };
 }

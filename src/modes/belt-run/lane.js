@@ -43,7 +43,7 @@ export function createLane(config) {
   });
 
   const collected = new Set();
-  const handlers = { onGate: () => {} };
+  const handlers = { onGate: () => {}, blocked: () => false };   // blocked(p): something (a settlement) sits here
 
   // Gate i (i >= 0) sits at z = -(i + 1) * gateSpacing
   const gatePos = (i) => {
@@ -72,7 +72,8 @@ export function createLane(config) {
     gates.forEach((gate, k) => {
       const i = gi + k;
       const p = gatePos(i);
-      gate.g.visible = !collected.has(i);
+      const blocked = handlers.blocked(p);
+      gate.g.visible = !collected.has(i) && !blocked;
       gate.g.position.set(p.x, p.y, p.z);
       gate.g.scale.setScalar(L.gateRadius);
       gate.ring.rotation.z = t * 0.6;
@@ -83,7 +84,7 @@ export function createLane(config) {
 
       // Fly-through test: the ship crossed the gate's plane this frame, inside the ring
       const crossed = (ship.prevZ - p.z) * (ship.pos.z - p.z) <= 0 && ship.prevZ !== ship.pos.z;
-      if (crossed && !collected.has(i) && Math.hypot(ship.pos.x - p.x, ship.pos.y - p.y) < L.gateRadius) {
+      if (crossed && !blocked && !collected.has(i) && Math.hypot(ship.pos.x - p.x, ship.pos.y - p.y) < L.gateRadius) {
         collected.add(i);
         handlers.onGate(i, p);
       }

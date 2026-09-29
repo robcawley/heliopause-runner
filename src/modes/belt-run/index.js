@@ -7,10 +7,14 @@ import { createShip } from './ship.js';
 import { createCameraRig } from './cameraRig.js';
 import { createCockpit } from './cockpit.js';
 import { createSky } from './sky.js';
+import { createPlanets } from './planets.js';
 import { createDust } from './dust.js';
+import { createDebris } from './debris.js';
+import { createTraffic } from './traffic.js';
 import { createRocks } from './rocks.js';
 import { createShards } from './shards.js';
 import { createLane } from './lane.js';
+import { createSettlement } from './settlement.js';
 import { createBlasters } from './blasters.js';
 import { createDroid } from './droid.js';
 import { createSfx } from './sfx.js';
@@ -55,6 +59,12 @@ const MICA = {
   restart: ['New flight plotted. The lane is where we left it.'],
 };
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
+// MICA, as a settlement comes up (% is the town's name)
+const TOWN_LINES = [
+  '% ahead. A town in the rock. They jam weapons inside the dock limits.',
+  'Settlement ahead: %. No-fire zone, so the guns will lock. Take the canyon.',
+  '%, dead ahead. Keep it clean in the canyon; they do not forgive scratches.',
+];
 const clamp = THREE.MathUtils.clamp;
 
 export function createBeltRun({ engine, audio, hudParent = document.body, overrides } = {}) {
@@ -81,13 +91,22 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   ship.group.add(cockpit.group);
 
   const sky = createSky(sunDir);
+  const planets = createPlanets(sunDir);
   const dust = createDust(config);
+  const debris = createDebris(config);
+  const traffic = createTraffic(config);
   const rocks = createRocks(config);
   const shards = createShards();
   const lane = createLane(config);
+  const settlement = createSettlement(config);
   const blasters = createBlasters(config);
   const pip = createDroid(config);
-  scene.add(sky.mesh, dust.mesh, rocks.mesh, shards.mesh, lane.group, blasters.group);
+  scene.add(sky.mesh, planets.group, dust.mesh, debris.group, traffic.group, rocks.mesh, shards.mesh, lane.group, blasters.group, settlement.group);
+  // A settlement clears its own airspace: no belt rocks or repair gates inside, and bolts stop at its rock
+  rocks.setExclusion((p, r) => settlement.clears(p, r));
+  lane.handlers.blocked = (p) => settlement.blocksGate(p);
+  blasters.handlers.blocked = (p) => settlement.solid(p);
+  traffic.handlers.blocked = (p) => settlement.clears(p, 10);
   ship.group.add(blasters.muzzleGroup, pip.group);
 
   // Keep the lane's sunward side lit: the light follows the ship
@@ -116,6 +135,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     radFx: 0,
     phaseTime: 0, phaseCooldown: 0,
     missionComplete: false, giantWarned: false,
+    settlements: 0, inSettlement: false, jamWarned: false, jamClick: 0, wallCooldown: 0, townAnnounced: -1,
     hitStop: 0, slowmo: 0, slowmoScale: 1, timeScale: 1,
     aberrationKick: 0, hitFlash: 0, phaseFx: 0, fade: 0,
   });
@@ -131,7 +151,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   const stats = () => ({
     score: g.score, distance: ship.distance, laneProgress: ship.laneProgress, time: g.flightTime,
     nearMisses: g.nearMisses, bestChain: g.bestChain, gates: g.gates, hits: g.hits, rolls: g.rolls,
-    rocksDestroyed: g.rocksDestroyed, shots: blasters.state.shots, shotsHit: blasters.state.hits, pipRescues: g.pipRescues,
+    rocksDestroyed: g.rocksDestroyed, shots: blasters.state.shots, shotsHit: blasters.state.hits, pipRescues: g.pipRescues, settlements: g.settlements,
     cause: g.deathCause, laneOffset: Math.max(0, Math.hypot(ship.pos.x, ship.pos.y) - config.lane.safeRadius),
   });
 
@@ -247,12 +267,18 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     rig.punch(-0.12);
     g.aberrationKick += 0.02;
   };
+  traffic.handlers.onPass = (side, distance) => {
+    sfx.flyby(side, distance);
+    rig.addTrauma(0.06);
+    hud.callout('Traffic passing', side);
+  };
   blasters.handlers.onImpact = (hit, destroyed) => {
+    hud.hitConfirm(!!destroyed);
     if (destroyed) {
       g.rocksDestroyed++;
       const pts = Math.round(10 * destroyed.size) * 5;
       if (g.mode === 'flying') g.score += pts;
-      shards.burst(destroyed.pos, destroyed.vel, destroyed.size * 0.5, Math.round(8 + destroyed.size * 6));
+      shards.burst(destroyed.pos, destroyed.vel, destroyed.size * 0.75, Math.min(64, Math.round(18 + destroyed.size * 10)));
       sfx.rockBreak(destroyed.size);
       const d = destroyed.pos.distanceTo(ship.pos);
       if (d < 60) rig.addTrauma(0.25 * (1 - d / 60) * Math.min(1, destroyed.size / 2));
@@ -262,7 +288,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       sfx.impact(true);
       if (!g.giantWarned && g.mode === 'flying') { g.giantWarned = true; hud.callout('Too big to break', 1); }
     } else {
-      shards.burst(hit.point, hit.rock.vel, 0.25, 3);
+      shards.chip(hit.point, hit.normal, hit.rock.vel, hit.rock.size);
       sfx.impact();
     }
   };
@@ -320,7 +346,10 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     shards.clear();
     blasters.reset();
     pip.reset();
+    settlement.reset(ship);
     rocks.init(ship);
+    debris.reset(ship);
+    traffic.reset(ship);
     lane.reset();
   }
 
@@ -329,6 +358,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   const autoInv = new THREE.Quaternion();
   const deadStick = { stickX: 0.08, stickY: -0.1, roll: 0.3, boost: false, brake: true };
   const guideV = new THREE.Vector3();
+  const dockV = new THREE.Vector3();
+  const trafficV = new THREE.Vector3();
   const laneFwd = new THREE.Vector3(0, 0, -1);
   let lastDevice = '';
 
@@ -361,8 +392,56 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     else if (pip.driving) steer = pip.stick;
 
     ship.update(realDt, dt, steer);
-    blasters.update(realDt, dt, ship, g.mode === 'flying' && input.state.fire, rocks);
+
+    // Settlements: the canyon is solid rock, and inside the dock limits the guns are jammed
+    settlement.update(ship, now);
+    const contact = settlement.collide(ship);
+    g.wallCooldown = Math.max(0, g.wallCooldown - realDt);
+    if (contact && g.mode === 'flying' && g.wallCooldown <= 0) {
+      g.wallCooldown = 0.6;
+      g.chain = 0; g.chainTimer = 0;
+      rig.addTrauma(0.55);
+      rig.punch(-3);
+      g.hitFlash = Math.max(g.hitFlash, 0.6);
+      sfx.scrape();
+      hud.callout('Scraped the wall', contact.side);
+      damage(config.settlement.wallDamage, 'wall');
+    }
+    const inTown = settlement.inZone(ship.pos);
+    const jammed = inTown && config.settlement.jamBlasters;
+    blasters.update(realDt, dt, ship, g.mode === 'flying' && input.state.fire && !jammed, rocks);
+    if (g.mode === 'flying') {
+      if (inTown !== g.inSettlement) {
+        g.inSettlement = inTown;
+        if (inTown) {
+          g.settlements++;
+          g.jamWarned = false;
+          hud.showZone(settlement.name, config.settlement.jamBlasters ? 'No-fire zone \u00b7 blasters jammed' : 'No-fire zone', 5);
+          sfx.chime();
+          events.emit('settlement', { name: settlement.name, inside: true });
+        } else {
+          if (config.settlement.jamBlasters) { hud.say('MICA', 'Clear of the dock limits. The guns are yours again.', 4); g.micaCooldown = 6; }
+          events.emit('settlement', { name: settlement.name, inside: false });
+        }
+      }
+      if (jammed && input.state.fire) {
+        if ((g.jamClick -= realDt) <= 0) {
+          sfx.jammed();
+          g.jamClick = 0.32;
+          if (!g.jamWarned) { g.jamWarned = true; hud.callout('Blasters jammed', 1); }
+        }
+      } else g.jamClick = 0;
+      const ahead = settlement.distanceAhead(ship);
+      if (ahead > 0 && ahead < 1600 && g.townAnnounced !== settlement.index) {
+        g.townAnnounced = settlement.index;
+        hud.say('MICA', pick(TOWN_LINES).replace('%', settlement.name), 6);
+        g.micaCooldown = 6;
+        g.micaTimer = Math.max(g.micaTimer, 18);
+      }
+    }
     rocks.update(realDt, dt, ship);
+    debris.update(dt, ship);
+    traffic.update(dt, ship, g.mode === 'flying');
     shards.update(dt);
     lane.update(ship, now);
     sunFollow();
@@ -432,6 +511,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
 
     rig.update(realDt, g.phaseFx * config.phase.fovKick * 0.5);
     sky.update(ship);
+    planets.update(ship);
     dust.update(ship);
     reticle.material.opacity = g.mode === 'flying' ? 0.55 * (1 - g.phaseFx * 0.7) : 0;
 
@@ -448,6 +528,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
 
     if (g.mode === 'flying') sfx.update(ship.speed, ship.yawRate / config.flight.yawRate);
     else sfx.silence();
+    sfx.ambience(g.mode === 'flying' ? settlement.proximity(ship.pos) : 0);
     audio.update();
 
     // MICA, occasionally, when nothing else is going on
@@ -481,12 +562,37 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       });
     } else hud.setGuide({ show: false });
 
+    // A marker on the settlement's canyon mouth as you come in, until you are inside
+    const mouth = settlement.mouth(ship, dockV);
+    let dockShown = false;
+    if (g.mode === 'flying' && mouth.distance < 1800 && !mouth.inside) {
+      dockV.project(camera);
+      if (dockV.z < 1 && Math.abs(dockV.x) < 1.1 && Math.abs(dockV.y) < 1.1) {
+        hud.setDock({ show: true, x: (dockV.x + 1) * 0.5 * innerWidth, y: (1 - dockV.y) * 0.5 * innerHeight, label: `${settlement.name} \u00b7 ${Math.round(mouth.distance)} m` });
+        dockShown = true;
+      }
+    }
+    if (!dockShown) hud.setDock({ show: false });
+
+    let trafficShown = false, trafficDistance = 300;
+    if (g.mode === 'flying') for (const courier of traffic.ships) {
+      if (!courier.active) continue;
+      const d = courier.craft.position.distanceTo(ship.pos);
+      if (d < 35 || d >= trafficDistance) continue;
+      trafficV.copy(courier.craft.position).project(camera);
+      if (trafficV.z < -1 || trafficV.z > 1 || Math.abs(trafficV.x) > 0.92 || Math.abs(trafficV.y) > 0.82) continue;
+      hud.setTraffic({ show: true, x: (trafficV.x + 1) * 0.5 * innerWidth, y: (1 - trafficV.y) * 0.5 * innerHeight });
+      trafficDistance = d;
+      trafficShown = true;
+    }
+    if (!trafficShown) hud.setTraffic({ show: false });
+
     hud.setHull(g.hull / config.hull.max);
     hud.setRadiation(g.exposure / 100);
     hud.setRolls(ship.rollCharges, config.roll.charges);
     hud.setStick(g.mode === 'flying' && input.state.device === 'touch' ? input.state.touchStick : null);
     hud.setMouseStick(g.mode === 'flying' && !pip.driving ? input.state.mouseStick : null);
-    hud.setHeat(blasters.state.heat / 100, blasters.state.overheated);
+    hud.setHeat(blasters.state.heat / 100, blasters.state.overheated, jammed && g.mode === 'flying');
     const touch = input.state.device === 'touch';
     hud.setPip(
       g.mode !== 'flying' || pip.state === 'hidden' ? null

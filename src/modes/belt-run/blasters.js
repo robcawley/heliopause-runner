@@ -26,8 +26,14 @@ export function createBlasters(config) {
     m.visible = false;
     return { mesh: m, life: 0 };
   });
+  const shockMat = new THREE.MeshBasicNodeMaterial({ color: new THREE.Color(0.55, 1.8, 2.1), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+  const shocks = Array.from({ length: 8 }, () => {
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 1, 32), shockMat.clone());
+    ring.visible = false;
+    return { mesh: ring, life: 0, size: 1 };
+  });
   const group = new THREE.Group();
-  group.add(mesh, ...flashes.map((f) => f.mesh));
+  group.add(mesh, ...flashes.map((f) => f.mesh), ...shocks.map((s) => s.mesh));
 
   // Muzzle flashes ride with the ship (added to the cockpit by the mode)
   const muzzleMat = new THREE.MeshBasicNodeMaterial({ color: new THREE.Color(3, 1.3, 0.6), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
@@ -50,7 +56,7 @@ export function createBlasters(config) {
   muzzleGroup.add(...barrels, ...muzzles);
 
   const bolts = [];
-  const handlers = { onFire: () => {}, onImpact: () => {}, onOverheat: () => {} };
+  const handlers = { onFire: () => {}, onImpact: () => {}, onOverheat: () => {}, blocked: () => false };
   const st = { heat: 0, overheated: false, cooldown: 0, barrel: 0, shots: 0, hits: 0 };
 
   const m4 = new THREE.Matrix4();
@@ -81,6 +87,15 @@ export function createBlasters(config) {
     f.size = size;
     f.mesh.position.copy(at);
     f.mesh.visible = true;
+  }
+
+  function shock(at, size, ship) {
+    const s = shocks.find((x) => x.life <= 0) || shocks[0];
+    s.life = 0.34;
+    s.size = Math.max(1, size);
+    s.mesh.position.copy(at);
+    s.mesh.lookAt(ship.pos);
+    s.mesh.visible = true;
   }
 
   function fire(ship) {
@@ -130,10 +145,12 @@ export function createBlasters(config) {
         const destroyed = rocks.damage(hit.rock, b.damage, ship);
         st.hits++;
         flash(hit.point, destroyed ? Math.min(4, destroyed.size * 1.2) : 0.9);
+        if (destroyed) shock(hit.point, destroyed.size, ship);
         handlers.onImpact(hit, destroyed);
         bolts.splice(i, 1);
         continue;
       }
+      if (handlers.blocked(next)) { flash(next, 1.4); bolts.splice(i, 1); continue; }   // struck settlement rock
       bolt.pos.copy(next);
       if (bolt.life <= 0) bolts.splice(i, 1);
     }
@@ -154,12 +171,20 @@ export function createBlasters(config) {
       f.mesh.scale.setScalar(f.size * (1.4 - k * 0.6));
       f.mesh.material.opacity = k;
     }
+    for (const s of shocks) {
+      if (s.life <= 0) { s.mesh.visible = false; continue; }
+      s.life -= dt;
+      const k = Math.max(0, s.life / 0.34);
+      s.mesh.scale.setScalar(s.size * (1 + (1 - k) * 2.2));
+      s.mesh.material.opacity = k * 0.7;
+    }
   }
 
   function reset() {
     bolts.length = 0;
     Object.assign(st, { heat: 0, overheated: false, cooldown: 0, barrel: 0, shots: 0, hits: 0 });
     mesh.count = 0;
+    for (const s of shocks) { s.life = 0; s.mesh.visible = false; }
   }
 
   return { group, muzzleGroup, update, reset, handlers, state: st };

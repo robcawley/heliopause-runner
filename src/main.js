@@ -103,14 +103,14 @@ async function boot() {
     run.setCapture(false);
     debrief.querySelector('.debrief-reason').textContent = s.cause === 'radiation'
       ? `Radiation burned through the hull, ${Math.round(s.laneOffset)} metres outside the beacon lane.`
-      : 'The belt broke through the hull.';
+      : s.cause === 'wall' ? 'You tore the hull open on a canyon wall.' : 'The belt broke through the hull.';
     const mins = Math.floor(s.time / 60), secs = Math.floor(s.time % 60).toString().padStart(2, '0');
     debrief.querySelector('.debrief-stats').innerHTML = [
       ['Score', s.score.toLocaleString()], ['Flight time', `${mins}:${secs}`],
       ['Distance flown', `${(s.distance / 1000).toFixed(2)} km`], ['Along the lane', `${(s.laneProgress / 1000).toFixed(2)} km`],
       ['Near misses', s.nearMisses], ['Best chain', s.bestChain], ['Repair beacons', s.gates],
       ['Rocks destroyed', s.rocksDestroyed], ['Blaster accuracy', s.shots ? `${Math.round((s.shotsHit / s.shots) * 100)}%` : '–'],
-      ['Rock hits taken', s.hits], ['PIP rescues', s.pipRescues],
+      ['Rock hits taken', s.hits], ['PIP rescues', s.pipRescues], ['Settlements passed', s.settlements ?? 0],
     ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
     setTimeout(() => { debrief.classList.add('on'); document.getElementById('again').focus(); }, 900);
   });

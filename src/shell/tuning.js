@@ -95,6 +95,13 @@ export function createTuning(config, { onResize } = {}) {
     ['gateRepair', 0, 60, 1],
     ['coreRepair', 0, 10, 0.1],
   ]);
+  folder('Settlements', config.settlement, [
+    ['firstAt', 300, 20000, 100, 'first one at (m)'],
+    ['spacing', 2000, 40000, 500, 'then every (m)'],
+    ['jitter', 0, 8000, 100],
+    ['jamBlasters', 'blasters jammed inside'],
+    ['wallDamage', 0, 30, 1, 'wall scrape damage'],
+  ]);
   folder('Radiation & hull', config.radiation, [
     ['riseRate', 0.5, 40, 0.5, 'exposure rise'],
     ['fallRate', 1, 60, 1, 'exposure fall'],

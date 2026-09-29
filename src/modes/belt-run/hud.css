@@ -35,6 +35,16 @@
 .hud-warning.on { opacity: 1; }
 .hud-warning.urgent { color: var(--beacon); text-shadow: 0 0 20px rgba(255, 107, 79, 0.85); animation: blink 0.6s steps(2) infinite; }
 
+.hud-hitmarker { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; transform: translate(-50%, -50%) scale(.75); opacity: 0; transition: opacity .09s, transform .15s; }
+.hud-hitmarker.on { opacity: .9; transform: translate(-50%, -50%) scale(1); }
+.hud-hitmarker.break { transform: translate(-50%, -50%) scale(1.35); }
+.hud-hitmarker i { position: absolute; width: 8px; height: 2px; background: var(--sun); box-shadow: 0 0 8px var(--beacon); }
+.hud-hitmarker i:nth-child(1) { left: 3px; top: 8px; transform: rotate(45deg); }
+.hud-hitmarker i:nth-child(2) { right: 3px; top: 8px; transform: rotate(-45deg); }
+.hud-hitmarker i:nth-child(3) { left: 3px; bottom: 8px; transform: rotate(-45deg); }
+.hud-hitmarker i:nth-child(4) { right: 3px; bottom: 8px; transform: rotate(45deg); }
+.hud-hitmarker.break i { background: var(--garden); box-shadow: 0 0 12px var(--garden); }
+
 .hud-mission {
   position: absolute; top: max(20px, env(safe-area-inset-top)); right: 24px; width: 220px;
   padding: 12px 14px; background: linear-gradient(120deg, rgba(4,8,18,.74), rgba(4,8,18,.3));
@@ -139,3 +149,20 @@
 .hud-btn.fire { width: 74px; height: 74px; background: rgba(255, 107, 79, 0.18); border-color: rgba(255, 107, 79, 0.7); }
 .hud-btn.pip { border-color: rgba(255, 212, 154, 0.7); background: rgba(255, 212, 154, 0.14); }
 body.paused .hud-touch-buttons, body.paused .hud-touch-pause { display: none; }
+
+/* Settlements: the town's name on entry, the canyon-mouth marker, jammed guns */
+.hud-zone { position: absolute; left: 50%; top: 16%; transform: translate(-50%, -8px); text-align: center; opacity: 0; transition: opacity .6s, transform .6s; pointer-events: none; }
+.hud-zone.on { opacity: 1; transform: translate(-50%, 0); }
+.hud-zone-name { display: block; font-size: clamp(1.4rem, 3.4vw, 2.4rem); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #ffd6f3; text-shadow: 0 0 18px rgba(255, 60, 190, .8), 0 0 42px rgba(80, 220, 255, .45); }
+.hud-zone-rule { display: inline-block; margin-top: 6px; padding: 3px 10px; font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--sun); border: 1px solid rgba(255, 212, 154, .55); background: rgba(4, 8, 18, .55); }
+.hud-dock { position: absolute; left: 0; top: 0; opacity: 0; transition: opacity .3s; pointer-events: none; }
+.hud-dock.on { opacity: 1; }
+.hud-dock svg { position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; fill: none; stroke: #ff7ad9; stroke-width: 2.5; filter: drop-shadow(0 0 6px rgba(255, 90, 200, .9)); }
+.hud-dock-label { position: absolute; left: 22px; top: -9px; white-space: nowrap; font-size: .78rem; color: #ffd6f3; text-shadow: 0 0 8px rgba(0, 0, 0, .9); }
+.hud-traffic { position: absolute; left: 0; top: 0; opacity: 0; transition: opacity .15s; color: #9bf4f5; font-size: .72rem; letter-spacing: .11em; text-align: center; }
+.hud-traffic.on { opacity: .8; }
+.hud-traffic-bracket { position: absolute; left: -22px; top: -18px; width: 44px; font-size: 1rem; text-shadow: 0 0 8px #42d5de; }
+.hud-traffic-label { position: absolute; top: 12px; left: 0; transform: translateX(-50%); white-space: nowrap; }
+.hud-meter.heat.jammed .hud-meter-label { color: var(--beacon); }
+.hud-meter.heat.jammed .hud-meter-track { background-image: repeating-linear-gradient(45deg, rgba(255, 107, 79, .5) 0 4px, transparent 4px 8px); }
+@media (prefers-reduced-motion: reduce) { .hud-zone { transition: none; } }

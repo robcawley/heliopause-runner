@@ -57,6 +57,25 @@ export function createSfx(a, config) {
     src.start(t0); src.stop(tp + 0.6);
   }
 
+  function flyby(side, distance) {
+    if (!bus) return;
+    const ctx = a.ctx;
+    const t = ctx.currentTime;
+    const level = Math.max(0.08, 0.38 * (1 - distance / 160));
+    const n = ctx.createBufferSource(); n.buffer = a.noise;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.7;
+    bp.frequency.setValueAtTime(1300, t);
+    bp.frequency.exponentialRampToValueAtTime(330, t + 0.52);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(level, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.58);
+    const p = ctx.createStereoPanner();
+    p.pan.setValueAtTime(side * 0.8, t);
+    p.pan.linearRampToValueAtTime(side * 0.25, t + 0.5);
+    n.connect(bp).connect(g).connect(p).connect(bus);
+    n.start(t); n.stop(t + 0.6);
+  }
+
   // Near miss confirm: a short bright tick that climbs with the chain
   function tick(chain) {
     if (!bus) return;
@@ -314,7 +333,71 @@ export function createSfx(a, config) {
     engineGain.gain.setTargetAtTime(config.audio.engine, t, 0.08);
   }
 
-  function silence() { if (engineGain) engineGain.gain.setTargetAtTime(0, a.ctx.currentTime, 0.2); }
+  // Hull grinding on canyon rock: a low scrape with a metal screech on top
+  function scrape() {
+    if (!bus) return;
+    const ctx = a.ctx;
+    const t = ctx.currentTime;
+    const n = ctx.createBufferSource(); n.buffer = a.noise;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(900, t); lp.frequency.exponentialRampToValueAtTime(160, t + 0.5);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.7, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+    n.connect(lp).connect(g).connect(bus); n.start(t, Math.random()); n.stop(t + 0.6);
+    const s = ctx.createBufferSource(); s.buffer = a.noise;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 9; bp.frequency.setValueAtTime(2100, t); bp.frequency.exponentialRampToValueAtTime(1300, t + 0.35);
+    const sg = ctx.createGain(); sg.gain.setValueAtTime(0.35, t); sg.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+    s.connect(bp).connect(sg).connect(bus); s.start(t, Math.random()); s.stop(t + 0.45);
+  }
 
-  return { start, whoosh, tick, daredevil, hit, phase, geiger, alarm, repair, roll, death, revive, laser, impact, rockBreak, overheat, chirp, update, silence };
+  // A dead trigger: the jammer has the guns
+  function jammed() {
+    if (!bus) return;
+    const ctx = a.ctx;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type = 'square';
+    o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(90, t + 0.09);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+    o.connect(lp).connect(g).connect(bus); o.start(t); o.stop(t + 0.12);
+  }
+
+  // Entering a settlement's dock limits: a two-note station chime
+  function chime() {
+    if (!bus) return;
+    const ctx = a.ctx;
+    const t = ctx.currentTime;
+    [[987.8, 0], [739.99, 0.32]].forEach(([f, dt]) => {
+      for (const [mult, amp] of [[1, 0.14], [2.76, 0.03]]) {
+        const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f * mult;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t + dt); g.gain.exponentialRampToValueAtTime(amp, t + dt + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dt + 1.4);
+        o.connect(g).connect(bus); o.start(t + dt); o.stop(t + dt + 1.5);
+      }
+    });
+  }
+
+  // The town's hum: air handlers and machinery, rising as you enter the canyon (level 0..1)
+  let amb = null;
+  function ambience(level) {
+    if (!bus) return;
+    const ctx = a.ctx;
+    if (!amb) {
+      const src = ctx.createBufferSource(); src.buffer = a.noise; src.loop = true;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 340; bp.Q.value = 0.9;
+      const hum = ctx.createOscillator(); hum.type = 'triangle'; hum.frequency.value = 110;
+      const hg = ctx.createGain(); hg.gain.value = 0.12;
+      amb = ctx.createGain(); amb.gain.value = 0;
+      src.connect(bp).connect(amb); hum.connect(hg).connect(amb); amb.connect(bus);
+      src.start(); hum.start();
+    }
+    amb.gain.setTargetAtTime(level * 0.3, ctx.currentTime, 0.5);
+  }
+
+  function silence() {
+    if (engineGain) engineGain.gain.setTargetAtTime(0, a.ctx.currentTime, 0.2);
+    if (amb) amb.gain.setTargetAtTime(0, a.ctx.currentTime, 0.3);
+  }
+
+  return { start, whoosh, flyby, tick, daredevil, hit, phase, geiger, alarm, repair, roll, death, revive, laser, impact, rockBreak, overheat, chirp, update, silence, scrape, jammed, chime, ambience };
 }
