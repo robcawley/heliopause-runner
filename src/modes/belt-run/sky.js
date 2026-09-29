@@ -55,6 +55,6 @@ export function createSky(sunDir) {
 
   return {
     mesh,
-    update(ship) { mesh.position.set(ship.x, ship.y, 0); },
+    update(ship) { mesh.position.copy(ship.pos); },
   };
 }

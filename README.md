@@ -3,9 +3,9 @@
 A first-person rebuild of [Kuiper Blast](https://robcawley.com/kuiper-blast/): the same belt, the same
 Orison story, seen from inside the cockpit.
 
-**Current stage: 0, the feel prototype.** No enemies, no weapons. A cockpit, the belt, free flight
-with barrel rolls, near misses, the phase drive, the beacon lane (radiation outside it, repair beacons
-inside), hull damage and death, and a tuning panel. The only question this stage answers: is flying through the belt
+**Current stage: 0, the feel prototype.** No enemies, no weapons. A cockpit, a nimble fighter that
+turns and flies where it points, barrel rolls, near misses, the phase drive, the beacon lane (slow
+radiation outside it, repair beacons inside), hull damage and death, and a tuning panel. The only question this stage answers: is flying through the belt
 fun for thirty seconds on its own?
 
 ## Run it
@@ -30,34 +30,42 @@ robcawley.com. Not doing that yet.
 
 | | |
 |---|---|
-| Fly | Mouse (distance from centre is the stick), WASD / arrows, gamepad left stick, thumb-stick on touch |
-| Barrel roll | Q / E, double-tap a direction key, gamepad LB / RB, Roll buttons (touch). Three charges. |
+| Turn and pitch | Mouse (distance from centre is how hard you turn), WASD / arrows, gamepad left stick, thumb-stick on touch |
+| Barrel roll | Q / E, double-tap A or D, gamepad LB / RB, Roll buttons (touch). Three charges. |
+| Boost / brake | Shift / X or Ctrl, gamepad right / left trigger |
 | Phase drive | Space, second finger, the Phase button (touch), gamepad A |
-| Boost | Shift, gamepad right trigger |
 | Tuning panel | T |
 | Mute / pause | M / P or Esc |
 
+Pitch is not inverted by default. Flight-sim players can flip it in the tuning panel (Flight, invert pitch).
+
 ## Where things live
 
+The code is split so the belt run can drop into a bigger game as one piece. See
+`docs/INTEGRATION.md`.
+
 ```
-index.html              page shell, title and pause screens
+index.html                  page shell: title, pause and debrief screens
 src/
-  main.js               game loop, the feel rules (near miss, hits, phase, time)
-  config.js             every tunable number, one place
-  styles.css            HUD and title styling
-  core/                 renderer boot (WebGPU with WebGL2 fallback), input
-  flight/               ship spring model, camera rig (head lag, trauma, FOV)
-  world/                sky shader, GPU dust, asteroid field, hit shards, beacon lane + repair gates
-  cockpit/              greybox cockpit and dash instruments
-  fx/                   post-processing (bloom, aberration, phase grade, grain)
-  audio/                music bus and synthesised sound effects
-  ui/                   HUD overlay, tuning panel
-  assets/audio/         Sidewinding.mp3
+  main.js                   the host shell: screens, loop, and one mode
+  shell/                    host-only UI: shell.css, tuning panel
+  engine/                   shared by every mode: renderer, input, audio graph, post-processing, events
+  modes/belt-run/           the belt run, self-contained
+    index.js                the mode: createBeltRun() and all the rules
+    config.js               every tunable number for this mode
+    ship.js                 the fighter's flight model
+    cameraRig.js            head lag, look-into-turn, trauma, FOV
+    cockpit.js              greybox cockpit and dash instruments
+    sky.js dust.js rocks.js shards.js lane.js   the world
+    sfx.js                  synthesised sound effects
+    hud.js hud.css          the mode's HUD, scoped to .belt-hud
+    assets/audio/           Sidewinding.mp3
 docs/
-  DESIGN.md             pillars and the reasoning behind them
-  ROADMAP.md            stages from here to a finished game
-  FEEL-LOG.md           dated notes from each tuning session
-reference/v1/           the original 2D game, read-only, for porting
+  DESIGN.md                 pillars and how the feel is built
+  INTEGRATION.md            how a host game uses a mode
+  ROADMAP.md                stages from here to a finished game
+  FEEL-LOG.md               dated notes from each tuning session
+reference/v1/               the original 2D game, read-only, for porting
 ```
 
 ## Tech

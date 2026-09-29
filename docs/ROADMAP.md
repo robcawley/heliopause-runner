@@ -11,3 +11,6 @@ Each stage ends with something playable and a note in FEEL-LOG.md.
 4. **The garden and the story.** Drifters as bioluminescent creatures, MICA and the chapters as comms.
 5. **Art pass.** Real cockpit model, enemy designs, music integration.
 6. **Ship it.** Build, upload to robcawley.com alongside v1.
+
+Alongside all of this: Kuiper Blast 2 is planned as one component of a bigger game. Keep the belt
+run a self-contained mode (see INTEGRATION.md) so it can be mounted by that game's shell.

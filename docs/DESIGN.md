@@ -2,12 +2,13 @@
 
 ## Pillars (working assumptions, confirm or overturn)
 
-1. **A lane, not a rail.** The ship always flies down the belt, but sideways it is free: real
-   momentum, the nose swinging toward where you are going, barrel rolls to dodge. What keeps you
-   near the path is the world, not a wall: the beacon lane shields you, and outside it radiation
-   builds and eats the hull. Stray too far for too long and you die. Repair beacons sit inside the
-   lane, so staying close is how you heal. (Revised 2026-09-28: the bounded frame was too tight to
-   dodge in.)
+1. **Real flight, with a lane to come home to.** The ship is a nimble fighter: the stick turns it,
+   it flies where it points, and you can turn right round. What keeps you near the path is the
+   world, not a wall: the beacon lane shields you, and outside it radiation builds slowly. A short
+   excursion is free; a long one becomes a decision; staying out for good kills you. Repair beacons
+   sit inside the lane, so coming home is how you heal.
+   (Revised 2026-09-28 twice: first the bounded frame was too tight to dodge in; then strafing in a
+   corridor still did not feel like flying, and radiation was too punishing.)
 2. **Feel first.** If an empty belt is not fun to fly through, nothing added on top will fix it.
 3. **Near miss is the core verb.** In v1 it is a scoring bonus. In first person, a rock sliding past
    the canopy with a panned whoosh is the best moment in the game. Design toward it.
@@ -21,13 +22,21 @@
 
 ## How the feel is built
 
-- **Free lateral flight.** The stick asks for a sideways velocity; the ship accelerates toward it
-  (`agility`). The nose follows the velocity vector, bank comes from speed plus acceleration.
-- **Rolls.** A sideways burst plus a full 360, three charges that recharge.
-- **The lane.** Guidance arrows past `warnRadius`; radiation, Geiger clicks, alarms and an amber
-  screen bleed past `safeRadius`; hull damage once exposure passes `damageFrom`.
-- **Head lag.** The camera is thrown against acceleration on its own spring, so the cockpit frame
-  shifts in hard turns.
+- **Rate-based turning.** The stick sets yaw and pitch *rates*, which reach the stick's demand in
+  ~80 ms (`turnResponse`). Mouse and stick have a response curve (`stickCurve`) so small movements
+  aim finely and full deflection turns hard. Pitch stops short of vertical so the horizon never
+  flips; yaw is unlimited.
+- **Grip.** Velocity swings round to the nose at `grip`, so hard turns carry a little drift.
+- **Bank and head.** Bank comes from turn rate. The pilot's head is thrown against g-force on a
+  spring and glances into the turn (`lookIntoTurn`).
+- **Rolls.** A sideways burst in the ship's own frame plus a full 360; three charges.
+- **Throttle.** Boost widens the FOV, brake narrows it, and both change the engine note.
+- **The belt in 3D.** Ambient rocks fill a sphere around the ship; path rocks respawn along your
+  heading, so there is always something to dodge whichever way you fly. Hits, near misses and
+  whooshes are all tested in 3D against closest approach.
+- **The lane.** Guidance arrows past `warnRadius`. Past `safeRadius` exposure builds; it is harmless
+  until `damageFrom`, then eats the hull. Roughly: 10 m out, damage after ~20 s and death at
+  ~45 s; 60 m out, damage after ~5 s and death at ~25 s.
 - **Trauma.** Events add trauma (0..1); shake is trauma², smooth noise, decaying.
 - **Speed.** GPU dust streaks stretch with speed; FOV widens with boost.
 - **Time.** Near misses cause a hit-stop, then slow motion. The pilot's controls always run in

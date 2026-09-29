@@ -20,13 +20,15 @@ export function createShards() {
   const scl = new THREE.Vector3();
   const dq = new THREE.Quaternion();
 
-  function burst(x, y, z, size, count = 28) {
+  // at: world position; carry: velocity the debris inherits (the rock's, or the ship's)
+  function burst(at, carry, size, count = 28) {
     for (let i = 0; i < count; i++) {
       if (list.length >= MAX) list.shift();
       const dir = new THREE.Vector3().randomDirection();
+      const sp = 6 + Math.random() * 14;
       list.push({
-        x: x + dir.x * size * 0.6, y: y + dir.y * size * 0.6, z: z - Math.abs(dir.z) * size,
-        vx: dir.x * (6 + Math.random() * 14), vy: dir.y * (6 + Math.random() * 14), vz: dir.z * 6,
+        x: at.x + dir.x * size * 0.6, y: at.y + dir.y * size * 0.6, z: at.z + dir.z * size * 0.6,
+        vx: carry.x + dir.x * sp, vy: carry.y + dir.y * sp, vz: carry.z + dir.z * sp,
         s: (0.05 + Math.random() * 0.22) * Math.min(2, size),
         q: new THREE.Quaternion().random(),
         axis: new THREE.Vector3().randomDirection(),
@@ -36,14 +38,13 @@ export function createShards() {
     }
   }
 
-  function update(dt, ship) {
+  function update(dt) {
     let n = 0;
     for (let i = list.length - 1; i >= 0; i--) {
       const p = list[i];
       p.life -= dt;
-      p.x += p.vx * dt; p.y += p.vy * dt;
-      p.z += (p.vz + ship.speed) * dt;
-      if (p.life <= 0 || p.z > 20) { list.splice(i, 1); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+      if (p.life <= 0) list.splice(i, 1);
     }
     for (const p of list) {
       dq.setFromAxisAngle(p.axis, p.spin * dt);
@@ -56,5 +57,6 @@ export function createShards() {
     mesh.instanceMatrix.needsUpdate = true;
   }
 
-  return { mesh, burst, update };
+  function clear() { list.length = 0; mesh.count = 0; }
+  return { mesh, burst, update, clear };
 }

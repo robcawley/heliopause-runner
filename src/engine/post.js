@@ -5,7 +5,6 @@ import {
 } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { chromaticAberration } from 'three/addons/tsl/display/ChromaticAberrationNode.js';
-import { CONFIG } from '../config.js';
 
 // Scene -> chromatic aberration -> + bloom -> grade -> vignette -> grain.
 // Game events drive three uniforms:
@@ -13,22 +12,23 @@ import { CONFIG } from '../config.js';
 //   phase           0..1, the phase drive's ghost world (desaturated, cold)
 //   hit             0..1, a hull-hit flash, warm and brief
 //   radiation       0..1, exposure outside the beacon lane
-export function createPost(renderer, scene, camera) {
+// fx is read live (a config section with bloom, aberration, grain, vignette, exposure).
+export function createPost(renderer, scene, camera, fx) {
   const pipeline = new THREE.RenderPipeline(renderer);
 
   const u = {
-    aberration: uniform(CONFIG.fx.aberration),
+    aberration: uniform(fx.aberration),
     phase: uniform(0),
     hit: uniform(0),
     radiation: uniform(0),
-    vignette: uniform(CONFIG.fx.vignette),
-    grain: uniform(CONFIG.fx.grain),
+    vignette: uniform(fx.vignette),
+    grain: uniform(fx.grain),
   };
 
   const scenePass = pass(scene, camera);
   const color = scenePass.getTextureNode('output');
 
-  const bloomNode = bloom(color, CONFIG.fx.bloomStrength, CONFIG.fx.bloomRadius, CONFIG.fx.bloomThreshold);
+  const bloomNode = bloom(color, fx.bloomStrength, fx.bloomRadius, fx.bloomThreshold);
   const aberrated = chromaticAberration(color, u.aberration, vec2(0.5, 0.5), float(1.1));
 
   pipeline.outputNode = Fn(() => {
@@ -66,13 +66,14 @@ export function createPost(renderer, scene, camera) {
     uniforms: u,
     bloomNode,
     render() { pipeline.render(); },
+    dispose() { pipeline.dispose?.(); },
     sync() {
-      bloomNode.strength.value = CONFIG.fx.bloomStrength;
-      bloomNode.radius.value = CONFIG.fx.bloomRadius;
-      bloomNode.threshold.value = CONFIG.fx.bloomThreshold;
-      u.vignette.value = CONFIG.fx.vignette;
-      u.grain.value = CONFIG.fx.grain;
-      renderer.toneMappingExposure = CONFIG.fx.exposure;
+      bloomNode.strength.value = fx.bloomStrength;
+      bloomNode.radius.value = fx.bloomRadius;
+      bloomNode.threshold.value = fx.bloomThreshold;
+      u.vignette.value = fx.vignette;
+      u.grain.value = fx.grain;
+      renderer.toneMappingExposure = fx.exposure;
     },
   };
 }

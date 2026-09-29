@@ -2,7 +2,12 @@
 // comms line, the lane guidance arrow, the touch stick and the dev readout.
 // Anything that belongs inside the ship (phase, chain, beacon) lives on the
 // cockpit dash instead.
-export function createHud(root) {
+import './hud.css';
+
+export function createHud(parent) {
+  const root = document.createElement('div');
+  root.className = 'belt-hud';
+  parent.appendChild(root);
   root.innerHTML = `
     <div class="hud-status">
       <div class="hud-score"><span class="hud-score-value">0</span><span class="hud-score-label">clearance points</span></div>
@@ -97,6 +102,8 @@ export function createHud(root) {
       commsTimer = seconds;
     },
     dev(text) { dev.textContent = text; },
+    setVisible(v) { root.classList.toggle('hidden', !v); },
+    dispose() { root.remove(); },
     update(dt) {
       shownScore += (targetScore - shownScore) * Math.min(1, dt * 10);
       scoreEl.textContent = Math.round(shownScore).toLocaleString();

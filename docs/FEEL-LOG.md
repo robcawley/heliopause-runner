@@ -23,3 +23,18 @@ spawn around the ship's predicted position so the belt never runs out. The beaco
 
 To judge next: is dodging now satisfying rather than easy? How long can you stay out before it feels
 unfair? Do rolls feel good with the camera rolling fully?
+
+## 2026-09-28 — a fighter, not a sled
+
+Rob: let pilots stay in radiation longer; more freedom; it should feel like really flying a nimble,
+responsive, fun star fighter. Also: this will become a component of a bigger game.
+
+Changes: rate-based turning (yaw 2.3, pitch 2.1 rad/s, turnResponse 13, stickCurve 1.35), the ship
+flies where it points with a little drift (grip 7), boost 150 / brake 28, pilot glances into turns.
+The world is now truly 3D: the ship moves through a static belt, rocks and dust are placed around
+it, so you can turn right round. Lane widened to 30 m. Radiation reworked: harmless until exposure
+60, then slow damage (see DESIGN.md for timings). Code split into engine / modes/belt-run / shell.
+
+To judge next: is the turn rate right with a mouse? Too twitchy, raise stickCurve or lower yawRate;
+too floaty, raise turnResponse. Does 30 m of lane feel roomy? Is ~45 s just outside the lane long
+enough?
