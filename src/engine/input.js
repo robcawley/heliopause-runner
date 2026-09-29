@@ -30,7 +30,8 @@ export function createInput(canvas, options) {
   let dragId = null, originX = 0, originY = 0, dragX = 0, dragY = 0;
   let pointer = null;
   let mouseDown = false;
-  let vsx = 0, vsy = 0;         // virtual stick under pointer lock
+  let vsx = 0, vsy = 0;
+  let tsx = 0, tsy = 0;          // smoothed touch stick         // virtual stick under pointer lock
   let captureEnabled = true;
   let touchBoost = false, touchBrake = false;
   const lastTap = {};
@@ -184,12 +185,20 @@ export function createInput(canvas, options) {
     state.touchStick = null;
     state.mouseStick = null;
     const m = mode();
+    let touching = false;
     if (m === 'drag' && dragId !== null) {
+      // Thumbs wobble and phone screens are small, so the touch stick is lightly smoothed
+      // and has its own reach, deadzone and centre curve (options.touch*)
       const dx = dragX - originX, dy = dragY - originY;
-      sx += dx / options.touchStickRadius;
-      sy -= dy / options.touchStickRadius;
+      const tau = options.touchSmoothing ?? 0;
+      const k = tau > 0 ? 1 - Math.exp(-dt / tau) : 1;
+      tsx += (dx / options.touchStickRadius - tsx) * k;
+      tsy += (-dy / options.touchStickRadius - tsy) * k;
+      sx += tsx; sy += tsy;
+      touching = true;
       state.touchStick = { x: originX, y: originY, dx, dy };
     } else if (m === 'mouse' && state.device === 'keyboard') {
+      tsx = 0; tsy = 0;
       // The virtual stick eases home, so a forgotten mouse never means a forgotten turn
       const k = Math.exp(-(options.mouseRecentre ?? 1) * dt);
       vsx *= k; vsy *= k;
@@ -204,10 +213,13 @@ export function createInput(canvas, options) {
     // centre for aiming, full authority at the edge for hard turns
     let len = Math.hypot(sx, sy);
     if (len > 1) { sx /= len; sy /= len; len = 1; }
-    if (len < options.deadzone) { sx = 0; sy = 0; }
+    const deadzone = touching ? (options.touchDeadzone ?? options.deadzone) : options.deadzone;
+    const curve = touching ? (options.touchCurve ?? options.stickCurve ?? 1) : (options.stickCurve ?? 1);
+    if (!touching) { tsx = 0; tsy = 0; }
+    if (len < deadzone) { sx = 0; sy = 0; }
     else {
-      const t = (len - options.deadzone) / (1 - options.deadzone);
-      const curved = Math.pow(t, options.stickCurve ?? 1);
+      const t = (len - deadzone) / (1 - deadzone);
+      const curved = Math.pow(t, curve);
       sx *= curved / len; sy *= curved / len;
     }
     state.stickX = sx; state.stickY = sy;

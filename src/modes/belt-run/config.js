@@ -17,7 +17,10 @@ export const DEFAULTS = {
     mouseRange: 260,         // captured mouse: pixels of movement for full stick deflection
     mouseRecentre: 1.1,      // captured mouse: how fast the stick eases back to centre (0 = never)
     stickRadius: 0.3,        // mouse: pointer distance from centre (share of the short screen side) for full deflection
-    touchStickRadius: 70,    // touch: drag distance in px for full deflection
+    touchStickRadius: 90,    // touch: drag distance in px for full deflection (was 70: too twitchy)
+    touchDeadzone: 0.06,     // touch: thumb wobble near the centre is ignored
+    touchCurve: 1.6,         // touch: centre precision (>1 = gentler small moves, full turn still at the edge)
+    touchSmoothing: 0.06,    // touch: seconds of smoothing on the drag (0 = raw)
     touchThrottleLatch: true, // touch: Boost and Brake are taps that stay on (tap again, or tap the other, to stop),
                               // so the right thumb never has to hold one down while it holds Fire
     deadzone: 0.04,

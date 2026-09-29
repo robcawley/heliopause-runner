@@ -39,7 +39,10 @@ export function createTuning(config, { onResize } = {}) {
     ['stickRadius', 0.1, 0.6, 0.01, 'mouse reach'],
     ['stickCurve', 0.5, 3, 0.05, 'centre precision'],
     ['deadzone', 0, 0.3, 0.01],
-    ['touchStickRadius', 30, 160, 1],
+    ['touchStickRadius', 30, 200, 1, 'touch reach (px)'],
+    ['touchDeadzone', 0, 0.3, 0.01, 'touch deadzone'],
+    ['touchCurve', 0.5, 3, 0.05, 'touch centre precision'],
+    ['touchSmoothing', 0, 0.3, 0.01, 'touch smoothing (s)'],
     ['touchThrottleLatch', 'touch boost/brake latch'],
     ['doubleTapSteerKeys', 'dodge on A / D double-tap'],
   ]);

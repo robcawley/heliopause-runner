@@ -165,3 +165,15 @@ To judge on the phone:
 - Does Fire in the corner with Phase to its left feel natural, or should Phase and Fire swap?
 - Latching Boost/Brake: freeing, or do you forget they are on?
 - Portrait or landscape: is portrait worth supporting properly, or should we ask for landscape?
+
+## 2026-09-29 — Touch steering: less twitchy
+
+Rob, on the phone: movement "a little too responsive". Touch hit full deflection at 70 px of drag,
+shared the mouse's curve (1.35) and had no smoothing, so thumb wobble became turns.
+
+Touch now has its own settings (tuning panel → Stick): reach 90 px, deadzone 0.06, centre curve 1.6,
+smoothing 0.06 s. A half-way drag now asks for about half the turn it used to; a full drag still
+gives a full-rate turn. Mouse, keyboard and gamepad are unchanged.
+
+To judge: still twitchy → raise touch reach (100–110) or the curve (1.8); now sluggish → lower the
+smoothing first (0.03), then the curve.
