@@ -77,6 +77,8 @@ export function createRocks(config) {
   const tmp = new THREE.Vector3();
   const rel = new THREE.Vector3();
   const relVel = new THREE.Vector3();
+  const step = new THREE.Vector3();
+  const prevRel = new THREE.Vector3();
   const closest = new THREE.Vector3();
   const qInv = new THREE.Quaternion();
   const perpA = new THREE.Vector3();
@@ -167,17 +169,23 @@ export function createRocks(config) {
 
       const reach = r.radius + nm.radius * 2 + 25;
       if (d2 < reach * reach) {
-        const clearance = Math.sqrt(d2) - r.radius;
         relVel.subVectors(r.vel, ship.vel);
         const closingNow = rel.dot(relVel) < 0;
-
+        // Swept test: the closest the rock came to the pilot at any moment of this frame's
+        // movement, not just where it ended up. At boost and a low frame rate the ship moves
+        // further per frame than a small rock is wide, so sampling the end point alone let
+        // rocks pass through the hull and even score as near misses.
+        step.copy(relVel).multiplyScalar(worldDt);
+        prevRel.subVectors(rel, step);
+        const s2 = step.lengthSq();
+        const u = s2 > 1e-9 ? THREE.MathUtils.clamp(-prevRel.dot(step) / s2, 0, 1) : 1;
+        const clearance = prevRel.addScaledVector(step, u).length() - r.radius;
         if (clearance < nm.hitRadius) {
           if (handlers.onHit(r, clearance) === 'destroy') { place(r, ship, false); continue; }
-        }
-
+        } else if (r.phased && !closingNow) r.phased = false;   // phased right through and clear of it
+        if (closingNow || r.closing) r.nearest = Math.min(r.nearest, clearance);
         if (closingNow) {
           r.closing = true;
-          r.nearest = Math.min(r.nearest, clearance);
           // Predict the pass for the whoosh
           if (!r.approached) {
             const v2 = relVel.lengthSq();
@@ -243,7 +251,31 @@ export function createRocks(config) {
     return gone;
   }
 
+  // The first rock whose surface the pilot will reach within `horizon` seconds on the
+  // current course, or null. PIP uses it so the autopilot never flies you into ice.
+  function predictHit(ship, horizon) {
+    const hitR = config.nearMiss.hitRadius;
+    let best = null, bestT = horizon;
+    for (const r of rocks) {
+      rel.subVectors(r.pos, ship.pos);
+      relVel.subVectors(r.vel, ship.vel);
+      const R = r.radius + hitR;
+      const c = rel.lengthSq() - R * R;
+      if (c <= 0) continue;                       // already touching: the hit test has it
+      const b = rel.dot(relVel);
+      if (b >= 0) continue;                       // moving apart
+      const a = relVel.lengthSq();
+      const disc = b * b - a * c;
+      if (disc < 0) continue;                     // passes clear
+      const t = (-b - Math.sqrt(disc)) / a;
+      if (t < bestT) { bestT = t; best = r; }
+    }
+    if (!best) return null;
+    const side = Math.sign(rel.subVectors(best.pos, ship.pos).dot(ship.right)) || 1;
+    return { rock: best, t: bestT, side };
+  }
+
   function dispose() { mesh.geometry.dispose(); mesh.material.dispose(); }
 
-  return { mesh, init, update, handlers, rocks, raycast, damage, dispose };
+  return { mesh, init, update, handlers, rocks, raycast, damage, predictHit, dispose };
 }

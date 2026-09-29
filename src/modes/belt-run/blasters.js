@@ -62,6 +62,18 @@ export function createBlasters(config) {
   const dir = new THREE.Vector3();
   const next = new THREE.Vector3();
   const jitter = new THREE.Vector3();
+  const probeEnd = new THREE.Vector3();
+  let aimDist = config.blasters.convergence;
+
+  // Converge on whatever is under the reticle, so the rock you aim at is the rock you hit.
+  // The barrels sit about a metre either side of the eye, so a fixed convergence point
+  // 160 m out sent both streams either side of small rocks up close.
+  function aimDistance(ship, rocks) {
+    const b = config.blasters;
+    probeEnd.copy(ship.fwd).multiplyScalar(b.aimRange ?? 400).add(ship.pos);
+    const hit = rocks.raycast(ship.pos, probeEnd);
+    return hit ? Math.max(8, hit.point.distanceTo(ship.pos)) : b.convergence;
+  }
 
   function flash(at, size) {
     const f = flashes.find((x) => x.life <= 0) || flashes[0];
@@ -75,7 +87,7 @@ export function createBlasters(config) {
     const b = config.blasters;
     const barrel = BARRELS[st.barrel];
     origin.copy(barrel).applyQuaternion(ship.group.quaternion).add(ship.pos);
-    aim.copy(ship.fwd).multiplyScalar(b.convergence).add(ship.pos);
+    aim.copy(ship.fwd).multiplyScalar(aimDist).add(ship.pos);
     dir.subVectors(aim, origin).normalize();
     jitter.randomDirection().multiplyScalar(b.spread);
     dir.add(jitter).normalize();
@@ -102,6 +114,7 @@ export function createBlasters(config) {
     if (st.overheated && st.heat <= b.overheatRecover) st.overheated = false;
     st.cooldown -= dt;
     if (trigger && !st.overheated) {
+      if (st.cooldown <= 0) aimDist = aimDistance(ship, rocks);
       while (st.cooldown <= 0) { fire(ship); st.cooldown += 1 / b.fireRate; if (st.overheated) break; }
     } else if (st.cooldown < 0) st.cooldown = 0;
 

@@ -127,7 +127,9 @@ export function createShip(config) {
     desired.copy(fwd).multiplyScalar(s.speed);
     s.base.lerp(desired, 1 - Math.exp(-f.grip * dt));
     s.base.setLength(s.speed);
-    s.dodge.multiplyScalar(Math.exp(-f.dodgeDecay * dt));
+    // World time, like the movement it drives: in slow motion the burst lasts longer in
+    // real seconds but still carries the ship the same distance sideways
+    s.dodge.multiplyScalar(Math.exp(-f.dodgeDecay * worldDt));
     prevVel.copy(s.vel);
     s.vel.copy(s.base).add(s.dodge);
 

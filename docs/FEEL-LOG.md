@@ -118,3 +118,31 @@ the active input device. A launch press is not spent on the phase drive.
 
 To judge on hardware: thumb reach and button spacing on a phone, and bumper double-tap timing on
 an actual controller. Browser emulation cannot establish those feel judgments.
+
+## 2026-09-29 — QA fixes: the fairness pass
+
+A code-level QA found ten places where the game broke its own promises. Fixed:
+
+1. Blasters converge on the first rock under the reticle (within `aimRange` 400 m), falling back to
+   160 m. Before, both streams passed either side of a small rock dead ahead at 30 m.
+2. A rock you phase into stays harmless until you are out the other side, even if the phase ends
+   first (slow motion made big rocks take longer to cross than the phase lasts).
+3. The barrel roll's sideways burst decays in world time, so a roll in slow motion carries the same
+   ~6.5 m as at full speed (it was about 40% after a near miss).
+4. Double-tapping A / D no longer barrel-rolls (it fired on ordinary steering corrections). Q / E still
+   do. Switch the old behaviour back on under Stick: "dodge on A / D double-tap".
+5. No rock deals more than 45 hull (`rockDamageMax`); giants used to one-shot you. Shooting a giant
+   gives a dull clank and "Too big to break" once a run. PIP now looks ahead while flying you home and
+   phases (or rolls clear) instead of flying you into ice.
+6. Ctrl no longer brakes (Ctrl+W closes the tab on Windows). Keys use physical positions (`e.code`), so
+   WASD works on any layout and a modifier can never leave a key stuck.
+7. A connected controller only takes over when it moves away from where it rests (worn sticks and
+   odd mappings used to switch mouse flight off); moving the mouse hands control straight back.
+8. Presses made while paused are thrown away instead of firing on resume.
+9. Rock collisions are swept across the whole frame, so nothing tunnels through the hull at boost on
+   a slow frame, and a pass through the hull can no longer score as a near miss.
+10. On touch, a tap on the right side that misses a button does nothing (it used to fire the phase).
+
+Checked headlessly against the real flight, rock and blaster code (all pass). Still to judge by hand:
+does converging on the target make the guns feel too easy at range? Does PIP's automatic phase read
+as competent or as a cheat? Is 45 the right ceiling for a giant?

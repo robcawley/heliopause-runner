@@ -19,6 +19,7 @@ export const DEFAULTS = {
     deadzone: 0.04,
     stickCurve: 1.35,        // >1 gives finer control near the centre
     doubleTap: 0.24,
+    doubleTapSteerKeys: false, // also barrel roll on a double-tap of A / D / arrows (easy to trigger by accident)
   },
 
   flight: {
@@ -55,7 +56,8 @@ export const DEFAULTS = {
     fireRate: 9,             // shots per second (alternating barrels)
     boltSpeed: 700,          // units/s on top of the ship's own velocity
     boltLife: 0.9,           // seconds
-    convergence: 160,        // metres ahead where the two streams meet
+    convergence: 160,       // where the streams meet when nothing is under the reticle
+    aimRange: 400,           // otherwise they converge on the first rock under the reticle within this range        // metres ahead where the two streams meet
     damage: 1,               // per bolt; rocks have roughly size x size x 1.2 hit points
     heatPerShot: 5.5,
     coolRate: 32,            // heat lost per second
@@ -141,6 +143,7 @@ export const DEFAULTS = {
     max: 100,
     rockDamageBase: 8,
     rockDamagePerSize: 5,
+    rockDamageMax: 45,       // no single rock takes more than this (giants used to one-shot the hull)
   },
 
   radiation: {

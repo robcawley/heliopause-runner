@@ -115,7 +115,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     wasOutside: false, alarmTimer: 0, micaCooldown: 0, micaTimer: 18, micaIdle: 0, wrongWayTime: 0,
     radFx: 0,
     phaseTime: 0, phaseCooldown: 0,
-    missionComplete: false,
+    missionComplete: false, giantWarned: false,
     hitStop: 0, slowmo: 0, slowmoScale: 1, timeScale: 1,
     aberrationKick: 0, hitFlash: 0, phaseFx: 0, fade: 0,
   });
@@ -167,7 +167,9 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
 
   rocks.handlers.onHit = (r) => {
     if (g.mode !== 'flying') return 'destroy';      // behind a menu or after death: rocks just vanish
-    if (g.phaseTime > 0) {
+    // A rock you phased into stays harmless until you are out the other side, even if the
+    // phase ends first (in slow motion you cross a big rock more slowly than the phase lasts)
+    if (g.phaseTime > 0 || r.phased) {
       if (!r.phased) {
         r.phased = true;
         g.score += 300;
@@ -189,7 +191,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     const toRock = r.pos.clone().sub(ship.pos).normalize();
     shards.burst(ship.pos.clone().addScaledVector(toRock, 3), r.vel, r.size);
     hud.callout('Hull hit', 1);
-    damage(config.hull.rockDamageBase + r.size * config.hull.rockDamagePerSize, 'rock');
+    damage(Math.min(config.hull.rockDamageMax ?? Infinity, config.hull.rockDamageBase + r.size * config.hull.rockDamagePerSize), 'rock');
     events.emit('hit', { hull: g.hull });
     return 'destroy';
   };
@@ -255,6 +257,10 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       const d = destroyed.pos.distanceTo(ship.pos);
       if (d < 60) rig.addTrauma(0.25 * (1 - d / 60) * Math.min(1, destroyed.size / 2));
       events.emit('rockDestroyed', { size: destroyed.size, score: g.score });
+    } else if (hit.rock.giant) {
+      // Giants cannot be broken: a dull clank, no chips, and a word the first time
+      sfx.impact(true);
+      if (!g.giantWarned && g.mode === 'flying') { g.giantWarned = true; hud.callout('Too big to break', 1); }
     } else {
       shards.burst(hit.point, hit.rock.vel, 0.25, 3);
       sfx.impact();
@@ -332,7 +338,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     if (input.state.device !== lastDevice) { lastDevice = input.state.device; events.emit('device', lastDevice); }
     for (const a of ['pause', 'escape', 'mute', 'tuning', 'lockLost']) if (input.consume(a)) events.emit('request', a);
     if (input.consume('confirm')) events.emit('request', 'confirm');
-    if (g.paused) { post.render(); return; }
+    if (g.paused) { input.clearActions(); post.render(); return; }
     if (input.consume('phase') && modeAtInput === 'flying') tryPhase();
     if (input.consume('rollLeft')) tryRoll(-1);
     if (input.consume('rollRight')) tryRoll(1);
@@ -367,6 +373,16 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     const laneDist = Math.hypot(ship.pos.x, ship.pos.y);
     const outside = laneDist - L.safeRadius;
     pip.update(realDt, ship, laneDist, g.mode === 'flying', input.state);
+
+    // PIP must never fly you into a rock: on a predicted hit it phases through, or
+    // barrel-rolls away from it if the phase drive is still recharging
+    if (pip.driving && g.mode === 'flying' && g.phaseTime <= 0) {
+      const threat = rocks.predictHit(ship, 0.35);
+      if (threat) {
+        if (g.phaseCooldown <= 0) { tryPhase(); sfx.chirp('drive'); }
+        else tryRoll(threat.side > 0 ? -1 : 1);
+      }
+    }
     g.micaCooldown = Math.max(0, g.micaCooldown - realDt);
     if (g.mode === 'flying') {
       if (outside > 0) {
@@ -483,7 +499,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     if (!wantsCapture && g.mode === 'flying') {
       if (g.flightTime < 6) tutorial = touch ? 'Drag on the left to steer. Hold FIRE to shoot.' : input.state.device === 'gamepad' ? 'Left stick steers. Right trigger fires.' : 'Steer with the mouse or WASD. Hold click or F to fire.';
       else if (g.flightTime < 12) tutorial = touch ? 'Hold BOOST for speed; use PHASE to pass through rocks.' : input.state.device === 'gamepad' ? 'A phases through rocks. B or X boosts; left trigger brakes.' : 'Space phases through danger. Shift boosts; X brakes.';
-      else if (g.flightTime < 18) tutorial = touch ? 'Tap ↶ or ↷ to dodge sideways.' : input.state.device === 'gamepad' ? 'Hold bumpers to roll; double-tap to dodge.' : 'Double-tap Q, E, A or D for a barrel roll.';
+      else if (g.flightTime < 18) tutorial = touch ? 'Tap ↶ or ↷ to dodge sideways.' : input.state.device === 'gamepad' ? 'Hold bumpers to roll; double-tap to dodge.' : 'Double-tap Q or E for a barrel roll.';
     }
     hud.setHint(wantsCapture ? 'Click the view to take the controls. Esc releases the mouse.' : tutorial);
 
@@ -529,6 +545,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     setCapture(enabled) { input.setCapture(enabled); },
     pause(p) {
       if (g.mode === 'dead') return;
+      input.clearActions();          // presses made on the pause screen never fire on resume
       g.paused = p;
       if (p) hud.setHint('');
       p ? audio.suspend() : audio.resume();

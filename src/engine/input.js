@@ -60,8 +60,9 @@ export function createInput(canvas, options) {
       if (e.button === 0) mouseDown = true;
       return;
     }
-    if (dragId !== null) { pressed.add('phase'); return; }   // a second finger phases
-    if (e.clientX > innerWidth * 0.55) return; // reserve the right side for actions
+    // The right side belongs to the action buttons: a thumb that misses one does nothing
+    if (e.clientX > innerWidth * 0.55) return;
+    if (dragId !== null) { pressed.add('phase'); return; }   // a second finger on the left phases
     dragId = e.pointerId; originX = dragX = e.clientX; originY = dragY = e.clientY;
     canvas.setPointerCapture(e.pointerId);
   });
@@ -70,7 +71,11 @@ export function createInput(canvas, options) {
     state.lastPointer = e.pointerType === 'touch' ? 'touch' : 'mouse';
   }, true);
   listen(canvas, 'pointermove', (e) => {
-    if (e.pointerType !== 'touch') state.lastPointer = 'mouse';
+    if (e.pointerType !== 'touch') {
+      state.lastPointer = 'mouse';
+      // Real mouse movement takes control back from a controller (a click or key is not needed)
+      if (Math.abs(e.movementX) + Math.abs(e.movementY) > 3) state.device = 'keyboard';
+    }
     if (state.locked) {
       const range = options.mouseRange || 260;
       vsx += e.movementX / range;
@@ -94,30 +99,38 @@ export function createInput(canvas, options) {
   listen(canvas, 'contextmenu', (e) => e.preventDefault());
 
   // Double-tap any of these for a barrel roll that way
-  const DIR_KEYS = { a: 'rollLeft', arrowleft: 'rollLeft', q: 'rollLeft', d: 'rollRight', arrowright: 'rollRight', e: 'rollRight' };
+  // (Q / E always; A / D and the arrows only if options.doubleTapSteerKeys, because
+  // quick corrective taps on the steering keys kept firing rolls by accident)
+  const ROLL_KEYS = { KeyQ: 'rollLeft', KeyE: 'rollRight' };
+  const STEER_ROLL_KEYS = { KeyA: 'rollLeft', ArrowLeft: 'rollLeft', KeyD: 'rollRight', ArrowRight: 'rollRight' };
 
   listen(window, 'keydown', (e) => {
     if (e.target instanceof Element && e.target.closest('input, select, textarea, [contenteditable="true"]')) return;
     if (e.repeat) return;
-    const k = e.key.toLowerCase();
+    // Physical key positions (e.code): WASD sits in the same place on any layout, and a
+    // modifier pressed mid-hold can never leave a key stuck down
+    const k = e.code;
     state.device = 'keyboard';
     keys.add(k);
-    if (k === ' ') { pressed.add('phase'); e.preventDefault(); }
-    if (k in DIR_KEYS) {
+    if (k === 'Space') { pressed.add('phase'); e.preventDefault(); }
+    const dodge = ROLL_KEYS[k] || (options.doubleTapSteerKeys ? STEER_ROLL_KEYS[k] : null);
+    if (dodge) {
       const now = performance.now() / 1000;
-      if (lastTap[k] && now - lastTap[k] < (options.doubleTap ?? 0.24)) { pressed.add(DIR_KEYS[k]); lastTap[k] = 0; }
+      if (lastTap[k] && now - lastTap[k] < (options.doubleTap ?? 0.24)) { pressed.add(dodge); lastTap[k] = 0; }
       else lastTap[k] = now;
     }
-    if (k === 'r') pressed.add('droid');
-    if (k === 'p') pressed.add('pause');
-    if (k === 'escape') pressed.add('escape');           // pause only, never un-pause (Esc also releases the mouse)
-    if (k === 'm') pressed.add('mute');
-    if (k === 't' || k === '`') pressed.add('tuning');
+    if (k === 'KeyR') pressed.add('droid');
+    if (k === 'KeyP') pressed.add('pause');
+    if (k === 'Escape') pressed.add('escape');           // pause only, never un-pause (Esc also releases the mouse)
+    if (k === 'KeyM') pressed.add('mute');
+    if (k === 'KeyT' || k === 'Backquote') pressed.add('tuning');
   });
-  listen(window, 'keyup', (e) => keys.delete(e.key.toLowerCase()));
+  listen(window, 'keyup', (e) => keys.delete(e.code));
   listen(window, 'blur', () => { keys.clear(); mouseDown = false; });
 
   const padWas = {};
+  const padRest = new Map();     // each pad's resting axes, so drift or a -1 resting axis is not "activity"
+  listen(window, 'gamepaddisconnected', (e) => padRest.delete(e.gamepad.index));
   const edge = (pad, i) => { const now = !!pad.buttons[i]?.pressed; const was = padWas[i]; padWas[i] = now; return now && !was; };
   let keyX = 0, keyY = 0, keyR = 0;
   const padTap = {};
@@ -128,23 +141,25 @@ export function createInput(canvas, options) {
 
     // Keys ramp in over ~70 ms: taps make small corrections, holds turn hard
     let kx = 0, ky = 0;
-    if (keys.has('a') || keys.has('arrowleft')) kx -= 1;
-    if (keys.has('d') || keys.has('arrowright')) kx += 1;
-    if (keys.has('w') || keys.has('arrowup')) ky += 1;
-    if (keys.has('s') || keys.has('arrowdown')) ky -= 1;
+    if (keys.has('KeyA') || keys.has('ArrowLeft')) kx -= 1;
+    if (keys.has('KeyD') || keys.has('ArrowRight')) kx += 1;
+    if (keys.has('KeyW') || keys.has('ArrowUp')) ky += 1;
+    if (keys.has('KeyS') || keys.has('ArrowDown')) ky -= 1;
     const kr = 1 - Math.exp(-dt / 0.07);
     keyX += (kx - keyX) * kr; keyY += (ky - keyY) * kr;
     sx += keyX; sy += keyY;
-    const kroll = (keys.has('e') ? 1 : 0) - (keys.has('q') ? 1 : 0);
+    const kroll = (keys.has('KeyE') ? 1 : 0) - (keys.has('KeyQ') ? 1 : 0);
     keyR += (kroll - keyR) * kr;
     let roll = keyR;
-    state.boost = keys.has('shift') || touchBoost;
-    state.brake = keys.has('control') || keys.has('x') || touchBrake;
-    state.fire = mouseDown || keys.has('f') || touchFire;
+    state.boost = keys.has('ShiftLeft') || keys.has('ShiftRight') || touchBoost;
+    state.brake = keys.has('KeyX') || touchBrake;   // not Ctrl: Ctrl+W closes the tab on Windows and cannot be blocked
+    state.fire = mouseDown || keys.has('KeyF') || touchFire;
 
     const pad = navigator.getGamepads?.().find((p) => p && p.connected);
     if (pad) {
-      const padActive = pad.axes.some((v) => Math.abs(v) > 0.2) || pad.buttons.some((b) => b.pressed);
+      if (!padRest.has(pad.index)) padRest.set(pad.index, pad.axes.slice());
+      const rest = padRest.get(pad.index);
+      const padActive = pad.axes.some((v, i) => Math.abs(v - (rest[i] ?? 0)) > 0.35) || pad.buttons.some((b) => b.pressed);
       if (padActive) state.device = 'gamepad';
       const dz = (v) => (Math.abs(v) < 0.12 ? 0 : v);
       sx += dz(pad.axes[0] ?? 0);
@@ -208,6 +223,12 @@ export function createInput(canvas, options) {
     setTouchBoost(v) { touchBoost = v; },
     setTouchBrake(v) { touchBrake = v; },
     consume(action) { const had = pressed.has(action); pressed.delete(action); return had; },
+    // Forget queued gameplay presses and half-finished double-taps (a pause screen swallowed them)
+    clearActions() {
+      for (const a of ['phase', 'rollLeft', 'rollRight', 'droid']) pressed.delete(a);
+      for (const k in lastTap) lastTap[k] = 0;
+      for (const k in padTap) padTap[k] = 0;
+    },
     // The host turns capture off behind menus and releases it for pause / debrief
     setCapture(enabled) { captureEnabled = enabled; if (!enabled) this.release(); },
     release() { if (document.pointerLockElement === canvas) document.exitPointerLock(); },

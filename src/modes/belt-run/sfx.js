@@ -233,12 +233,12 @@ export function createSfx(a, config) {
   }
 
   // A bolt striking ice: short bright crack
-  function impact() {
+  function impact(hard = false) {
     if (!bus) return;
     const ctx = a.ctx;
     const t = ctx.currentTime;
     const n = ctx.createBufferSource(); n.buffer = a.noise;
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2400 + Math.random() * 800; bp.Q.value = 1.4;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = hard ? 480 + Math.random() * 120 : 2400 + Math.random() * 800; bp.Q.value = 1.4;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
     n.connect(bp).connect(g).connect(bus);
