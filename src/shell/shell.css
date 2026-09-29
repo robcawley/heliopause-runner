@@ -21,21 +21,33 @@ html, body { margin: 0; height: 100%; background: var(--deep); color: var(--ice)
   transition: opacity 0.9s ease, visibility 0.9s;
 }
 #title.gone { opacity: 0; visibility: hidden; }
-.title-block { max-width: 48rem; }
+.title-block { max-width: 44rem; }
 h1 {
   margin: 0; font-weight: 700; line-height: 0.82; letter-spacing: -0.02em;
   font-size: clamp(3.4rem, 11vw, 9rem); color: var(--ice);
 }
-.title-sub { margin: 1.4rem 0 2rem; font-size: 1.15rem; color: var(--sun); }
+.title-sub { margin: 1.2rem 0 0.5rem; font-size: 1.15rem; color: var(--sun); }
+.title-objective { margin: 0 0 1.5rem; color: var(--ice); font-size: 0.95rem; }
+.title-objective strong { color: var(--garden); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.78rem; margin-right: 0.55rem; }
 #launch {
   font: 500 1.1rem var(--font); color: var(--deep); background: var(--garden);
   border: 0; border-radius: 2px; padding: 0.85rem 2.4rem; cursor: pointer;
   box-shadow: 0 0 0 0 rgba(79, 214, 200, 0.5); animation: breathe 2.8s ease-in-out infinite;
 }
 #launch:hover { background: var(--ice); }
+#launch span { margin-left: 0.65rem; opacity: 0.55; }
+#launch .pad-hint { display: none; }
+body[data-controls="gamepad"] #launch .key-hint, body[data-controls="touch"] #launch .key-hint { display: none; }
+body[data-controls="gamepad"] #launch .pad-hint { display: inline; }
 #launch:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; }
 @keyframes breathe { 50% { box-shadow: 0 0 0 10px rgba(79, 214, 200, 0); } }
-.title-controls { margin: 2rem 0 0; font-size: 0.92rem; line-height: 1.6; color: var(--ice-dim); }
+.title-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; margin: 1.3rem 0 0; }
+.title-controls.controls-gamepad, .title-controls.controls-touch { display: none; }
+body[data-controls="gamepad"] .title-controls:not(.controls-gamepad), body[data-controls="touch"] .title-controls:not(.controls-touch) { display: none; }
+body[data-controls="gamepad"] .title-controls.controls-gamepad, body[data-controls="touch"] .title-controls.controls-touch { display: flex; }
+.title-controls p { display: flex; flex-direction: column; min-width: 6rem; margin: 0; font-size: 0.78rem; color: var(--ice-dim); }
+kbd { font: 500 0.78rem var(--font); color: var(--ice); }
+.title-tip { margin: 0.9rem 0 0; max-width: 38rem; font-size: 0.84rem; line-height: 1.4; color: var(--ice-dim); }
 .title-meta { margin: 0.8rem 0 0; font-size: 0.8rem; color: var(--ice-dim); opacity: 0.7; }
 body:not(.ready) #launch { opacity: 0.4; pointer-events: none; }
 
@@ -44,9 +56,16 @@ body:not(.ready) #launch { opacity: 0.4; pointer-events: none; }
   position: fixed; inset: 0; display: none; place-content: center; text-align: center;
   background: rgba(4, 8, 18, 0.55); backdrop-filter: blur(3px); cursor: pointer;
 }
-#pause.on { display: grid; }
+#pause.on { display: grid; gap: 2rem; }
 #pause p { margin: 0; font-size: 2.4rem; font-weight: 500; }
 #pause .pause-hint { font-size: 0.95rem; color: var(--ice-dim); margin-top: 0.5rem; }
+.pause-controls { display: grid; grid-template-columns: repeat(2, auto); gap: 0.55rem 2rem; text-align: left; font-size: 0.85rem; color: var(--ice-dim); }
+.pause-controls.controls-gamepad, .pause-controls.controls-touch, .pause-hint.controls-gamepad, .pause-hint.controls-touch { display: none; }
+body[data-controls="gamepad"] .pause-controls.controls-keyboard, body[data-controls="touch"] .pause-controls.controls-keyboard,
+body[data-controls="gamepad"] .pause-hint.controls-keyboard, body[data-controls="touch"] .pause-hint.controls-keyboard { display: none; }
+body[data-controls="gamepad"] .pause-controls.controls-gamepad, body[data-controls="touch"] .pause-controls.controls-touch { display: grid; }
+body[data-controls="gamepad"] .pause-hint.controls-gamepad, body[data-controls="touch"] .pause-hint.controls-touch { display: block; }
+.pause-controls span { display: flex; justify-content: space-between; gap: 1.5rem; }
 
 /* ---- Debrief ------------------------------------------------------- */
 #debrief {
@@ -68,6 +87,12 @@ body:not(.ready) #launch { opacity: 0.4; pointer-events: none; }
 #again:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; }
 
 @media (prefers-reduced-motion: reduce) { #launch, .hull.low .hud-meter-fill, .hud-warning.urgent { animation: none; } }
+@media (max-height: 700px) {
+  #title { padding-block: 30px; }
+  h1 { font-size: clamp(3.2rem, 9vw, 6rem); }
+  .title-sub { margin-top: 0.8rem; }
+  .title-controls { margin-top: 0.9rem; }
+}
 
 /* Hide the mode HUD behind the title and debrief screens */
 body:has(#title:not(.gone)) .belt-hud > *:not(.hud-dev),

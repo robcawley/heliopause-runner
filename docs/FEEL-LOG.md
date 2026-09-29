@@ -91,3 +91,30 @@ Changes:
 To judge next: does the captured mouse feel controllable (too twitchy: raise mouse travel; drifts
 back too fast: lower self-centring)? Is PIP's timing right, and does its flying look competent? Do
 the blasters feel punchy: fire rate, bolt visibility, heat?
+
+## 2026-09-29 — usability and fun QA
+
+Playtest finding: the title screen asked the player to read a dense control manual (and clipped it
+at laptop height), while the flight exposed several good toys without giving the first run a goal.
+
+Changes: the launch screen now leads with four essential controls and teaches the advanced moves
+in three short in-flight prompts. A visible field test ties the existing systems together: fly 2 km
+down the lane, earn 3 close calls, and break 5 rocks for a 1,000-point completion bonus and MICA
+payoff. The pause screen is now the full control reference. HUD prompts have a dark backing for
+legibility over dust and sunlight, and the compact challenge panel moves clear of touch controls on
+small screens.
+
+To judge next: do the three goals complete in roughly the same run, or is one consistently left
+behind? If the close calls lag, try 2 rather than widening their detection radius; if rocks lag,
+try 4 rather than making the blasters stronger.
+
+## 2026-09-29 — control mapping across devices
+
+Touch now has hold-to-boost, hold-to-brake, and pause buttons alongside steering, fire, phase,
+barrel dodge and PIP. Steering starts on the left side, leaving the right side for actions. Controller
+A or Start can launch and restart, Start pauses, B joins X as a boost button, and the previous mouse
+position no longer adds steering while using the controller. Title and pause instructions switch to
+the active input device. A launch press is not spent on the phase drive.
+
+To judge on hardware: thumb reach and button spacing on a phone, and bumper double-tap timing on
+an actual controller. Browser emulation cannot establish those feel judgments.

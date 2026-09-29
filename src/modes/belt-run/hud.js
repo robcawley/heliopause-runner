@@ -17,6 +17,12 @@ export function createHud(parent) {
       <div class="hud-meter heat"><span class="hud-meter-label">Blasters</span><span class="hud-meter-track"><span class="hud-meter-fill"></span></span></div>
     </div>
     <div class="hud-warning"></div>
+    <div class="hud-mission">
+      <div class="hud-mission-title"><span>Field test</span><b class="hud-mission-bonus">+1,000</b></div>
+      <div class="hud-mission-item distance"><i></i><span>Fly the lane</span><b>0 / 2.0 km</b></div>
+      <div class="hud-mission-item misses"><i></i><span>Close calls</span><b>0 / 3</b></div>
+      <div class="hud-mission-item rocks"><i></i><span>Break rocks</span><b>0 / 5</b></div>
+    </div>
     <div class="hud-guide">
       <svg class="hud-guide-arrow" viewBox="-20 -20 40 40" aria-hidden="true"><path d="M-9 -12 L11 0 L-9 12 L-4 0 Z"/></svg>
       <svg class="hud-guide-marker" viewBox="-20 -20 40 40" aria-hidden="true"><path d="M0 -14 L14 0 L0 14 L-14 0 Z"/></svg>
@@ -30,12 +36,15 @@ export function createHud(parent) {
     <div class="hud-pip"><span class="hud-pip-key">R</span><span class="hud-pip-text"></span></div>
     <div class="hud-hint"></div>
     <div class="hud-touch-buttons">
-      <button class="hud-btn roll-left" type="button" aria-label="Roll left">Roll</button>
+      <button class="hud-btn roll-left" type="button" aria-label="Barrel roll left">↶</button>
       <button class="hud-btn phase" type="button" aria-label="Phase drive">Phase</button>
-      <button class="hud-btn roll-right" type="button" aria-label="Roll right">Roll</button>
+      <button class="hud-btn roll-right" type="button" aria-label="Barrel roll right">↷</button>
       <button class="hud-btn fire" type="button" aria-label="Fire blasters">Fire</button>
       <button class="hud-btn pip" type="button" aria-label="Call PIP">PIP</button>
+      <button class="hud-btn boost" type="button" aria-label="Hold to boost">Boost</button>
+      <button class="hud-btn brake" type="button" aria-label="Hold to brake">Brake</button>
     </div>
+    <button class="hud-touch-pause" type="button" aria-label="Pause game">Ⅱ</button>
   `;
   const $ = (s) => root.querySelector(s);
   const scoreEl = $('.hud-score-value');
@@ -52,11 +61,12 @@ export function createHud(parent) {
   const mstick = $('.hud-mstick'), mdot = $('.hud-mstick-dot');
   const pipEl = $('.hud-pip'), pipText = $('.hud-pip-text');
   const hint = $('.hud-hint');
+  const mission = $('.hud-mission');
 
   let shownScore = 0, targetScore = 0, commsTimer = 0, pipCount = -1;
 
   return {
-    buttons: { phase: $('.hud-btn.phase'), rollLeft: $('.hud-btn.roll-left'), rollRight: $('.hud-btn.roll-right'), fire: $('.hud-btn.fire'), pip: $('.hud-btn.pip') },
+    buttons: { phase: $('.hud-btn.phase'), rollLeft: $('.hud-btn.roll-left'), rollRight: $('.hud-btn.roll-right'), fire: $('.hud-btn.fire'), pip: $('.hud-btn.pip'), boost: $('.hud-btn.boost'), brake: $('.hud-btn.brake'), pause: $('.hud-touch-pause') },
     setHeat(frac, overheated) {
       heatFill.style.transform = `scaleX(${Math.max(0, Math.min(1, frac))})`;
       heatMeter.classList.toggle('over', !!overheated);
@@ -73,6 +83,19 @@ export function createHud(parent) {
       if (text) pipText.textContent = text;
     },
     setHint(text) { hint.textContent = text || ''; hint.classList.toggle('on', !!text); },
+    setMission(progress, complete = false) {
+      const values = {
+        distance: `${Math.min(2, progress.distance / 1000).toFixed(1)} / 2.0 km`,
+        misses: `${Math.min(3, progress.misses)} / 3`,
+        rocks: `${Math.min(5, progress.rocks)} / 5`,
+      };
+      for (const [key, value] of Object.entries(values)) {
+        const row = mission.querySelector(`.${key}`);
+        row.querySelector('b').textContent = value;
+        row.classList.toggle('done', progress[key] >= ({ distance: 2000, misses: 3, rocks: 5 })[key]);
+      }
+      mission.classList.toggle('complete', complete);
+    },
     setScore(v) { targetScore = v; },
     setHull(frac) {
       hullFill.style.transform = `scaleX(${Math.max(0, frac)})`;

@@ -32,6 +32,11 @@ async function boot() {
     sfx: { get: () => run.config.audio.sfx },
   });
   run.attract();
+  document.body.dataset.controls = matchMedia('(pointer: coarse)').matches ? 'touch' : 'keyboard';
+  if (navigator.getGamepads?.().some((pad) => pad?.connected)) document.body.dataset.controls = 'gamepad';
+  run.on('device', (device) => { document.body.dataset.controls = device; });
+  window.addEventListener('gamepadconnected', () => { document.body.dataset.controls = 'gamepad'; });
+  window.addEventListener('gamepaddisconnected', () => { document.body.dataset.controls = matchMedia('(pointer: coarse)').matches ? 'touch' : 'keyboard'; });
 
   const tuning = createTuning(run.config, { onResize: engine.resize });
 
@@ -55,6 +60,7 @@ async function boot() {
     if (screen !== 'flying' && screen !== 'paused') return;
     screen = p ? 'paused' : 'flying';
     pauseEl.classList.toggle('on', p);
+    document.body.classList.toggle('paused', p);
     run.pause(p);
     run.setCapture(!p);
   }
@@ -78,7 +84,15 @@ async function boot() {
 
   // ---- Mode events ----------------------------------------------------
   run.on('request', (what) => {
-    if (what === 'pause') setPaused(screen === 'flying');
+    if (what === 'confirm') {
+      if (screen === 'title') launch();
+      else if (screen === 'debrief' && debrief.classList.contains('on')) flyAgain();
+    }
+    if (what === 'pause') {
+      if (screen === 'title') launch();
+      else if (screen === 'debrief' && debrief.classList.contains('on')) flyAgain();
+      else setPaused(screen === 'flying');
+    }
     if ((what === 'escape' || what === 'lockLost') && screen === 'flying') setPaused(true);
     if (what === 'mute') run.hud.say('System', audio.toggleMute() ? 'Audio muted' : 'Audio on', 1.5);
     if (what === 'tuning') tuning.toggle();

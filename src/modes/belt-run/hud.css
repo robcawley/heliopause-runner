@@ -35,6 +35,21 @@
 .hud-warning.on { opacity: 1; }
 .hud-warning.urgent { color: var(--beacon); text-shadow: 0 0 20px rgba(255, 107, 79, 0.85); animation: blink 0.6s steps(2) infinite; }
 
+.hud-mission {
+  position: absolute; top: max(20px, env(safe-area-inset-top)); right: 24px; width: 220px;
+  padding: 12px 14px; background: linear-gradient(120deg, rgba(4,8,18,.74), rgba(4,8,18,.3));
+  border-left: 2px solid rgba(79,214,200,.5); transition: opacity .5s, border-color .3s;
+}
+.hud-mission-title { display: flex; justify-content: space-between; margin-bottom: 8px; color: var(--garden); font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.hud-mission-bonus { color: var(--ice-dim); font-weight: 500; letter-spacing: 0; }
+.hud-mission-item { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 7px; margin-top: 5px; font-size: .72rem; color: var(--ice-dim); }
+.hud-mission-item i { width: 6px; height: 6px; border: 1px solid currentColor; border-radius: 50%; }
+.hud-mission-item b { color: var(--ice); font-weight: 500; font-variant-numeric: tabular-nums; }
+.hud-mission-item.done { color: var(--garden); }
+.hud-mission-item.done i { background: var(--garden); box-shadow: 0 0 8px var(--garden); }
+.hud-mission.complete { border-color: var(--sun); }
+.hud-mission.complete .hud-mission-title { color: var(--sun); }
+
 .hud-guide { position: absolute; left: 0; top: 0; opacity: 0; transition: opacity 0.3s; }
 .hud-guide.on { opacity: 1; }
 .hud-guide svg { position: absolute; left: -26px; top: -26px; width: 52px; height: 52px; }
@@ -77,14 +92,17 @@
 .hud-stick::before { content: ''; position: absolute; left: -70px; top: -70px; width: 140px; height: 140px; border-radius: 50%; border: 1.5px solid rgba(212, 236, 246, 0.25); }
 .hud-stick-knob { position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%; background: rgba(79, 214, 200, 0.3); border: 1.5px solid rgba(79, 214, 200, 0.8); }
 
-.hud-touch-buttons { display: none; position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); gap: 10px; align-items: flex-end; }
+.hud-touch-buttons { display: none; position: absolute; right: max(12px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); gap: 7px; align-items: flex-end; }
 .hud-btn {
   pointer-events: auto; touch-action: none; border-radius: 50%;
   font: 500 0.85rem var(--font); color: var(--ice); background: rgba(79, 214, 200, 0.14);
-  border: 1.5px solid rgba(79, 214, 200, 0.6); width: 64px; height: 64px;
+  border: 1.5px solid rgba(79, 214, 200, 0.6); width: 58px; height: 58px;
 }
-.hud-btn.phase { width: 84px; height: 84px; margin-bottom: 30px; }
-@media (pointer: coarse) { .hud-touch-buttons { display: flex; } .hud-dev { right: 20px; top: 70px; } }
+.hud-btn.phase { width: 74px; height: 74px; }
+.hud-btn.boost, .hud-btn.brake { width: 62px; height: 48px; border-radius: 8px; }
+.hud-btn.boost { border-color: rgba(255,212,154,.7); }
+.hud-touch-pause { display: none; position: absolute; top: max(16px, env(safe-area-inset-top)); right: 16px; width: 40px; height: 40px; border: 1px solid rgba(212,236,246,.55); border-radius: 4px; color: var(--ice); background: rgba(4,8,18,.65); font-size: 1.1rem; pointer-events: auto; touch-action: none; }
+@media (pointer: coarse) { .hud-touch-buttons { display: flex; } .hud-touch-pause { display: block; } .hud-dev { right: 20px; top: 70px; } }
 
 
 /* Blaster heat */
@@ -110,10 +128,14 @@
 .hud-pip.driving { border-color: rgba(120, 230, 140, 0.5); }
 .hud-pip.driving .hud-pip-key { background: #7fe39a; }
 
-.hud-hint { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); font-size: 0.9rem; color: var(--ice-dim); opacity: 0; transition: opacity 0.4s; }
+.hud-hint { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); max-width: min(34rem, 80vw); padding: 7px 11px; border-radius: 3px; background: rgba(4,8,18,.58); text-align: center; font-size: 0.9rem; color: var(--ice); opacity: 0; transition: opacity 0.4s; }
 .hud-hint.on { opacity: 1; }
 
 @media (pointer: coarse) { .hud-pip-key { display: none; } }
-.hud-touch-buttons { flex-wrap: wrap; max-width: 240px; justify-content: flex-end; }
-.hud-btn.fire { width: 84px; height: 84px; background: rgba(255, 107, 79, 0.18); border-color: rgba(255, 107, 79, 0.7); }
+@media (max-width: 700px) { .hud-mission { top: auto; bottom: 22px; left: 16px; right: auto; width: 180px; } }
+@media (pointer: coarse) and (max-width: 700px) { .hud-mission { top: max(205px, calc(env(safe-area-inset-top) + 185px)); bottom: auto; } }
+@media (pointer: coarse) and (min-width: 701px) { .hud-mission { right: 64px; } }
+.hud-touch-buttons { flex-wrap: wrap; max-width: 205px; justify-content: flex-end; }
+.hud-btn.fire { width: 74px; height: 74px; background: rgba(255, 107, 79, 0.18); border-color: rgba(255, 107, 79, 0.7); }
 .hud-btn.pip { border-color: rgba(255, 212, 154, 0.7); background: rgba(255, 212, 154, 0.14); }
+body.paused .hud-touch-buttons, body.paused .hud-touch-pause { display: none; }

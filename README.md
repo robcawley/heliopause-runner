@@ -35,15 +35,18 @@ robcawley.com. Not doing that yet.
 
 | | |
 |---|---|
-| Turn and pitch | Mouse (click the view to capture it; it eases back to centre on its own), WASD / arrows, gamepad left stick, thumb-stick on touch |
+| Turn and pitch | Mouse (click the view to capture it; it eases back to centre on its own), WASD / arrows, gamepad left stick, drag on the left side of a touch screen |
 | Fire blasters | Left click, F, gamepad right trigger, Fire button (touch) |
 | PIP (fly me home) | R, gamepad Y, PIP button (touch). Press again or push the stick hard to take over. |
-| Roll | Hold Q / E, gamepad LB / RB. Let go and the wings ease back to level (tunable). |
-| Barrel roll | Double-tap Q, E, A or D; double-tap a bumper; Roll buttons (touch). Three charges. |
-| Boost / brake | Shift / X or Ctrl, gamepad X / left trigger |
-| Phase drive | Space, second finger, the Phase button (touch), gamepad A |
+| Roll | Hold Q / E or gamepad LB / RB. Let go and the wings ease back to level (tunable). |
+| Barrel roll | Double-tap Q, E, A or D; double-tap a bumper; tap ↶ / ↷ on touch. Three charges. |
+| Boost / brake | Shift / X or Ctrl, gamepad B or X / left trigger, hold Boost / Brake on touch |
+| Phase drive | Space, second finger or Phase button (touch), gamepad A |
 | Tuning panel | T |
-| Mute / pause | M / P or Esc (Esc also releases the mouse) |
+| Mute / pause | M / P or Esc (Esc also releases the mouse); gamepad Start pauses; Ⅱ on touch |
+
+The title and pause screens show controls for the last device used. Gamepad A or Start launches
+from the title; A or Start flies again from the debrief.
 
 Pitch is not inverted by default. Flight-sim players can flip it in the tuning panel (Flight, invert pitch).
 

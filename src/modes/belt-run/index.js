@@ -115,6 +115,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     wasOutside: false, alarmTimer: 0, micaCooldown: 0, micaTimer: 18, micaIdle: 0, wrongWayTime: 0,
     radFx: 0,
     phaseTime: 0, phaseCooldown: 0,
+    missionComplete: false,
     hitStop: 0, slowmo: 0, slowmoScale: 1, timeScale: 1,
     aberrationKick: 0, hitFlash: 0, phaseFx: 0, fade: 0,
   });
@@ -297,8 +298,13 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   tap(hud.buttons.rollLeft, () => tryRoll(-1));
   tap(hud.buttons.rollRight, () => tryRoll(1));
   tap(hud.buttons.pip, callPip);
+  tap(hud.buttons.pause, () => events.emit('request', 'pause'));
   hud.buttons.fire.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); input.setTouchFire(true); });
   for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) hud.buttons.fire.addEventListener(ev, () => input.setTouchFire(false));
+  for (const [button, setter] of [[hud.buttons.boost, input.setTouchBoost], [hud.buttons.brake, input.setTouchBrake]]) {
+    button.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); button.setPointerCapture(e.pointerId); setter(true); });
+    for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(ev, () => setter(false));
+  }
 
   // ---- Lifecycle ------------------------------------------------------
   function resetWorld(mode) {
@@ -318,12 +324,16 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   const deadStick = { stickX: 0.08, stickY: -0.1, roll: 0.3, boost: false, brake: true };
   const guideV = new THREE.Vector3();
   const laneFwd = new THREE.Vector3(0, 0, -1);
+  let lastDevice = '';
 
   function frame(realDt, now) {
     input.update(realDt);
+    const modeAtInput = g.mode;
+    if (input.state.device !== lastDevice) { lastDevice = input.state.device; events.emit('device', lastDevice); }
     for (const a of ['pause', 'escape', 'mute', 'tuning', 'lockLost']) if (input.consume(a)) events.emit('request', a);
+    if (input.consume('confirm')) events.emit('request', 'confirm');
     if (g.paused) { post.render(); return; }
-    if (input.consume('phase')) tryPhase();
+    if (input.consume('phase') && modeAtInput === 'flying') tryPhase();
     if (input.consume('rollLeft')) tryRoll(-1);
     if (input.consume('rollRight')) tryRoll(1);
     if (input.consume('droid')) callPip();
@@ -458,18 +468,35 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     hud.setHull(g.hull / config.hull.max);
     hud.setRadiation(g.exposure / 100);
     hud.setRolls(ship.rollCharges, config.roll.charges);
-    hud.setStick(g.mode === 'flying' ? input.state.touchStick : null);
+    hud.setStick(g.mode === 'flying' && input.state.device === 'touch' ? input.state.touchStick : null);
     hud.setMouseStick(g.mode === 'flying' && !pip.driving ? input.state.mouseStick : null);
     hud.setHeat(blasters.state.heat / 100, blasters.state.overheated);
-    const touch = input.state.lastPointer === 'touch';
+    const touch = input.state.device === 'touch';
     hud.setPip(
       g.mode !== 'flying' || pip.state === 'hidden' ? null
         : pip.driving ? (touch ? 'PIP is flying. Tap PIP or steer to take over' : 'PIP is flying. R or a hard push on the stick to take over')
         : (touch ? 'Tap PIP to fly back to the lane' : 'PIP: fly back to the lane'),
       pip.driving ? 'driving' : 'offer',
     );
-    const wantsCapture = g.mode === 'flying' && !input.state.locked && !touch && config.input.steering === 'auto';
-    hud.setHint(wantsCapture ? 'Click the view to take the controls. Esc releases the mouse.' : '');
+    const wantsCapture = g.mode === 'flying' && !input.state.locked && input.state.device === 'keyboard' && config.input.steering === 'auto';
+    let tutorial = '';
+    if (!wantsCapture && g.mode === 'flying') {
+      if (g.flightTime < 6) tutorial = touch ? 'Drag on the left to steer. Hold FIRE to shoot.' : input.state.device === 'gamepad' ? 'Left stick steers. Right trigger fires.' : 'Steer with the mouse or WASD. Hold click or F to fire.';
+      else if (g.flightTime < 12) tutorial = touch ? 'Hold BOOST for speed; use PHASE to pass through rocks.' : input.state.device === 'gamepad' ? 'A phases through rocks. B or X boosts; left trigger brakes.' : 'Space phases through danger. Shift boosts; X brakes.';
+      else if (g.flightTime < 18) tutorial = touch ? 'Tap ↶ or ↷ to dodge sideways.' : input.state.device === 'gamepad' ? 'Hold bumpers to roll; double-tap to dodge.' : 'Double-tap Q, E, A or D for a barrel roll.';
+    }
+    hud.setHint(wantsCapture ? 'Click the view to take the controls. Esc releases the mouse.' : tutorial);
+
+    const missionProgress = { distance: Math.max(0, ship.laneProgress), misses: g.nearMisses, rocks: g.rocksDestroyed };
+    const missionDone = missionProgress.distance >= 2000 && missionProgress.misses >= 3 && missionProgress.rocks >= 5;
+    if (missionDone && !g.missionComplete) {
+      g.missionComplete = true;
+      g.score += 1000;
+      hud.callout('Field test complete +1,000', 1, true);
+      hud.say('MICA', 'Clean run. The ship is ready for whatever waits beyond the lane.', 6);
+      sfx.daredevil();
+    }
+    hud.setMission(missionProgress, g.missionComplete);
     hud.setScore(g.score);
     hud.update(realDt);
 
@@ -503,6 +530,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     pause(p) {
       if (g.mode === 'dead') return;
       g.paused = p;
+      if (p) hud.setHint('');
       p ? audio.suspend() : audio.resume();
     },
     frame,

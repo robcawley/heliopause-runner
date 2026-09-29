@@ -17,14 +17,22 @@
   <section id="title">
     <div class="title-block">
       <h1>Heliopause<br>Runner</h1>
-      <p class="title-sub">Flight prototype. The belt run, from the cockpit.</p>
-      <button id="launch" type="button">Launch</button>
-      <p class="title-controls">
-        Click the view to take the controls: the mouse flies the ship and eases back to centre on its own. Left click fires the blasters.<br>
-        WASD also flies. Hold Q or E to roll; double-tap Q, E, A or D to barrel roll. Shift boosts, X brakes, Space phases, F also fires.<br>
-        Stray from the lane and PIP pops up: press R and it flies you home. R also rescues you any time you lose your bearings.<br>
-        T opens the tuning panel. M mutes. P or Esc pauses.
-      </p>
+      <p class="title-sub">A first-person run through the Kuiper belt.</p>
+      <p class="title-objective"><strong>Field test</strong> Fly 2 km, thread 3 close calls, and break 5 rocks.</p>
+      <button id="launch" type="button">Start run <span class="key-hint">↵</span><span class="pad-hint">A / Start</span></button>
+      <div class="title-controls" aria-label="Essential controls">
+        <p><kbd>Mouse / WASD</kbd><span>Fly</span></p>
+        <p><kbd>Click / F</kbd><span>Fire</span></p>
+        <p><kbd>Space</kbd><span>Phase</span></p>
+        <p><kbd>R</kbd><span>PIP rescue</span></p>
+      </div>
+      <div class="title-controls controls-gamepad" aria-label="Controller controls">
+        <p><kbd>Left stick</kbd><span>Fly</span></p><p><kbd>RT</kbd><span>Fire</span></p><p><kbd>A</kbd><span>Phase</span></p><p><kbd>Y</kbd><span>PIP rescue</span></p>
+      </div>
+      <div class="title-controls controls-touch" aria-label="Touch controls">
+        <p><kbd>Left thumb</kbd><span>Fly</span></p><p><kbd>FIRE</kbd><span>Shoot</span></p><p><kbd>PHASE</kbd><span>Pass through</span></p><p><kbd>PIP</kbd><span>Rescue</span></p>
+      </div>
+      <p class="title-tip">The beacon lane is safe. Fly close to rocks for points; phase or barrel-roll through trouble.</p>
       <p class="title-meta"><span id="launch-note">Rendering on <span id="backend">…</span></span></p>
     </div>
   </section>
@@ -38,7 +46,12 @@
     </div>
   </section>
 
-  <section id="pause"><p>Paused</p><p class="pause-hint">Click or press P to fly on</p></section>
+  <section id="pause">
+    <div><p>Paused</p><p class="pause-hint controls-keyboard">Click or press P to fly on</p><p class="pause-hint controls-gamepad">Press Start to fly on</p><p class="pause-hint controls-touch">Tap to fly on</p></div>
+    <div class="pause-controls controls-keyboard"><span><kbd>Mouse / WASD</kbd> Fly</span><span><kbd>Click / F</kbd> Fire</span><span><kbd>Q / E</kbd> Roll</span><span><kbd>Space</kbd> Phase</span><span><kbd>Shift / X</kbd> Boost / brake</span><span><kbd>R</kbd> PIP rescue</span></div>
+    <div class="pause-controls controls-gamepad"><span><kbd>Left stick</kbd> Fly</span><span><kbd>RT</kbd> Fire</span><span><kbd>LB / RB</kbd> Roll; double-tap to dodge</span><span><kbd>A</kbd> Phase</span><span><kbd>B / X · LT</kbd> Boost · brake</span><span><kbd>Y</kbd> PIP rescue</span></div>
+    <div class="pause-controls controls-touch"><span><kbd>Left thumb</kbd> Fly</span><span><kbd>FIRE</kbd> Shoot</span><span><kbd>↶ / ↷</kbd> Dodge</span><span><kbd>PHASE</kbd> Pass through</span><span><kbd>BOOST / BRAKE</kbd> Hold for speed</span><span><kbd>PIP</kbd> Rescue</span></div>
+  </section>
 
   <script type="module" src="/src/main.js"></script>
 </body>

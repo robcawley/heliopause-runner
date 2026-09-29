@@ -19,6 +19,7 @@ export function createInput(canvas, options) {
     fire: false,
     boost: false, brake: false,
     lastPointer: 'mouse',
+    device: 'keyboard',
     locked: false,              // pointer lock active
     mouseStick: null,           // {x, y} virtual stick while captured, for a HUD to draw
     touchStick: null,           // {x, y, dx, dy} in px, for a HUD to draw
@@ -31,6 +32,7 @@ export function createInput(canvas, options) {
   let mouseDown = false;
   let vsx = 0, vsy = 0;         // virtual stick under pointer lock
   let captureEnabled = true;
+  let touchBoost = false, touchBrake = false;
   const lastTap = {};
   const listeners = [];
   const listen = (target, type, fn, opts) => { target.addEventListener(type, fn, opts); listeners.push(() => target.removeEventListener(type, fn, opts)); };
@@ -51,6 +53,7 @@ export function createInput(canvas, options) {
 
   listen(canvas, 'pointerdown', (e) => {
     state.lastPointer = e.pointerType === 'touch' ? 'touch' : 'mouse';
+    state.device = e.pointerType === 'touch' ? 'touch' : 'keyboard';
     if (e.pointerType !== 'touch') {
       const wantsLock = captureEnabled && (options.steering === 'auto' || options.steering === 'mouse');
       if (wantsLock && !state.locked) { canvas.requestPointerLock?.()?.catch?.(() => {}); return; }
@@ -58,9 +61,14 @@ export function createInput(canvas, options) {
       return;
     }
     if (dragId !== null) { pressed.add('phase'); return; }   // a second finger phases
+    if (e.clientX > innerWidth * 0.55) return; // reserve the right side for actions
     dragId = e.pointerId; originX = dragX = e.clientX; originY = dragY = e.clientY;
     canvas.setPointerCapture(e.pointerId);
   });
+  listen(window, 'pointerdown', (e) => {
+    state.device = e.pointerType === 'touch' ? 'touch' : 'keyboard';
+    state.lastPointer = e.pointerType === 'touch' ? 'touch' : 'mouse';
+  }, true);
   listen(canvas, 'pointermove', (e) => {
     if (e.pointerType !== 'touch') state.lastPointer = 'mouse';
     if (state.locked) {
@@ -89,8 +97,10 @@ export function createInput(canvas, options) {
   const DIR_KEYS = { a: 'rollLeft', arrowleft: 'rollLeft', q: 'rollLeft', d: 'rollRight', arrowright: 'rollRight', e: 'rollRight' };
 
   listen(window, 'keydown', (e) => {
+    if (e.target instanceof Element && e.target.closest('input, select, textarea, [contenteditable="true"]')) return;
     if (e.repeat) return;
     const k = e.key.toLowerCase();
+    state.device = 'keyboard';
     keys.add(k);
     if (k === ' ') { pressed.add('phase'); e.preventDefault(); }
     if (k in DIR_KEYS) {
@@ -128,19 +138,21 @@ export function createInput(canvas, options) {
     const kroll = (keys.has('e') ? 1 : 0) - (keys.has('q') ? 1 : 0);
     keyR += (kroll - keyR) * kr;
     let roll = keyR;
-    state.boost = keys.has('shift');
-    state.brake = keys.has('control') || keys.has('x');
+    state.boost = keys.has('shift') || touchBoost;
+    state.brake = keys.has('control') || keys.has('x') || touchBrake;
     state.fire = mouseDown || keys.has('f') || touchFire;
 
     const pad = navigator.getGamepads?.().find((p) => p && p.connected);
     if (pad) {
+      const padActive = pad.axes.some((v) => Math.abs(v) > 0.2) || pad.buttons.some((b) => b.pressed);
+      if (padActive) state.device = 'gamepad';
       const dz = (v) => (Math.abs(v) < 0.12 ? 0 : v);
       sx += dz(pad.axes[0] ?? 0);
       sy -= dz(pad.axes[1] ?? 0);
       if ((pad.buttons[7]?.value ?? 0) > 0.3) state.fire = true;      // RT fire
       if ((pad.buttons[6]?.value ?? 0) > 0.3) state.brake = true;     // LT brake
-      if (pad.buttons[2]?.pressed) state.boost = true;                 // X boost
-      if (edge(pad, 0)) pressed.add('phase');                          // A phase
+      if (pad.buttons[1]?.pressed || pad.buttons[2]?.pressed) state.boost = true; // B / X boost
+      if (edge(pad, 0)) { pressed.add('phase'); pressed.add('confirm'); } // A phase / menu confirm
       if (edge(pad, 3)) pressed.add('droid');                          // Y droid
       if (edge(pad, 9)) pressed.add('pause');
       // Bumpers: hold to roll, double-tap for a barrel roll
@@ -162,13 +174,13 @@ export function createInput(canvas, options) {
       sx += dx / options.touchStickRadius;
       sy -= dy / options.touchStickRadius;
       state.touchStick = { x: originX, y: originY, dx, dy };
-    } else if (m === 'mouse') {
+    } else if (m === 'mouse' && state.device === 'keyboard') {
       // The virtual stick eases home, so a forgotten mouse never means a forgotten turn
       const k = Math.exp(-(options.mouseRecentre ?? 1) * dt);
       vsx *= k; vsy *= k;
       sx += vsx; sy += vsy;
       state.mouseStick = { x: vsx, y: vsy };
-    } else if (m === 'follow' && pointer && !kx && !ky) {
+    } else if (m === 'follow' && pointer && state.device === 'keyboard' && !kx && !ky) {
       sx += pointer.nx / options.stickRadius;
       sy -= pointer.ny / options.stickRadius;
     }
@@ -193,6 +205,8 @@ export function createInput(canvas, options) {
     mode,
     press(action) { pressed.add(action); },           // for on-screen buttons
     setTouchFire(v) { touchFire = v; },
+    setTouchBoost(v) { touchBoost = v; },
+    setTouchBrake(v) { touchBrake = v; },
     consume(action) { const had = pressed.has(action); pressed.delete(action); return had; },
     // The host turns capture off behind menus and releases it for pause / debrief
     setCapture(enabled) { captureEnabled = enabled; if (!enabled) this.release(); },
