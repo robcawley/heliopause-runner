@@ -68,8 +68,8 @@ export const DEFAULTS = {
     boltLife: 0.9,           // seconds
     convergence: 160,       // where the streams meet when nothing is under the reticle
     aimRange: 400,           // otherwise they converge on the first rock under the reticle within this range        // metres ahead where the two streams meet
-    damage: 1,               // per bolt; rocks have roughly size x size x 1.2 hit points
-    heatPerShot: 5.5,
+    damage: 1.25,            // per bolt; future weapon upgrades can raise this value
+    heatPerShot: 4.5,
     coolRate: 32,            // heat lost per second
     overheatRecover: 35,     // after overheating, guns are locked until heat falls to this
     spread: 0.004,           // radians of random scatter

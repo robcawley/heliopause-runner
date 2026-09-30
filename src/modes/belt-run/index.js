@@ -143,7 +143,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     wasOutside: false, alarmTimer: 0, micaCooldown: 0, micaTimer: 18, micaIdle: 0, wrongWayTime: 0,
     radFx: 0,
     phaseTime: 0, phaseCooldown: 0,
-    missionComplete: false, giantWarned: false, autoRollWait: 0,
+    missionComplete: false, autoRollWait: 0,
     settlements: 0, inSettlement: false, jamWarned: false, jamClick: 0, wallCooldown: 0, townAnnounced: -1,
     hitStop: 0, slowmo: 0, slowmoScale: 1, timeScale: 1,
     aberrationKick: 0, hitFlash: 0, phaseFx: 0, fade: 0,
@@ -288,18 +288,15 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       g.rocksDestroyed++;
       const pts = Math.round(10 * destroyed.size) * 5;
       if (g.mode === 'flying') g.score += pts;
-      shards.burst(destroyed.pos, destroyed.vel, destroyed.size * 0.75, Math.min(64, Math.round(18 + destroyed.size * 10)));
+      shards.burst(destroyed.pos, destroyed.vel, destroyed.size * (destroyed.split ? 0.38 : 0.75), Math.min(64, Math.round(18 + destroyed.size * 8)));
       sfx.rockBreak(destroyed.size);
       const d = destroyed.pos.distanceTo(ship.pos);
       if (d < 60) rig.addTrauma(0.25 * (1 - d / 60) * Math.min(1, destroyed.size / 2));
-      events.emit('rockDestroyed', { size: destroyed.size, score: g.score });
-    } else if (hit.rock.giant) {
-      // Giants cannot be broken: a dull clank, no chips, and a word the first time
-      sfx.impact(true);
-      if (!g.giantWarned && g.mode === 'flying') { g.giantWarned = true; hud.callout('Too big to break', 1); }
+      if (destroyed.split && destroyed.size > 7 && g.mode === 'flying') hud.callout('Asteroid split!', 1, true);
+      events.emit('rockDestroyed', { size: destroyed.size, split: destroyed.split, score: g.score });
     } else {
       shards.chip(hit.point, hit.normal, hit.rock.vel, hit.rock.size);
-      sfx.impact();
+      sfx.impact(hit.rock.size > 7);
     }
   };
   blasters.handlers.onOverheat = () => {

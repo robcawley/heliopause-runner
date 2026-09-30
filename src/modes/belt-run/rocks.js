@@ -19,6 +19,8 @@ import {
 // Events (set on handlers): onApproach(rock, miss, pan), onHit(rock, clearance),
 // onNearMiss(rock, clearance, pan). onHit may return 'destroy'.
 const MAX_ROCKS = 1000;
+const FRAGMENT_POOL = 220;
+const SPLIT_SIZE = 2.15;
 
 function rockGeometry() {
   const g = new THREE.IcosahedronGeometry(1, 3);         // non-indexed: flat facets for free
@@ -103,8 +105,9 @@ export function createRocks(config) {
     r.vel.randomDirection().multiplyScalar(Math.random() * (big ? 0.4 : 1.6));
     r.nearest = Infinity; r.approached = false; r.closing = false; r.phased = false;
     r.giant = big;
-    r.hp = big ? Infinity : Math.max(1, r.size * r.size * 1.2);
+    r.hp = r.size > 4 ? 4 + r.size * 0.75 : Math.max(1, r.size * r.size * 0.7);
     r.maxHp = r.hp;
+    r.active = true;
   }
 
   function placeOnce(r, ship, initial) {
@@ -154,7 +157,7 @@ export function createRocks(config) {
     rocks.length = 0;
     const w = config.world;
     const pathCount = Math.round(w.pathRocks * (config.run?.density ?? 1));   // contracts thin or thicken the rocks on your line
-    const n = Math.min(MAX_ROCKS, w.ambientRocks + pathCount);
+    const n = Math.min(MAX_ROCKS - FRAGMENT_POOL, w.ambientRocks + pathCount);
     for (let i = 0; i < n; i++) {
       const r = {
         index: i, path: i < pathCount,
@@ -164,7 +167,16 @@ export function createRocks(config) {
       place(r, ship, true);
       rocks.push(r);
     }
-    mesh.count = n;
+    for (let i = n; i < n + FRAGMENT_POOL; i++) {
+      const r = {
+        index: i, path: false, fragment: true, active: false,
+        pos: new THREE.Vector3(), vel: new THREE.Vector3(),
+        quat: new THREE.Quaternion(), axis: new THREE.Vector3(),
+      };
+      rocks.push(r);
+      mesh.setMatrixAt(i, m4.makeScale(0, 0, 0));
+    }
+    mesh.count = n + FRAGMENT_POOL;
   }
 
   function update(dt, worldDt, ship) {
@@ -175,13 +187,17 @@ export function createRocks(config) {
     ship.group.getWorldQuaternion(qInv).invert();
 
     for (const r of rocks) {
+      if (!r.active) continue;
       r.pos.addScaledVector(r.vel, worldDt);
-      if (exclude && exclude(r.pos, r.radius)) { place(r, ship, false); continue; }
+      if (exclude && exclude(r.pos, r.radius)) { if (r.fragment) deactivate(r); else place(r, ship, false); continue; }
       rel.subVectors(r.pos, ship.pos);
       const d2 = rel.lengthSq();
 
       // Out of range, or a path rock well behind you: respawn ahead
-      if (d2 > range2 * 1.05 || (r.path && rel.dot(dir) < -40)) { place(r, ship, false); continue; }
+      if (d2 > range2 * 1.05 || (r.path && rel.dot(dir) < -40)) {
+        if (r.fragment) deactivate(r); else place(r, ship, false);
+        continue;
+      }
 
       const reach = r.radius + nm.radius * 2 + 25;
       if (d2 < reach * reach) {
@@ -196,7 +212,7 @@ export function createRocks(config) {
         const s2 = step.lengthSq();
         const u = s2 > 1e-9 ? THREE.MathUtils.clamp(-prevRel.dot(step) / s2, 0, 1) : 1;
         const clearance = prevRel.addScaledVector(step, u).length() - r.radius;
-        if (clearance < nm.hitRadius) {
+        if (clearance < nm.hitRadius && (!r.fragment || r.grace <= 0)) {
           if (handlers.onHit(r, clearance) === 'destroy') { place(r, ship, false); continue; }
         } else if (r.phased && !closingNow) r.phased = false;   // phased right through and clear of it
         if (closingNow || r.closing) r.nearest = Math.min(r.nearest, clearance);
@@ -227,6 +243,8 @@ export function createRocks(config) {
         }
       }
 
+      if (r.fragment) r.grace = Math.max(0, r.grace - worldDt);
+
       dq.setFromAxisAngle(r.axis, r.spin * worldDt);
       r.quat.premultiply(dq);
       scl.set(r.size * r.stretch[0], r.size * r.stretch[1], r.size * r.stretch[2]).multiplyScalar(r.damageScale);
@@ -246,6 +264,7 @@ export function createRocks(config) {
     seg.divideScalar(len);
     let best = null, bestT = Infinity;
     for (const r of rocks) {
+      if (!r.active) continue;
       const rr = r.radius * 0.85;
       oc.subVectors(r.pos, a);
       const t = oc.dot(seg);
@@ -258,20 +277,51 @@ export function createRocks(config) {
     return best ? { rock: best, point: a.clone().addScaledVector(seg, bestT), normal: a.clone().addScaledVector(seg, bestT).sub(best.pos).normalize() } : null;
   }
 
-  // Returns what was destroyed (position, velocity, size), or null if it survived
+  function deactivate(r) {
+    r.active = false;
+    mesh.setMatrixAt(r.index, m4.makeScale(0, 0, 0));
+  }
+
+  function spawnFragment(parent, sizeValue) {
+    const r = rocks.find((candidate) => candidate.fragment && !candidate.active);
+    if (!r) return false;
+    r.active = true;
+    r.size = sizeValue;
+    r.stretch = [0.8 + Math.random() * 0.35, 0.8 + Math.random() * 0.35, 0.8 + Math.random() * 0.35];
+    r.baseRadius = r.size * Math.max(...r.stretch) * 1.05;
+    r.radius = r.baseRadius;
+    r.damageScale = 1;
+    r.pos.copy(parent.pos).addScaledVector(r.axis.randomDirection(), parent.size * 0.3);
+    r.vel.copy(parent.vel).addScaledVector(r.axis, 6 + Math.random() * 10);
+    r.quat.random();
+    r.spin = (0.4 + Math.random()) / Math.sqrt(r.size);
+    r.hp = r.size > 4 ? 4 + r.size * 0.75 : Math.max(1, r.size * r.size * 0.7);
+    r.maxHp = r.hp;
+    r.giant = r.size > 4;
+    r.grace = 0.4;
+    r.nearest = Infinity; r.approached = false; r.closing = false; r.phased = false;
+    return true;
+  }
+
+  // Returns a breakup or final destruction; every chunk remains shootable.
   function damage(r, amount, ship) {
     r.hp -= amount;
     if (r.hp > 0) {
       // Each impact breaks away some of the silhouette, and the collision
       // sphere follows it. Even a large rock changes shape as shots land.
-      if (!r.giant) {
-        r.damageScale = 0.68 + 0.32 * (r.hp / r.maxHp);
-        r.radius = r.baseRadius * r.damageScale;
-      }
+      r.damageScale = 0.72 + 0.28 * (r.hp / r.maxHp);
+      r.radius = r.baseRadius * r.damageScale;
       return null;
     }
-    const gone = { pos: r.pos.clone(), vel: r.vel.clone(), size: r.size };
-    place(r, ship, false);
+    const gone = { pos: r.pos.clone(), vel: r.vel.clone(), size: r.size, split: false };
+    if (r.size >= SPLIT_SIZE) {
+      const count = r.size > 7 ? 3 : 2;
+      for (let i = 0; i < count; i++) {
+        const childSize = r.size * (count === 3 ? 0.38 + Math.random() * 0.1 : 0.42 + Math.random() * 0.1);
+        gone.split = spawnFragment(r, childSize) || gone.split;
+      }
+    }
+    if (r.fragment) deactivate(r); else place(r, ship, false);
     return gone;
   }
 
@@ -281,6 +331,7 @@ export function createRocks(config) {
     const hitR = config.nearMiss.hitRadius;
     let best = null, bestT = horizon;
     for (const r of rocks) {
+      if (!r.active) continue;
       rel.subVectors(r.pos, ship.pos);
       relVel.subVectors(r.vel, ship.vel);
       const R = r.radius + hitR;
