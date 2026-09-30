@@ -101,3 +101,9 @@ body:has(#debrief.on) .belt-hud > * { opacity: 0; visibility: hidden; }
 /* Touch: a held thumb must never select text, open a callout or zoom the page */
 html, body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
 input, textarea, select, .lil-gui { -webkit-user-select: text; user-select: text; }
+
+/* Debrief: retry the contract, or give it up and go back to the board */
+.debrief-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+#to-board { font: 500 1.1rem var(--font); color: var(--ice); background: transparent; border: 1px solid var(--ice-dim); border-radius: 999px; padding: 0.85rem 1.6rem; cursor: pointer; }
+#to-board:hover { border-color: var(--ice); }
+#to-board:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; }

@@ -3,6 +3,8 @@ import { createEngine } from './engine/renderer.js';
 import { createAudio } from './engine/audio.js';
 import { createBeltRun } from './modes/belt-run/index.js';
 import { createTuning } from './shell/tuning.js';
+import { createBoard } from './tycoon/board.js';
+import { loadCareer, saveCareer, newCareer, settle, tripOf } from './tycoon/career.js';
 
 // The host shell: title, pause and debrief screens around one game mode.
 // In the bigger game this is the part that changes: it will own the menus,
@@ -48,15 +50,40 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
   const title = document.getElementById('title');
   const pauseEl = document.getElementById('pause');
   const debrief = document.getElementById('debrief');
-  let screen = 'title';               // 'title' | 'flying' | 'paused' | 'debrief'
+  let screen = 'title';               // 'title' | 'board' | 'flying' | 'paused' | 'debrief'
+
+  // ---- The career: the settlement board between trips (src/tycoon) ----
+  let career = loadCareer();
+  saveCareer(career);
+  let started = false;                // the mode's first start() also starts the music
+  const board = createBoard(document.body, {
+    onLaunch(k) {
+      career.contract = k;
+      saveCareer(career);
+      board.hide();
+      screen = 'flying';
+      if (started) run.restart(tripOf(k));
+      else { run.start(tripOf(k)); started = true; }
+      run.setCapture(true);
+    },
+    onReset() {
+      career = newCareer();
+      saveCareer(career);
+      board.show(career);
+    },
+  });
+  function showBoard(slip = null) {
+    screen = 'board';
+    run.setCapture(false);
+    board.show(career, slip);
+  }
+  window.__career = () => career;     // for the console
 
   async function launch() {
     if (screen !== 'title') return;
     await audio.start();
     title.classList.add('gone');
-    screen = 'flying';
-    run.start();
-    run.setCapture(true);
+    showBoard(null);
   }
   document.getElementById('launch').addEventListener('click', launch);
 
@@ -75,13 +102,23 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
     if (screen !== 'debrief') return;
     debrief.classList.remove('on');
     screen = 'flying';
-    run.restart();
+    run.restart(tripOf(career.contract));          // the same contract, from the same pad
     run.setCapture(true);
   }
   document.getElementById('again').addEventListener('click', flyAgain);
+  // Give up on the contract and pick another from the board where you took off
+  function backToBoard() {
+    if (screen !== 'debrief') return;
+    debrief.classList.remove('on');
+    career.contract = null;
+    saveCareer(career);
+    showBoard(null);
+  }
+  document.getElementById('to-board').addEventListener('click', backToBoard);
 
   addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
+    if (screen === 'board') { if (!document.activeElement?.closest?.('button')) board.confirm(); return; }
     if (screen === 'title') launch();
     else if (screen === 'debrief' && debrief.classList.contains('on')) flyAgain();
   });
@@ -89,11 +126,13 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
   // ---- Mode events ----------------------------------------------------
   run.on('request', (what) => {
     if (what === 'confirm') {
-      if (screen === 'title') launch();
+      if (screen === 'board') board.confirm();
+      else if (screen === 'title') launch();
       else if (screen === 'debrief' && debrief.classList.contains('on')) flyAgain();
     }
     if (what === 'pause') {
-      if (screen === 'title') launch();
+      if (screen === 'board') { /* the board has its own buttons */ }
+      else if (screen === 'title') launch();
       else if (screen === 'debrief' && debrief.classList.contains('on')) flyAgain();
       else setPaused(screen === 'flying');
     }
@@ -122,7 +161,14 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
     setTimeout(() => { debrief.classList.add('on'); document.getElementById('again').focus(); }, 900);
   };
   run.on('death', showDebrief);
-  run.on('landed', showDebrief);
+  // Landed: pay the slip, move the pilot, then the board for the next job
+  run.on('landed', (s) => {
+    screen = 'board';
+    run.setCapture(false);
+    const slip = career.contract ? settle(career, career.contract, s) : null;
+    saveCareer(career);
+    setTimeout(() => board.show(career, slip), 1800);
+  });
 
   // ---- Loop -----------------------------------------------------------
   let last = performance.now();

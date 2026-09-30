@@ -29,7 +29,7 @@ import musicUrl from './assets/audio/sidewinding.mp3';
 //   const run = createBeltRun({ engine, audio, hudParent, overrides });
 //   run.on('death', (stats) => ...);          // also: 'gate', 'nearMiss', 'hit', 'rockDestroyed', 'request'
 //   run.attract();                             // autopilot, for behind a menu
-//   run.start();                               // a fresh flight
+//   run.start(trip);                          // trip: { origin, dest, distance, density }, or random                               // a fresh flight
 //   loop: run.frame(realDt, nowSeconds);       // simulates and renders
 //   run.pause(true / false);
 //   run.dispose();
@@ -399,16 +399,22 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     sVel.copy(pos).sub(ship.pos).divideScalar(Math.max(dt, 1e-4));
     ship.setPose(pos, quat, sVel, dt);
   }
-  function newRoute() {
+  // A trip: from the host's contract (origin, dest, distance), or a random one without
+  function newRoute(trip) {
     const R = config.run, names = settlement.names;
-    const distance = Math.max(1500, R.distance + (Math.random() * 2 - 1) * R.distanceJitter);
-    const a = Math.floor(Math.random() * names.length);
-    let b = Math.floor(Math.random() * (names.length - 1));
-    if (b >= a) b++;
+    const distance = trip?.distance ?? Math.max(1500, R.distance + (Math.random() * 2 - 1) * R.distanceJitter);
+    let originName = trip?.origin, destName = trip?.dest;
+    if (!originName || !destName) {
+      const a = Math.floor(Math.random() * names.length);
+      let b = Math.floor(Math.random() * (names.length - 1));
+      if (b >= a) b++;
+      originName = names[a];
+      destName = names[b];
+    }
     return {
       originZ: -settlement.HOME_Z,                 // puts the take-off pad at z = 0
       destZ: -distance - settlement.HOME_Z,        // and the landing pad `distance` down the lane
-      originName: names[a], destName: names[b], tilt: (Math.random() - 0.5) * 1.6,
+      originName, destName, tilt: (Math.random() - 0.5) * 1.6,
     };
   }
 
@@ -502,7 +508,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   }
 
   // ---- Lifecycle ------------------------------------------------------
-  function resetWorld(mode) {
+  function resetWorld(mode, trip) {
     g = fresh(mode);
     setThrottle(false, false);
     ship.reset();
@@ -510,7 +516,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     shards.clear();
     blasters.reset();
     pip.reset();
-    settlement.setRoute(mode === 'flying' ? newRoute() : null);
+    config.run.density = trip?.density ?? 1;       // a contract's difficulty: rocks on your line
+    settlement.setRoute(mode === 'flying' ? newRoute(trip) : null);
     settlement.reset(ship);
     if (mode === 'flying') beginTakeoff();
     rocks.init(ship);
@@ -817,8 +824,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     get backend() { return engine.backend; },
 
     attract() { resetWorld('attract'); hud.setVisible(false); },
-    start() {
-      resetWorld('flying');
+    start(trip) {
+      resetWorld('flying', trip);
       hud.setVisible(true);
       audio.playMusic(musicUrl);
       sfx.start();
@@ -826,8 +833,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       hud.say('MICA', pick(MICA.start), 5);
       engine.canvas.focus?.();
     },
-    restart() {
-      resetWorld('flying');
+    restart(trip) {
+      resetWorld('flying', trip);
       sfx.revive();
       hud.say('MICA', pick(MICA.restart), 4);
     },

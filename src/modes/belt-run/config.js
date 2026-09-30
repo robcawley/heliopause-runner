@@ -159,6 +159,7 @@ export const DEFAULTS = {
     takeoffTime: 7,          // seconds on rails before the pilot has the stick
     landingBonus: 1000,      // points for setting down
     hullBonus: 1000,         // up to this many more for hull left
+    density: 1,              // rocks on your line, x the belt's pathRocks (a contract's difficulty sets this per trip)
   },
   settlement: {
     // Towns cut into giant asteroids that straddle the lane: a neon canyon you fly through.

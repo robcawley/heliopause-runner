@@ -1,7 +1,10 @@
 # Heliopause Runner — the tycoon layer and the world
 
-Status 2026-09-29: design stage. Nothing here is in the game yet except the flight loop it wraps
-(trips between settlements, take-off and landing, settlements with no-fire zones).
+Status 2026-09-30: the pay slip and contract board are in the game (src/tycoon: career.js is
+the logic and the save, board.js and board.css the screen). Start → board → launch → trip →
+landed → pay slip and a new board at the town you landed in. Death offers the same contract again
+or the board. Difficulty sets the trip's distance and how thick the rocks are on your line.
+Credits and standing save in the browser. The market and chart are still design only.
 
 Design canvas (Contracts, Market, phone board, Navigation chart — clickable):
 https://claude.ai/artifact/JCuyxxxfACF6GsMkAGiDjk

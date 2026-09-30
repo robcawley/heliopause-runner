@@ -153,10 +153,11 @@ export function createRocks(config) {
   function init(ship) {
     rocks.length = 0;
     const w = config.world;
-    const n = Math.min(MAX_ROCKS, w.ambientRocks + w.pathRocks);
+    const pathCount = Math.round(w.pathRocks * (config.run?.density ?? 1));   // contracts thin or thicken the rocks on your line
+    const n = Math.min(MAX_ROCKS, w.ambientRocks + pathCount);
     for (let i = 0; i < n; i++) {
       const r = {
-        index: i, path: i < w.pathRocks,
+        index: i, path: i < pathCount,
         pos: new THREE.Vector3(), vel: new THREE.Vector3(),
         quat: new THREE.Quaternion(), axis: new THREE.Vector3(),
       };

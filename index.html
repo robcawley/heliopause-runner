@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☄️</text></svg>">
 </head>
 <body>
@@ -19,7 +20,7 @@
       <h1>Heliopause<br>Runner</h1>
       <p class="title-sub">A first-person run through the Kuiper belt.</p>
       <p class="title-objective"><strong>Field test</strong> Fly 2 km, thread 3 close calls, and break 5 rocks.</p>
-      <button id="launch" type="button">Start run <span class="key-hint">↵</span><span class="pad-hint">A / Start</span></button>
+      <button id="launch" type="button">Start <span class="key-hint">↵</span><span class="pad-hint">A / Start</span></button>
       <div class="title-controls" aria-label="Essential controls">
         <p><kbd>Mouse / WASD</kbd><span>Fly</span></p>
         <p><kbd>Click / F</kbd><span>Fire</span></p>
@@ -32,7 +33,7 @@
       <div class="title-controls controls-touch" aria-label="Touch controls">
         <p><kbd>Left thumb</kbd><span>Fly</span></p><p><kbd>FIRE</kbd><span>Shoot</span></p><p><kbd>PHASE</kbd><span>Pass through</span></p><p><kbd>PIP</kbd><span>Rescue</span></p>
       </div>
-      <p class="title-tip">The beacon lane is safe. Fly close to rocks for points; phase or barrel-roll through trouble.</p>
+      <p class="title-tip">The beacon lane is safe. Fly close to rocks for points; phase through trouble, and the ship rolls clear by itself.</p>
       <p class="title-meta"><span id="launch-note">Rendering on <span id="backend">…</span></span></p>
     </div>
   </section>
@@ -42,15 +43,15 @@
       <h2>Signal lost</h2>
       <p class="debrief-reason"></p>
       <dl class="debrief-stats"></dl>
-      <button id="again" type="button">Fly again</button>
+      <div class="debrief-actions"><button id="again" type="button">Fly it again</button><button id="to-board" type="button">Contract board</button></div>
     </div>
   </section>
 
   <section id="pause">
     <div><p>Paused</p><p class="pause-hint controls-keyboard">Click or press P to fly on</p><p class="pause-hint controls-gamepad">Press Start to fly on</p><p class="pause-hint controls-touch">Tap to fly on</p></div>
     <div class="pause-controls controls-keyboard"><span><kbd>Mouse / WASD</kbd> Fly</span><span><kbd>Click / F</kbd> Fire</span><span><kbd>Q / E</kbd> Roll</span><span><kbd>Space</kbd> Phase</span><span><kbd>Shift / X</kbd> Boost / brake</span><span><kbd>R</kbd> PIP rescue</span></div>
-    <div class="pause-controls controls-gamepad"><span><kbd>Left stick</kbd> Fly</span><span><kbd>RT</kbd> Fire</span><span><kbd>LB / RB</kbd> Roll; double-tap to dodge</span><span><kbd>A</kbd> Phase</span><span><kbd>B / X · LT</kbd> Boost · brake</span><span><kbd>Y</kbd> PIP rescue</span></div>
-    <div class="pause-controls controls-touch"><span><kbd>Left thumb</kbd> Fly</span><span><kbd>FIRE</kbd> Shoot</span><span><kbd>↶ / ↷</kbd> Dodge</span><span><kbd>PHASE</kbd> Pass through</span><span><kbd>BOOST / BRAKE</kbd> Hold for speed</span><span><kbd>PIP</kbd> Rescue</span></div>
+    <div class="pause-controls controls-gamepad"><span><kbd>Left stick</kbd> Fly</span><span><kbd>RT</kbd> Fire</span><span><kbd>LB / RB</kbd> Roll</span><span><kbd>A</kbd> Phase</span><span><kbd>B / X · LT</kbd> Boost · brake</span><span><kbd>Y</kbd> PIP rescue</span></div>
+    <div class="pause-controls controls-touch"><span><kbd>Left thumb</kbd> Fly</span><span><kbd>FIRE</kbd> Shoot</span><span><kbd>PHASE</kbd> Pass through</span><span><kbd>BOOST / BRAKE</kbd> Tap on, tap off</span><span><kbd>PIP</kbd> Rescue</span></div>
   </section>
 
   <script type="module" src="/src/main.js"></script>

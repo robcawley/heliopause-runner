@@ -210,3 +210,17 @@ distance left sit under the score.
 
 To judge: is 7 s of take-off too long on the tenth run (we could let a tap skip it)? Is the landing
 satisfying to watch, or should the pilot fly more of it (a pad to hit, a speed limit at the mouth)?
+
+## 2026-09-30 — The settlement board goes in
+
+The tycoon layer's first screen is playable. Start opens the board at Salacia Cut with 2,500 cr;
+pick one of three contracts (one of each pay tier and each difficulty, paired at random) and
+launch. Landing pays the slip (fee, hull bonus, on time, salvage, flying bonus, less docking and
+repair), moves you to that town, raises your standing there and posts three new offers. Urgent
+jobs carry a deadline set a little under cruise time: miss it and the fee halves. Easy trips are
+8.5–9.8 km with 0.7× the rocks on your line; hard ones 11.5–13 km with 1.6×. Standing opens
+towns: Trusted with Sedna Lanterns opens Gonggong Narrows; Respected with Orcus Ward opens
+Makemake Drift.
+
+To judge: do the three offers feel like a real choice? Is 1.6× rocks on a hard job hard, or
+just busy? Is the deadline fair at around 8% under cruise time?
