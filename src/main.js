@@ -4,7 +4,7 @@ import { createAudio } from './engine/audio.js';
 import { createBeltRun } from './modes/belt-run/index.js';
 import { createTuning } from './shell/tuning.js';
 import { createBoard } from './tycoon/board.js';
-import { loadCareer, saveCareer, newCareer, settle, tripOf } from './tycoon/career.js';
+import { loadCareer, saveCareer, newCareer, settle, tripOf, applyLoadout } from './tycoon/career.js';
 
 // The host shell: title, pause and debrief screens around one game mode.
 // In the bigger game this is the part that changes: it will own the menus,
@@ -62,10 +62,12 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
       saveCareer(career);
       board.hide();
       screen = 'flying';
+      applyLoadout(run.config, career);           // what you bought is what you fly
       if (started) run.restart(tripOf(k));
       else { run.start(tripOf(k)); started = true; }
       run.setCapture(true);
     },
+    onChange() { saveCareer(career); },   // a purchase at the market
     onReset() {
       career = newCareer();
       saveCareer(career);
@@ -102,6 +104,7 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
     if (screen !== 'debrief') return;
     debrief.classList.remove('on');
     screen = 'flying';
+    applyLoadout(run.config, career);
     run.restart(tripOf(career.contract));          // the same contract, from the same pad
     run.setCapture(true);
   }

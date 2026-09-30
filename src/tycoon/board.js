@@ -1,5 +1,5 @@
 import './board.css';
-import { POWERS, TOWNS, RANKS, standingIn, clock } from './career.js';
+import { POWERS, TOWNS, RANKS, UPGRADES, standingIn, clock, holdOf, upgradeState, buy, shipStats, trustedTowns } from './career.js';
 
 // The settlement board: shown after every landing (with the pay slip) and at the start of a
 // career (without). Three contracts; pick one, then launch. The art follows docs/TYCOON.md:
@@ -27,7 +27,7 @@ const ART = `
   <div class="board-dust"></div>
 </div>`;
 
-export function createBoard(parent, { onLaunch, onReset }) {
+export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) {
   const el = document.createElement('section');
   el.id = 'board';
   el.className = 'board';
@@ -35,14 +35,16 @@ export function createBoard(parent, { onLaunch, onReset }) {
   parent.appendChild(el);
 
   let career = null, picked = null, current = null;
+  let view = 'board', category = 'All', toast = '';   // the market view's state
 
   function card(k, i) {
     const power = POWERS[TOWNS[k.to].power];
     const on = picked === i;
+    const tooHeavy = k.tons > holdOf(career);
     const pips = [1, 2, 3].map((n) => `<span class="pip${n <= k.level ? ' on' : ''}"></span>`).join('');
     const time = k.deadline ? `Deadline ${clock(k.deadline)}` : `About ${clock(k.est)}`;
     return `
-    <button type="button" class="board-card tier-${k.tier} diff-${k.difficulty}${on ? ' picked' : ''}" data-i="${i}" aria-pressed="${on}">
+    <button type="button" class="board-card tier-${k.tier} diff-${k.difficulty}${on ? ' picked' : ''}${tooHeavy ? ' too-heavy' : ''}" data-i="${i}" aria-pressed="${on}"${tooHeavy ? ' aria-disabled="true"' : ''}>
       <span class="card-head"><span class="card-tier">${esc(k.tierLabel)}</span><span class="card-diff"><span class="pips">${pips}</span>${esc(k.difficultyLabel)}</span></span>
       <span class="card-job">${esc(k.job)}</span>
       <span class="card-dest">to ${esc(k.to)} \u00b7 ${(k.distance / 1000).toFixed(1)} km</span>
@@ -54,7 +56,7 @@ export function createBoard(parent, { onLaunch, onReset }) {
         <span class="k">Standing</span><span>+${k.standing} ${esc(k.to)}</span>
       </span>
       <span class="card-pay">${cr(k.pay)} cr</span>
-      <span class="card-take">${on ? 'Contract taken' : 'Take contract'}</span>
+      <span class="card-take">${tooHeavy ? `Needs a cargo frame (hold ${holdOf(career)} t)` : on ? 'Contract taken' : 'Take contract'}</span>
     </button>`;
   }
 
@@ -79,6 +81,7 @@ export function createBoard(parent, { onLaunch, onReset }) {
   }
 
   function render(slip) {
+    if (view === 'market') return renderMarket();
     const c = career, town = c.town, power = POWERS[TOWNS[town].power];
     const sub = slip
       ? `${esc(slip.contract.cargo)} delivered \u00b7 ${(slip.contract.distance / 1000).toFixed(1)} km in ${clock(slip.time)} \u00b7 hull ${slip.hull}%${slip.late ? ' \u00b7 late' : ''}`
@@ -88,7 +91,7 @@ export function createBoard(parent, { onLaunch, onReset }) {
     <div class="board-inner">
       <header class="board-top">
         <div class="board-brand"><svg width="22" height="22" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 2 L24 22 L2 22 Z" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M13 10 L13 16" stroke="currentColor" stroke-width="2.4"/></svg>Heliopause Runners Co.</div>
-        <div class="board-credits"><span>Credits</span><b>${cr(c.credits)}</b></div>
+        <div class="board-top-right"><div class="board-credits"><span>Credits</span><b>${cr(c.credits)}</b></div><button type="button" class="board-nav" data-go="market">Shipwright's market</button></div>
       </header>
       <div class="board-hero">
         <p class="board-kicker">${slip ? 'Landed at' : 'Contracts at'}</p>
@@ -108,7 +111,9 @@ export function createBoard(parent, { onLaunch, onReset }) {
         </section>
       </div>
     </div>`;
+    wireNav();
     el.querySelectorAll('.board-card').forEach((b) => b.addEventListener('click', () => {
+      if (b.classList.contains('too-heavy')) return;
       const i = Number(b.dataset.i);
       picked = picked === i ? null : i;
       render(slip);
@@ -119,6 +124,69 @@ export function createBoard(parent, { onLaunch, onReset }) {
       if (confirm('Start a new career? Credits and standing go back to the beginning.')) onReset();
     });
     current = slip;
+  }
+
+  function wireNav() {
+    el.querySelectorAll('.board-nav').forEach((b) => b.addEventListener('click', () => {
+      view = b.dataset.go;
+      toast = '';
+      render(current);
+      el.scrollTop = 0;
+      el.querySelector('.board-nav')?.focus({ preventScroll: true });
+    }));
+  }
+
+  function renderMarket() {
+    const c = career;
+    const cats = ['All', ...new Set(UPGRADES.map((u) => u.cat))];
+    const items = UPGRADES.filter((u) => category === 'All' || u.cat === category);
+    const upCard = (u) => {
+      const st = upgradeState(c, u);
+      const label = st === 'owned' ? 'Fitted' : st === 'locked' ? 'Locked' : st === 'poor' ? `Need ${cr(u.price - c.credits)} more` : 'Buy';
+      const note = st === 'locked' ? `Needs Trusted standing in ${u.needsTrusted} towns (you have ${trustedTowns(c)})` : u.note;
+      return `
+      <article class="up-card is-${st}">
+        <div class="up-head"><span>${esc(u.cat)}</span><span class="up-badge">${st === 'owned' ? 'Fitted' : st === 'locked' ? 'Locked' : ''}</span></div>
+        <h3>${esc(u.name)}</h3>
+        <p class="up-stat"><span>${esc(u.stat)}</span> ${esc(u.from)} \u2192 <b>${esc(u.to)}</b></p>
+        <p class="up-note">${esc(note)}</p>
+        <div class="up-foot"><span class="up-price">${st === 'owned' ? '' : `${cr(u.price)} cr`}</span>
+          <button type="button" class="up-buy" data-id="${u.id}"${st === 'buy' ? '' : ' disabled'}>${esc(label)}</button></div>
+      </article>`;
+    };
+    el.innerHTML = `${ART}
+    <div class="board-inner">
+      <header class="board-top">
+        <div class="board-brand"><svg width="22" height="22" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 2 L24 22 L2 22 Z" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M13 10 L13 16" stroke="currentColor" stroke-width="2.4"/></svg>Heliopause Runners Co.</div>
+        <div class="board-top-right"><div class="board-credits"><span>Credits</span><b>${cr(c.credits)}</b></div><button type="button" class="board-nav" data-go="board">\u2190 Contracts</button></div>
+      </header>
+      <div class="board-hero">
+        <p class="board-kicker">Shipwright's market</p>
+        <h2>The yards</h2>
+        <p class="board-sub">${esc(c.town)} shipwrights \u00b7 prices include fitting \u00b7 better stock as your standing grows</p>
+      </div>
+      <div class="market-grid">
+        <section class="ship-panel" aria-label="Your ship">
+          <div class="slip-head"><h3>Your ship</h3><span>RS-7 Runner</span></div>
+          <svg class="ship-plan" viewBox="0 0 324 150" role="img" aria-label="Your ship, from above"><path d="M162 10 L178 58 L262 92 L262 104 L178 96 L172 132 L152 132 L146 96 L62 104 L62 92 L146 58 Z" fill="rgba(239,228,208,0.08)" stroke="#d9c8aa" stroke-width="1.6"/><path d="M162 30 L170 58 L154 58 Z" fill="none" stroke="#d9c8aa" stroke-width="1.2"/><path d="M92 98 L92 88 M232 98 L232 88" stroke="#e58a3a" stroke-width="3"/></svg>
+          <dl class="ship-stats">${shipStats(c).map(([k, v, up]) => `<dt>${esc(k)}</dt><dd class="${up ? 'up' : ''}">${esc(v)}</dd>`).join('')}</dl>
+          <p class="ship-toast" aria-live="polite">${esc(toast || 'Upgrades are fitted before your next launch.')}</p>
+        </section>
+        <section class="market-items" aria-label="Upgrades">
+          <div class="chips" role="group" aria-label="Filter by part">${cats.map((k) => `<button type="button" class="chip" data-cat="${k}" aria-pressed="${k === category}">${k}</button>`).join('')}</div>
+          <div class="up-grid">${items.map(upCard).join('')}</div>
+        </section>
+      </div>
+    </div>`;
+    wireNav();
+    el.querySelectorAll('.chip').forEach((b) => b.addEventListener('click', () => { category = b.dataset.cat; renderMarket(); el.querySelector(`.chip[data-cat="${category}"]`)?.focus(); }));
+    el.querySelectorAll('.up-buy').forEach((b) => b.addEventListener('click', () => {
+      const u = UPGRADES.find((x) => x.id === b.dataset.id);
+      if (!buy(career, u.id)) return;
+      toast = `${u.name} fitted. ${cr(u.price)} cr paid.`;
+      onChange(career);
+      renderMarket();
+    }));
   }
 
   function launch() {
@@ -132,6 +200,8 @@ export function createBoard(parent, { onLaunch, onReset }) {
     show(c, slip = null) {
       career = c;
       picked = null;
+      view = 'board';
+      toast = '';
       render(slip);
       el.scrollTop = 0;
       el.classList.add('on');
@@ -142,6 +212,7 @@ export function createBoard(parent, { onLaunch, onReset }) {
     get open() { return el.classList.contains('on'); },
     // Enter / A / Start: launch if a contract is taken, else take the focused one
     confirm() {
+      if (view !== 'board') return;
       if (picked !== null) return launch();
       const f = document.activeElement?.closest?.('.board-card');
       if (f) f.click();
