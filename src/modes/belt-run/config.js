@@ -10,6 +10,8 @@ const reducedMotion =
   typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 // ?town in the URL brings the first settlement up after 600 m, for testing
 const quickTown = typeof location !== 'undefined' && new URLSearchParams(location.search).has('town');
+// ?deadzone in the URL brings the first Dead Zone up about 1 km after take-off, for testing
+const quickZone = typeof location !== 'undefined' && new URLSearchParams(location.search).has('deadzone');
 
 export const DEFAULTS = {
   input: {
@@ -171,6 +173,69 @@ export const DEFAULTS = {
     canyonWidth: 90,         // wall to wall, metres (restart to rebuild)
     jamBlasters: true,       // no-fire zone: guns lock inside the dock limits (an upgrade can lift this later)
     wallDamage: 5,           // hull lost scraping a canyon wall or a building
+  },
+  deadZone: {
+    // Dead Zones: stretches of an old battlefield where the lane's beacons are dark. Inside one,
+    // radiation is off and you can fly anywhere; raiders nest in the wrecks. A trip alternates
+    // the lane (rings and radiation) with these self-contained fights. See deadzone/index.js.
+    enabled: true,
+    firstAt: quickZone ? 1100 : 4200,   // metres down the lane to the first zone's centre
+    spacing: 9000,           // then another every this many metres, while the trip is long enough
+    minToDest: 2600,         // never closer than this to the destination pad
+    radius: 520,             // the wreck field: belt rocks are cleared inside this sphere
+    approach: 700,           // metres before the field's edge that the beacons start failing
+    exploreTime: 8,          // seconds of eerie quiet after the rules change
+    warningTime: 3.2,        // the klaxon before the first wave
+    breather: 3,             // seconds between waves
+    clearedHold: 4.5,        // the victory beat before the beacons relight
+    waveRepair: 12,          // hull patched from salvage after each wave
+    clearBonus: 2500,
+    wrecks: 11,              // broken hulls (solid)
+    machinery: 16,           // drifting engines, turrets and containers (solid)
+    scrapClouds: 4,          // clouds of loose plating: rattle the hull, hide you from raider guns
+    magCoils: 3,             // derelict mag coils: charge, then a magnetic pulse throws ships away
+    arcs: 3,                 // live cables between hulls: arc on and off
+    collideSoft: 14,         // bumping a wreck slower than this (m/s into it) only scrapes
+    collideDamage: 0.3,      // hull per m/s above that
+    collideMax: 14,          // the most one collision can take
+    bounce: 0.35,            // share of the impact speed that bounces back
+    scrapDamage: 1.2,        // hull per second inside a scrap cloud
+    coilDamage: 4,           // a mag pulse close up; raiders caught in it take the same
+    arcDamage: 8,
+  },
+  raiders: {
+    // Small readable swarms that burst out of the wrecks. Every attack is telegraphed.
+    waves: [
+      { groups: [['skirmisher', 3]] },
+      { groups: [['skirmisher', 2], ['gunner', 1]] },
+      { groups: [['bulwark', 1], ['grappler', 1], ['skirmisher', 1]] },
+      { final: true, groups: [['boss', 1]], reinforce: [['skirmisher', 2]] },   // reinforcements at half health
+    ],
+    maxAttackers: 2,         // raiders allowed to telegraph or fire at the same time
+    attackGap: 0.9,          // seconds between one attack starting and the next
+    firstAttack: 1.8,        // a new raider waits this long before its first attack
+    aggression: 1,           // higher = shorter cooldowns (a contract's difficulty scales it)
+    telegraphScale: 1,       // longer telegraphs are fairer
+    offscreenExtra: 0.45,    // extra warning for an attacker outside the view
+    aimAssist: 0.035,        // radians: bolts bend onto a raider this close to your line (x2.2 on touch and gamepad)
+    hitRadiusScale: 1.25,    // your bolts count a little outside a raider's hull
+    boltSpeed: 170, boltDamage: 4,
+    lanceSpeed: 290, lanceDamage: 4,
+    orbSpeed: 48, orbDamage: 10, orbKnock: 26,
+    clawSpeed: 88,
+    ramDamage: 7,
+    grappleHold: 2.2,        // a tether snaps by itself after this many seconds, whatever you do
+    grappleShake: 2.4,       // stick travel that shakes you free
+    grappleDrain: 3,         // hull per second while tethered
+    grapplePull: 120,        // how hard the tether drags you
+    autoRollOrbs: true,      // automatic dodge rolls also dodge heavy orbs (never bolts or claws)
+    types: {
+      skirmisher: { hp: 3.5, speed: 92, accel: 80, radius: 2.4, range: 170, cooldown: 3.4, telegraph: 0.75, score: 250, knock: 7 },
+      gunner: { hp: 6, speed: 58, accel: 45, radius: 2.8, range: 260, cooldown: 4.6, telegraph: 1.05, lock: 0.32, score: 400, knock: 3.5 },
+      grappler: { hp: 7, speed: 72, accel: 55, radius: 3, range: 105, cooldown: 6.5, telegraph: 1.2, score: 500, knock: 3 },
+      bulwark: { hp: 8, shield: 7, shieldRegen: 6, speed: 40, accel: 30, radius: 3.6, range: 240, cooldown: 4.2, telegraph: 1.1, score: 650, knock: 1.2 },
+      boss: { hp: 40, pods: 9, speed: 30, accel: 18, radius: 10, range: 320, cooldown: 3.4, telegraph: 1.3, score: 3000, knock: 0.15 },
+    },
   },
   hull: {
     max: 100,
