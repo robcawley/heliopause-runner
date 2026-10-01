@@ -1,7 +1,8 @@
 // The belt run's sound effects, built on the engine's audio graph. All
 // synthesised, so they tune alongside the feel with no asset files.
 export function createSfx(a, config) {
-  let bus = null, engineGain, engineFilter, engineOscs;
+  let bus = null, engineGain, engineFilter, engineOscs, burnGain, throbLfo, throbDepth;
+  let wasBoost = false, wasBrake = false, rcsWait = 0, lastTurn = 0, lastT = 0;
   let geigerDebt = 0;
 
   // Called once the engine's audio context exists
@@ -11,23 +12,75 @@ export function createSfx(a, config) {
     bus = ctx.createGain();
     bus.connect(a.sfx);
 
-    // Engine: two detuned saws and a noise rumble, opening up with speed
+    // Engine: a starfighter's burn heard through its own hull, not a jet. Nothing tonal climbs
+    // in pitch with speed (the old rising saws were what made it sound like a plane). Instead:
+    //   sub     a fixed low hum you feel more than hear
+    //   burn    rocket noise, soft-clipped for crackle, throbbing like a combustion chamber;
+    //           the throttle opens it, roughens it and speeds the throb
+    //   hull    a narrow resonance the frame rings at
+    // Boost lights with a deep whump; manoeuvring thrusters puff as turns build (see update).
     engineFilter = ctx.createBiquadFilter();
-    engineFilter.type = 'lowpass'; engineFilter.frequency.value = 300; engineFilter.Q.value = 2;
+    engineFilter.type = 'lowpass'; engineFilter.frequency.value = 220; engineFilter.Q.value = 0.7;
     engineGain = ctx.createGain(); engineGain.gain.value = 0;
     engineFilter.connect(engineGain).connect(bus);
-    engineOscs = [41, 61.7].map((f, i) => {
-      const o = ctx.createOscillator();
-      o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = i ? 7 : -5;
-      const g = ctx.createGain(); g.gain.value = 0.35;
-      o.connect(g).connect(engineFilter); o.start();
+    engineOscs = [[36, 'sine', 0.6], [54, 'triangle', 0.2]].map(([f, type, level]) => {
+      const o = ctx.createOscillator(); o.type = type; o.frequency.value = f;
+      const g = ctx.createGain(); g.gain.value = level;
+      o.connect(g).connect(engineGain); o.start();
       return o;
     });
-    const rumble = ctx.createBufferSource();
-    rumble.buffer = a.noise; rumble.loop = true;
-    const rf = ctx.createBiquadFilter(); rf.type = 'lowpass'; rf.frequency.value = 140;
-    const rg = ctx.createGain(); rg.gain.value = 0.5;
-    rumble.connect(rf).connect(rg).connect(engineFilter); rumble.start();
+    const burn = ctx.createBufferSource(); burn.buffer = a.noise; burn.loop = true;
+    const pre = ctx.createBiquadFilter(); pre.type = 'lowpass'; pre.frequency.value = 420;
+    const drive = ctx.createGain(); drive.gain.value = 3;
+    const clip = ctx.createWaveShaper(); clip.curve = softClip(2.5); clip.oversample = '2x';
+    burnGain = ctx.createGain(); burnGain.gain.value = 0.4;
+    const throb = ctx.createGain(); throb.gain.value = 1;
+    throbLfo = ctx.createOscillator(); throbLfo.frequency.value = 8;
+    throbDepth = ctx.createGain(); throbDepth.gain.value = 0.12;
+    throbLfo.connect(throbDepth).connect(throb.gain); throbLfo.start();
+    burn.connect(pre).connect(drive).connect(clip).connect(burnGain).connect(throb).connect(engineFilter); burn.start();
+    const hull = ctx.createBufferSource(); hull.buffer = a.noise; hull.loop = true;
+    const hb = ctx.createBiquadFilter(); hb.type = 'bandpass'; hb.frequency.value = 92; hb.Q.value = 6;
+    const hg = ctx.createGain(); hg.gain.value = 0.9;
+    hull.connect(hb).connect(hg).connect(engineGain); hull.start(0, 1.3);
+  }
+
+  function softClip(k) {
+    const n = 1024, c = new Float32Array(n), norm = Math.tanh(k);
+    for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; c[i] = Math.tanh(k * x) / norm; }
+    return c;
+  }
+
+  // Boost lights: a deep whump that drops in pitch, and a roar that closes down into the burn
+  function ignite() {
+    const ctx = a.ctx, t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(32, t + 0.4);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+    o.connect(g).connect(bus); o.start(t); o.stop(t + 0.6);
+    const n = ctx.createBufferSource(); n.buffer = a.noise;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(1800, t); lp.frequency.exponentialRampToValueAtTime(240, t + 0.9);
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.0001, t); ng.gain.exponentialRampToValueAtTime(0.55, t + 0.04); ng.gain.exponentialRampToValueAtTime(0.0001, t + 1);
+    n.connect(lp).connect(ng).connect(bus); n.start(t, Math.random()); n.stop(t + 1.05);
+  }
+
+  // A manoeuvring thruster: a short hard puff of gas, panned to the side that fires.
+  // long: the retro burst when you brake.
+  function rcs(pan, level, long = false) {
+    if (!bus) return;
+    const ctx = a.ctx, t = ctx.currentTime, d = long ? 0.38 : 0.11;
+    const n = ctx.createBufferSource(); n.buffer = a.noise; n.playbackRate.value = 0.85 + Math.random() * 0.3;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = long ? 1100 : 2400; bp.Q.value = 0.8;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.2 * level, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    const p = ctx.createStereoPanner(); p.pan.value = pan * 0.6;
+    n.connect(bp).connect(g).connect(p).connect(bus); n.start(t, Math.random()); n.stop(t + d + 0.05);
+    const k = ctx.createOscillator(); k.type = 'sine'; k.frequency.setValueAtTime(120, t); k.frequency.exponentialRampToValueAtTime(50, t + 0.05);
+    const kg = ctx.createGain(); kg.gain.setValueAtTime(0.25 * level, t); kg.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+    k.connect(kg).connect(p); k.start(t); k.stop(t + 0.08);
   }
 
   // A pass: band-passed noise that swells as the rock closes, peaks at the
@@ -328,9 +381,27 @@ export function createSfx(a, config) {
     const f = config.flight;
     const k = Math.max(0, Math.min(1, (speed - f.brakeSpeed) / (f.boostSpeed - f.brakeSpeed)));
     const t = a.ctx.currentTime;
-    engineFilter.frequency.setTargetAtTime(200 + k * 900 + Math.min(1, Math.abs(turn)) * 300, t, 0.1);
-    engineOscs.forEach((o, i) => o.detune.setTargetAtTime((i ? 7 : -5) + k * 500, t, 0.15));
+    engineFilter.frequency.setTargetAtTime(180 + k * 520, t, 0.12);
+    burnGain.gain.setTargetAtTime(0.3 + k * 0.9, t, 0.1);
+    throbLfo.frequency.setTargetAtTime(6 + k * 8, t, 0.3);
+    throbDepth.gain.setTargetAtTime(0.08 + k * 0.32, t, 0.2);
+    engineOscs[0].detune.setTargetAtTime(k * 40, t, 0.4);          // the sub barely moves
     engineGain.gain.setTargetAtTime(config.audio.engine, t, 0.08);
+    // Boost lights with a whump; braking fires the retros
+    const boost = speed > f.cruiseSpeed + (f.boostSpeed - f.cruiseSpeed) * 0.35;
+    const brake = speed < f.cruiseSpeed - (f.cruiseSpeed - f.brakeSpeed) * 0.35;
+    if (boost && !wasBoost) ignite();
+    if (brake && !wasBrake) rcs(0, 1, true);
+    wasBoost = boost; wasBrake = brake;
+    // Manoeuvring thrusters puff as a turn builds, and keep puffing in a hard one
+    const dt = lastT ? Math.min(0.1, t - lastT) : 0; lastT = t;
+    rcsWait -= dt;
+    const at = Math.abs(turn);
+    if (rcsWait <= 0 && at > 0.3 && (Math.abs(lastTurn) <= 0.3 || at > 0.7)) {
+      rcs(-Math.sign(turn), 0.5 + at * 0.5);
+      rcsWait = 0.3 + Math.random() * 0.2;
+    }
+    lastTurn = turn;
   }
 
   // Hull grinding on canyon rock: a low scrape with a metal screech on top

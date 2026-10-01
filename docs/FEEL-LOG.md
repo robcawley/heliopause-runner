@@ -271,3 +271,15 @@ and core 2x easier to hit (bossPartScale 1.6 to 2). Total damage to kill drops f
 about 16 bolts at the base 1.25 instead of about 26. Attack timing unchanged.
 
 To judge: is it now a short, punchy final threat, or too quick to register?
+
+## 2026-10-01 — Engine sound: starfighter, not aeroplane
+
+Rob: the ship sounds like an aeroplane; wants more of a Battlestar Galactica feel. The old engine
+was two detuned saws whose pitch rose about five semitones with speed, which reads as a jet or
+prop. New engine (sfx.js): a fixed-pitch sub hum (36 and 54 Hz), rocket burn noise soft-clipped
+for crackle and throbbing like a combustion chamber (6 to 14 Hz, deeper with throttle), and a
+hull resonance near 92 Hz. Throttle opens and roughens the burn; nothing tonal climbs. Boost
+lights with a deep whump; braking fires a retro burst; turns puff manoeuvring thrusters, panned.
+
+To judge: overall engine level (config.audio.engine, 0.22) may want raising now the saws are gone;
+thruster puffs: too busy or not enough? Phone speakers lose the sub, so check on headphones too.
