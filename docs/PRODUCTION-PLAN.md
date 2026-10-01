@@ -17,6 +17,21 @@ now the flight core of Heliopause Runner. What exists today:
 That covers a good part of "basic first-person flight" and "one asteroid region" from the design
 document's first prototype list.
 
+## Progress, 1 October 2026
+
+Built since the plan was written, ahead of the phase order:
+
+- Phase 1, Combat, largely in: Dead Zones alternate with the lane. Wreck fields with hazards (solid
+  hulls, scrap clouds, live arcs, mag coils), four raider types and the Carrion boss, telegraphed
+  attacks, grapple and escape, fight speeds with a brake, aim assist. See GAME-DESIGN, Dead Zones.
+- Phase 3, The loop, partly in: the settlement contract board (three offers, pay tiers and
+  difficulties), pay slips, standing that opens towns, the shipwright's market, saves.
+- Strategy layer (from Phase 4 and 7 ideas): hireable crew with perks and wages, and four raider
+  clans whose strength sets the threat on each lane and whether a trip has a fight. See TYCOON.md.
+- Settlements: neon canyon towns on giant asteroids at both ends of a trip, take-off and landing.
+
+Not yet: the star map, scanning and smuggling, ship classes, rivals, story beats.
+
 ## Principles
 
 1. **Always playable.** Every phase ends with something you can play start to finish, however

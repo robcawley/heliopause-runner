@@ -254,3 +254,12 @@ TYCOON.md, Crew and raider clans.
 To judge: are the perks worth their wages? Is a 2-berth start tight enough to make the pick
 hurt? Do bounties make raided lanes tempting, or still just dangerous? Does the clan map move
 enough between trips (regrow 0.3, knock-back 1.3)?
+
+## 2026-10-01 — Carrion eased
+
+Rob: the boss was too hard to beat. Carrion hp 30 to 22, shield pods 7 to 5, attack cooldown
+3.4 to 4.4 s, telegraph 1.3 to 1.6 s, one reinforcement at half health instead of two. The pods
+and core were outside the aim assist and the enlarged hit zones; they are now 1.6x easier to hit
+(raiders.bossPartScale).
+
+To judge: does the fight still feel like a final threat, or is it a formality now?
