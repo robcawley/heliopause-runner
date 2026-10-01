@@ -263,3 +263,11 @@ and core were outside the aim assist and the enlarged hit zones; they are now 1.
 (raiders.bossPartScale).
 
 To judge: does the fight still feel like a final threat, or is it a formality now?
+
+## 2026-10-01 — Carrion eased again
+
+Rob: still takes too long to kill the boss. Carrion hp 22 to 14, shield pods 5 to 3 each, pods
+and core 2x easier to hit (bossPartScale 1.6 to 2). Total damage to kill drops from 32 to 20,
+about 16 bolts at the base 1.25 instead of about 26. Attack timing unchanged.
+
+To judge: is it now a short, punchy final threat, or too quick to register?
