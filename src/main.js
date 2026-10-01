@@ -63,8 +63,8 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
       board.hide();
       screen = 'flying';
       applyLoadout(run.config, career);           // what you bought is what you fly
-      if (started) run.restart(tripOf(k));
-      else { run.start(tripOf(k)); started = true; }
+      if (started) run.restart(tripOf(k, career));
+      else { run.start(tripOf(k, career)); started = true; }
       run.setCapture(true);
     },
     onChange() { saveCareer(career); },   // a purchase at the market
@@ -105,7 +105,7 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
     debrief.classList.remove('on');
     screen = 'flying';
     applyLoadout(run.config, career);
-    run.restart(tripOf(career.contract));          // the same contract, from the same pad
+    run.restart(tripOf(career.contract, career));          // the same contract, from the same pad
     run.setCapture(true);
   }
   document.getElementById('again').addEventListener('click', flyAgain);

@@ -68,3 +68,33 @@ IBM Plex Mono (credits and numbers). One accent, hazard orange #e58a3a (money an
 - Standing: per town, per power, or both? (The canvas shows both.)
 - Prices and pay are placeholders pitched so one premium run buys roughly one or two parts.
 - Next build step: pay slip + contract board in the game after landing, then the market.
+
+## Crew and raider clans (built 1 Oct 2026)
+
+Art direction from the two sheets in reference images/: a crew sheet (officers, a pilot, a
+mechanic, a navigator at the charts, a gun-hand with a metal arm, an old engineer) and a raider
+sheet (warlords with mechanical tentacles, a shield-bearer, a hooded gunner). Cropped to
+portraits in public/portraits/. Rules: src/tycoon/crew.js; screens: src/tycoon/board-crew.js.
+
+Crew. Two berths (four with Crew quarters, 7,500 cr in the market). Three different people are
+for hire in each town. Hiring costs a fee; every landing pays wages; if a landing cannot cover
+them, the best-paid hand walks off unpaid. Each crew member has one perk wired into the game:
+Varga (Quartermaster) fees +10%; Teo (Pilot) one more auto-roll, phase 15% faster; Okafor
+(Broker) +1 standing per delivery; Sparks (Mechanic) half-price repairs, +10 hull; Brennan
+(Navigator) exact raider intel, deadlines +10%; Osei (Correspondent) flying bonus doubled;
+Tanaka (Signals) raider telegraphs 35% longer; Krug (Gunner) blasters +30%, bounties +25%;
+Old Mags (Engineer) blaster heat -20%, double salvage patches in a fight. Crew speak in the
+cockpit: on the way out, entering a Dead Zone, and after clearing one.
+
+Raider clans. Four warlords hold the lanes into each power's towns: Queen Rust (Rust Court,
+Meridian), the Coil Mother (the Coil, Halcyon and Kindred), Bastion (Bastion's Wall, Free
+Holdings), the Hollow (Hollow Guns, Sable). Each contract shows the clan on its lane and the
+threat (0-4; a rumoured range without a navigator). Threat 0 is a clear lane with no fight.
+Otherwise the trip has a Dead Zone: harder with threat, with one of the clan's signature craft
+in each middle wave, and its pay slip carries raider bounties (110 + 40 per threat level a
+raider) and a clear bonus (1,200 per threat level). Clearing a zone knocks the clan back 1.3;
+every landing, every clan regrows 0.3. The Wanted board shows them all.
+
+The choice on every board: pay, difficulty, cargo, and now risk. Safe lanes are quiet and pay
+the fee; raided lanes pay in bounties if you can win; and your fights change which lanes are
+dangerous next.

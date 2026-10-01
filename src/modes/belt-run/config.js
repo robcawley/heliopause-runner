@@ -181,6 +181,7 @@ export const DEFAULTS = {
     // the lane (rings and radiation) with these self-contained fights. See deadzone/index.js.
     enabled: true,
     firstAt: quickZone ? 1100 : 4200,   // metres down the lane to the first zone's centre
+    quickZone,               // ?deadzone: a zone on every trip, even a contract's clear lane
     spacing: 9000,           // then another every this many metres, while the trip is long enough
     minToDest: 2600,         // never closer than this to the destination pad
     radius: 520,             // the wreck field: belt rocks are cleared inside this sphere

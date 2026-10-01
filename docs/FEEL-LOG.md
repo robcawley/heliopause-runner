@@ -242,3 +242,15 @@ raiders were too hard to hit. Changes:
 
 To judge: is the zone comfortable to turn in now? Does braking to aim feel good, or should
 brake be the default speed in a fight? Is it now too easy?
+
+## 2026-10-01 — Crew and raider clans
+
+Rob gave carte blanche to make it more of a strategy game, with the two portrait sheets in
+reference images/ as inspiration. Added a crew you hire (nine characters, perks wired into the
+flight and the pay slip, wages, walk-offs) and four raider clans whose strength sets the threat
+on each lane, decides whether a trip has a Dead Zone, and shapes its swarms. Details in
+TYCOON.md, Crew and raider clans.
+
+To judge: are the perks worth their wages? Is a 2-berth start tight enough to make the pick
+hurt? Do bounties make raided lanes tempting, or still just dangerous? Does the clan map move
+enough between trips (regrow 0.3, knock-back 1.3)?

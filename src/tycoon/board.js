@@ -1,4 +1,7 @@
 import './board.css';
+import './crew.css';
+import { crewById, hire, dismiss } from './crew.js';
+import { raidRow, slipNotes, renderCrew, renderWanted } from './board-crew.js';
 import { POWERS, TOWNS, RANKS, UPGRADES, standingIn, clock, holdOf, upgradeState, buy, shipStats, trustedTowns } from './career.js';
 
 // The settlement board: shown after every landing (with the pay slip) and at the start of a
@@ -37,6 +40,16 @@ export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) 
   let career = null, picked = null, current = null;
   let view = 'board', category = 'All', toast = '';   // the market view's state
 
+  // The header every screen shares: brand, credits, and that screen's navigation
+  const NAV = '<button type="button" class="board-nav" data-go="crew">Crew</button><button type="button" class="board-nav" data-go="wanted">Wanted</button><button type="button" class="board-nav" data-go="market">Shipwright&#39;s market</button>';
+  const BACK = '<button type="button" class="board-nav" data-go="board">← Contracts</button>';
+  function top(nav) {
+    return `<header class="board-top">
+        <div class="board-brand"><svg width="22" height="22" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 2 L24 22 L2 22 Z" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M13 10 L13 16" stroke="currentColor" stroke-width="2.4"/></svg>Heliopause Runners Co.</div>
+        <div class="board-top-right"><div class="board-credits"><span>Credits</span><b>${cr(career.credits)}</b></div>${nav}</div>
+      </header>`;
+  }
+
   function card(k, i) {
     const power = POWERS[TOWNS[k.to].power];
     const on = picked === i;
@@ -52,6 +65,7 @@ export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) 
         <span class="k">Held by</span><span><i class="swatch" style="background:${power.color}"></i>${esc(power.name)}</span>
         <span class="k">Cargo</span><span>${esc(k.cargo)}, ${k.tons} t${k.heavy ? '. <em>Heavy: shudders near giant rocks</em>' : ''}</span>
         <span class="k">Lane</span><span>${esc(k.lane)}</span>
+        ${raidRow(career, k, esc)}
         <span class="k">Time</span><span${k.deadline ? ' class="urgent"' : ''}>${time}${k.deadline ? ' or half pay' : ''}</span>
         <span class="k">Standing</span><span>+${k.standing} ${esc(k.to)}</span>
       </span>
@@ -76,12 +90,14 @@ export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) 
         <div class="slip-standing-row"><span>Standing in ${esc(slip.town)}</span><span>${esc(rank)} \u00b7 ${slip.standing} of 5</span></div>
         <div class="slip-bar">${bar}</div>
         ${slip.unlocked.length ? `<p class="slip-unlock">New route open: ${slip.unlocked.map(esc).join(', ')}</p>` : ''}
+        ${slipNotes(slip, esc)}
       </div>
     </section>`;
   }
 
   function render(slip) {
     if (view === 'market') return renderMarket();
+    if (view === 'crew' || view === 'wanted') return renderStrategy();
     const c = career, town = c.town, power = POWERS[TOWNS[town].power];
     const sub = slip
       ? `${esc(slip.contract.cargo)} delivered \u00b7 ${(slip.contract.distance / 1000).toFixed(1)} km in ${clock(slip.time)} \u00b7 hull ${slip.hull}%${slip.late ? ' \u00b7 late' : ''}`
@@ -89,10 +105,7 @@ export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) 
     const chosen = picked === null ? null : c.offers[picked];
     el.innerHTML = `${ART}
     <div class="board-inner">
-      <header class="board-top">
-        <div class="board-brand"><svg width="22" height="22" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 2 L24 22 L2 22 Z" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M13 10 L13 16" stroke="currentColor" stroke-width="2.4"/></svg>Heliopause Runners Co.</div>
-        <div class="board-top-right"><div class="board-credits"><span>Credits</span><b>${cr(c.credits)}</b></div><button type="button" class="board-nav" data-go="market">Shipwright's market</button></div>
-      </header>
+      ${top(NAV)}
       <div class="board-hero">
         <p class="board-kicker">${slip ? 'Landed at' : 'Contracts at'}</p>
         <h2>${esc(town)}</h2>
@@ -136,6 +149,28 @@ export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) 
     }));
   }
 
+  // Crew quarters and the wanted board (board-crew.js draws them; crew.js holds the rules)
+  function renderStrategy() {
+    const h = { esc, cr, art: ART, top, back: BACK, toast };
+    el.innerHTML = view === 'crew' ? renderCrew(career, h) : renderWanted(career, h);
+    wireNav();
+    el.querySelectorAll('.crew-hire').forEach((b) => b.addEventListener('click', () => {
+      const m = crewById(b.dataset.id);
+      if (!hire(career, m.id)) return;
+      toast = `${m.name} signed on. ${cr(m.hire)} cr paid.`;
+      onChange(career);
+      renderStrategy();
+    }));
+    el.querySelectorAll('.crew-dismiss').forEach((b) => b.addEventListener('click', () => {
+      const m = crewById(b.dataset.id);
+      if (!confirm(`Let ${m.name} go? The hiring fee is not refunded.`)) return;
+      dismiss(career, m.id);
+      toast = `${m.name} packed a bag and left.`;
+      onChange(career);
+      renderStrategy();
+    }));
+  }
+
   function renderMarket() {
     const c = career;
     const cats = ['All', ...new Set(UPGRADES.map((u) => u.cat))];
@@ -156,10 +191,7 @@ export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) 
     };
     el.innerHTML = `${ART}
     <div class="board-inner">
-      <header class="board-top">
-        <div class="board-brand"><svg width="22" height="22" viewBox="0 0 26 26" aria-hidden="true"><path d="M13 2 L24 22 L2 22 Z" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M13 10 L13 16" stroke="currentColor" stroke-width="2.4"/></svg>Heliopause Runners Co.</div>
-        <div class="board-top-right"><div class="board-credits"><span>Credits</span><b>${cr(c.credits)}</b></div><button type="button" class="board-nav" data-go="board">\u2190 Contracts</button></div>
-      </header>
+      ${top(BACK)}
       <div class="board-hero">
         <p class="board-kicker">Shipwright's market</p>
         <h2>The yards</h2>

@@ -53,6 +53,8 @@ const CARGO = [
   { what: 'Sealed crate', t: 2, job: 'Sealed consignment' },
   { what: 'Ore samples', t: 3, job: 'Assay run' },
 ];
+import { CLANS, ensureStrategy, hasCrew, raidFor, bountyPerKill, bountyClear, clansAfter, refreshHires, wagesOf, crewById, crewLines } from './crew.js';
+
 const HEAVY = 4;                 // tonnes: heavy cargo shudders near giant rocks
 const HOLD = 2;                  // tonnes the ship carries without a cargo frame
 export const holdOf = (c) => (c.owned?.hold ? 8 : HOLD);   // a cargo frame takes 8 t
@@ -71,6 +73,7 @@ export const clock = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).
 
 export function newCareer() {
   const c = { v: 1, credits: 2500, town: 'Salacia Cut', standing: {}, owned: {}, offers: null, contract: null, runs: 0 };
+  ensureStrategy(c);
   c.offers = makeOffers(c);
   return c;
 }
@@ -79,7 +82,8 @@ export function loadCareer() {
     const c = JSON.parse(localStorage.getItem(KEY));
     if (c?.v === 1 && TOWNS[c.town]) {
       c.owned ??= {};
-      if (!c.offers?.length) c.offers = makeOffers(c);
+      ensureStrategy(c);
+      if (!c.offers?.length || !c.offers[0].raid) c.offers = makeOffers(c);   // older saves: offers gain raider intel
       return c;
     }
   } catch { /* no save, or a broken one: start fresh */ }
@@ -114,7 +118,8 @@ export function makeOffers(c) {
       from: c.town, to: dests[i], distance, density: D.density, lane: pick(D.lanes),
       cargo: k.what, tons: k.t, heavy: k.t >= HEAVY,
       est: Math.round(est / 5) * 5,
-      deadline: urgent ? Math.round((est * 0.92) / 5) * 5 : null,     // urgent jobs need some boosting
+      deadline: urgent ? Math.round((est * 0.92 * (hasCrew(c, 'brennan') ? 1.1 : 1)) / 5) * 5 : null,     // urgent jobs need some boosting
+      raid: raidFor(c, dests[i], D.level),
       pay: Math.round((between(T.pay) * (urgent ? 1.1 : 1)) / 100) * 100,
       standing: T.standing,
     };
@@ -122,32 +127,54 @@ export function makeOffers(c) {
 }
 
 // What the flight mode needs to build the trip
-export const tripOf = (k) => (k ? { origin: k.from, dest: k.to, distance: k.distance, density: k.density } : undefined);
+// raid: the clan on this lane and its threat (threat 0: no fight). crew: what the crew say in flight.
+export const tripOf = (k, c) => (k ? {
+  origin: k.from, dest: k.to, distance: k.distance, density: k.density,
+  raid: k.raid ? { ...CLANS[k.raid.clan], clan: k.raid.clan, threat: k.raid.threat } : null,
+  crew: c ? crewLines(c) : {},
+} : undefined);
 
 // Landed: work out the pay slip, pay it, move the pilot, raise standing, post new offers
 export function settle(c, k, s) {
   const lines = [];
   const late = !!k.deadline && s.time > k.deadline;
-  const fee = late ? Math.round(k.pay / 2) : k.pay;
+  const fee = Math.round((late ? k.pay / 2 : k.pay) * (hasCrew(c, 'varga') ? 1.1 : 1));
   lines.push({ label: late ? 'Contract fee, late' : 'Contract fee', note: late ? 'half pay' : '', amount: fee });
   lines.push({ label: 'Hull bonus', note: `${s.hull}%`, amount: Math.round(k.pay * 0.12 * (s.hull / 100)) });
   if (k.deadline && !late) lines.push({ label: 'On time', note: `${clock(s.time)} of ${clock(k.deadline)}`, amount: Math.round(k.pay * 0.1) });
   if (s.rocksDestroyed) lines.push({ label: 'Salvage', note: `${s.rocksDestroyed} rocks`, amount: s.rocksDestroyed * 20 });
-  lines.push({ label: 'Flying bonus', note: `${s.score.toLocaleString('en-GB')} pts`, amount: Math.floor(s.score / 10) });
+  const raid = k.raid, kills = s.raidersKilled ?? 0, cleared = (s.zonesCleared ?? 0) > 0;
+  if (raid?.threat && kills) lines.push({ label: 'Raider bounties', note: `${kills} at ${bountyPerKill(c, raid.threat)}`, amount: kills * bountyPerKill(c, raid.threat) });
+  if (raid?.threat && cleared) lines.push({ label: 'Dead Zone cleared', note: CLANS[raid.clan].name, amount: bountyClear(raid.threat) });
+  const footage = hasCrew(c, 'osei') ? 2 : 1;
+  lines.push({ label: 'Flying bonus', note: `${s.score.toLocaleString('en-GB')} pts${footage > 1 ? ', footage sold' : ''}`, amount: Math.floor(s.score / 10) * footage });
   lines.push({ label: 'Docking fee', note: '', amount: -150 });
-  if (s.hull < 100) lines.push({ label: 'Hull repair', note: `${100 - s.hull}%`, amount: -(100 - s.hull) * 20 });
-  const total = lines.reduce((sum, l) => sum + l.amount, 0);
+  if (s.hull < 100) lines.push({ label: 'Hull repair', note: `${100 - s.hull}%${hasCrew(c, 'sparks') ? ', Sparks' : ''}`, amount: -(100 - s.hull) * (hasCrew(c, 'sparks') ? 10 : 20) });
+  const wages = wagesOf(c);
+  if (wages) lines.push({ label: 'Crew wages', note: `${c.crew.length} aboard`, amount: -wages });
+  let total = lines.reduce((sum, l) => sum + l.amount, 0);
+  // Wages you cannot cover: the best-paid hand walks off, unpaid
+  const walked = [];
+  while (c.crew.length && c.credits + total < 0) {
+    const m = c.crew.map(crewById).sort((a, b) => b.wage - a.wage)[0];
+    c.crew = c.crew.filter((x) => x !== m.id);
+    lines.push({ label: `${m.name} walked off`, note: 'unpaid', amount: m.wage });
+    total += m.wage;
+    walked.push(m.name);
+  }
 
   const before = c.credits;
   const openBefore = new Set(openTowns({ ...c, town: null }));
   c.credits = Math.max(0, c.credits + total);
-  c.standing[k.to] = Math.min(RANKS.length - 1, standingIn(c, k.to) + k.standing);
+  c.standing[k.to] = Math.min(RANKS.length - 1, standingIn(c, k.to) + k.standing + (hasCrew(c, 'okafor') ? 1 : 0));
+  clansAfter(c, raid, cleared);
   c.town = k.to;
   c.contract = null;
   c.runs += 1;
+  refreshHires(c);
   const unlocked = openTowns({ ...c, town: null }).filter((t) => !openBefore.has(t));
   c.offers = makeOffers(c);
-  return { contract: k, lines, total, before, after: c.credits, town: k.to, time: s.time, hull: s.hull, late, standing: c.standing[k.to], unlocked };
+  return { contract: k, lines, total, before, after: c.credits, town: k.to, time: s.time, hull: s.hull, late, standing: c.standing[k.to], unlocked, walked, raid, cleared, kills };
 }
 
 // ---- The shipwright's market ------------------------------------------------------------
@@ -159,6 +186,7 @@ export const UPGRADES = [
   { id: 'reflex', cat: 'Drive', name: 'Reflex thrusters', stat: 'Auto-rolls', from: '3', to: '4', note: 'One more dodge before the charges run dry.', price: 3900 },
   { id: 'coolant', cat: 'Guns', name: 'Coolant loop', stat: 'Blaster heat', from: '100%', to: '80%', note: 'Longer bursts before the guns lock up.', price: 2600 },
   { id: 'hold', cat: 'Hold', name: 'Cargo frame', stat: 'Hold', from: `${HOLD} t`, to: '8 t', note: 'Carry heavy freight: coolant, ice, parts and ore.', price: 5500 },
+  { id: 'quarters', cat: 'Crew', name: 'Crew quarters', stat: 'Berths', from: '2', to: '4', note: 'Bunks, a galley and a door that locks. Room for four crew.', price: 7500 },
   { id: 'bypass', cat: 'Licences', name: 'Jammer bypass licence', stat: 'Guns in dock limits', from: 'Jammed', to: 'Live', note: 'Your guns work inside settlement no-fire zones.', price: 24000, needsTrusted: 3 },
 ];
 export const trustedTowns = (c) => Object.values(c.standing).filter((r) => r >= 2).length;
@@ -183,12 +211,18 @@ export function shipStats(c) {
 const BASE = new WeakMap();
 export function applyLoadout(config, c) {
   if (!BASE.has(config)) {
-    BASE.set(config, { hull: config.hull.max, cooldown: config.phase.cooldown, charges: config.roll.charges, heat: config.blasters.heatPerShot, jam: config.settlement.jamBlasters });
+    BASE.set(config, { hull: config.hull.max, cooldown: config.phase.cooldown, charges: config.roll.charges, heat: config.blasters.heatPerShot, jam: config.settlement.jamBlasters,
+      damage: config.blasters.damage, telegraph: config.raiders.telegraphScale, waveRepair: config.deadZone.waveRepair });
   }
   const b = BASE.get(config), o = c.owned ?? {};
-  config.hull.max = o.plating ? Math.round(b.hull * 1.25) : b.hull;
-  config.phase.cooldown = o.capacitor ? b.cooldown * 0.75 : b.cooldown;
-  config.roll.charges = b.charges + (o.reflex ? 1 : 0);
-  config.blasters.heatPerShot = o.coolant ? b.heat * 0.8 : b.heat;
+  // Upgrades and crew perks together (crew: tycoon/crew.js)
+  const has = (id) => hasCrew(c, id);
+  config.hull.max = Math.round(b.hull * (o.plating ? 1.25 : 1)) + (has('sparks') ? 10 : 0);
+  config.phase.cooldown = b.cooldown * (o.capacitor ? 0.75 : 1) * (has('teo') ? 0.85 : 1);
+  config.roll.charges = b.charges + (o.reflex ? 1 : 0) + (has('teo') ? 1 : 0);
+  config.blasters.heatPerShot = b.heat * (o.coolant ? 0.8 : 1) * (has('mags') ? 0.8 : 1);
+  config.blasters.damage = b.damage * (has('krug') ? 1.3 : 1);
+  config.raiders.telegraphScale = b.telegraph * (has('tanaka') ? 1.35 : 1);
+  config.deadZone.waveRepair = b.waveRepair * (has('mags') ? 2 : 1);
   config.settlement.jamBlasters = o.bypass ? false : b.jam;
 }

@@ -58,6 +58,7 @@ export function createDeadZone({ config, audio, hudParent, host }) {
   let phase = 'idle', t = 0, wave = -1, mood = 0, dim = 0, flicker = 0;
   let spawnQueue = [];
   let tether = null, tetherGrace = 0, ramCd = 0, arcCd = 0, bumpCd = 0, creakT = 2;
+  let raid = null, lines = {}, said = {}, flightT = 0, cleared = 0;   // this trip's clan and crew (from the contract)
   let kills = 0, hookSaid = false, scrapSaid = false, bossRef = null;
   let warning = '', hint = '', lastKilled = false, relitPulse = false;
   let lastStick = { x: 0, y: 0, boost: false };
@@ -77,12 +78,18 @@ export function createDeadZone({ config, audio, hudParent, host }) {
 
   // ---- Planning and reset ------------------------------------------------------------
   // distance: metres from take-off to the destination pad (0 = no zones this run)
-  function reset(distance = 0, aggression = 1) {
+  // trip: a contract's trip. Its raid decides the fight: threat 0 is a clear lane, no zone;
+  // a free flight (no contract) keeps the zone. trip.crew holds what the crew say.
+  function reset(distance = 0, aggression = 1, trip = null) {
+    raid = trip?.raid ?? null;
+    lines = trip?.crew ?? {};
+    said = {}; flightT = 0; cleared = 0;
+    if (trip && 'raid' in trip && !(raid?.threat > 0) && !Z.quickZone) distance = 0;
     clearCombat();
     hud.clear(); hud.setVisible(false);
     phase = 'idle'; t = 0; wave = -1; mood = 0; dim = 0; kills = 0;
     hookSaid = false; scrapSaid = false; warning = ''; hint = '';
-    world.aggression = clamp(aggression, 0.75, 1.35);
+    world.aggression = clamp(raid?.threat ? 0.7 + 0.15 * raid.threat : aggression, 0.75, 1.35);
     zones = []; zi = 0;
     if (Z.enabled && distance > 0) {
       for (let d = Z.firstAt; distance - d >= Z.minToDest; d += Z.spacing) zones.push(-d);
@@ -117,18 +124,20 @@ export function createDeadZone({ config, audio, hudParent, host }) {
     phase = 'warning'; t = 0;
     sfx.klaxon();
     hud.glitch();
-    hud.banner('Raiders', 'Contacts in the wrecks', 'warn', 3);
+    hud.banner(raid ? raid.name : 'Raiders', raid ? `${raid.boss}'s raiders in the wrecks` : 'Contacts in the wrecks', 'warn', 3);
   }
-  const waveName = (W) => W.groups.map(([type, n]) => `${n} ${LOOK[type].name}${n > 1 ? 's' : ''}`).join(' · ');
+  const waveName = (groups) => groups.map(([type, n]) => `${n} ${LOOK[type].name}${n > 1 ? 's' : ''}`).join(' · ');
   function startWave(i) {
     wave = i; t = 0; phase = 'fight';
     const W = R.waves[i];
+    // The clan shapes the swarm: one of its signature craft joins every middle wave
+    const groups = raid?.extra && !W.final && i > 0 ? [...W.groups, [raid.extra, 1]] : W.groups;
     if (W.final) {
-      hud.banner('Carrion', 'Break its two shield pods, then hit the core', 'boss', 4);
+      hud.banner('Carrion', raid ? `${raid.boss}'s champion · break its two shield pods, then the core` : 'Break its two shield pods, then hit the core', 'boss', 4);
       sfx.bossHorn();
       host.trauma(0.3);
-    } else hud.banner(`Wave ${i + 1}`, waveName(W), 'small', 2.2);
-    queueGroups(W.groups, W.final ? 1.2 : 0.3);
+    } else hud.banner(`Wave ${i + 1}`, waveName(groups), 'small', 2.2);
+    queueGroups(groups, W.final ? 1.2 : 0.3);
   }
   function queueGroups(groups, delay) {
     // Each group bursts from its own hatch, members a beat apart: a small swarm you can read
@@ -172,7 +181,7 @@ export function createDeadZone({ config, audio, hudParent, host }) {
   function waveCleared() {
     const last = wave >= R.waves.length - 1;
     if (last) {
-      phase = 'cleared'; t = 0;
+      phase = 'cleared'; t = 0; cleared++;
       sfx.victory();
       hud.banner('Cleared', `+${Z.clearBonus.toLocaleString()} · salvage rights are yours`, 'clear', 4);
       hud.setWave(null); hud.setBoss(false);
@@ -443,6 +452,13 @@ export function createDeadZone({ config, audio, hudParent, host }) {
     t += realDt;
     bumpCd -= realDt; ramCd -= realDt; arcCd -= realDt; tetherGrace -= realDt;
 
+    // The crew talk: once settled into the flight, entering a zone, and after clearing it
+    if (host.flying()) flightT += realDt;
+    const crewSay = (when, ok) => { if (ok && lines[when] && !said[when]) { said[when] = true; host.say(lines[when].who, lines[when].text, 4.5); } };
+    crewSay('start', flightT > 6 && phase === 'idle');
+    crewSay('zone', phase === 'explore' && t > 4.5);
+    crewSay('clear', phase === 'cleared' && t > 1.5);
+
     switch (phase) {
       case 'idle':
         if (zi < zones.length && host.flying() && d < Z.radius + Z.approach) {
@@ -603,6 +619,7 @@ export function createDeadZone({ config, audio, hudParent, host }) {
     get warning() { return warning; },
     get hint() { return hint; },
     get kills() { return kills; },
+    get cleared() { return cleared; },
     get lastKilled() { return lastKilled; },
     get relit() { return relitPulse; },
     get tethered() { return !!tether; },

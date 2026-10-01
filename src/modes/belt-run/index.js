@@ -203,7 +203,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     score: g.score, distance: ship.distance, laneProgress: ship.laneProgress, time: g.tripTime,
     hull: Math.round((g.hull / config.hull.max) * 100),
     nearMisses: g.nearMisses, bestChain: g.bestChain, gates: g.gates, hits: g.hits, rolls: g.rolls,
-    rocksDestroyed: g.rocksDestroyed, shots: blasters.state.shots, shotsHit: blasters.state.hits, pipRescues: g.pipRescues, settlements: g.settlements, raidersKilled: dz.kills,
+    rocksDestroyed: g.rocksDestroyed, shots: blasters.state.shots, shotsHit: blasters.state.hits, pipRescues: g.pipRescues, settlements: g.settlements, raidersKilled: dz.kills, zonesCleared: dz.cleared,
     cause: g.deathCause, laneOffset: Math.max(0, Math.hypot(ship.pos.x, ship.pos.y) - config.lane.safeRadius),
   });
 
@@ -564,7 +564,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     debris.reset(ship);
     traffic.reset(ship);
     lane.reset();
-    dz.reset(mode === 'flying' ? settlement.routeRemaining(ship) : 0, config.run.density);
+    dz.reset(mode === 'flying' ? settlement.routeRemaining(ship) : 0, config.run.density, trip);
     if (dzFlightSaved) { for (const k of Object.keys(config.deadZone.flight)) config.flight[k] = dzFlightSaved[k]; dzFlightSaved = null; }
     dzRules = false;
     beltHudEl?.classList.remove('dead');
