@@ -98,3 +98,37 @@ every landing, every clan regrows 0.3. The Wanted board shows them all.
 The choice on every board: pay, difficulty, cargo, and now risk. Safe lanes are quiet and pay
 the fee; raided lanes pay in bounties if you can win; and your fights change which lanes are
 dangerous next.
+
+## The wing: crew fly escort (built 1 Oct 2026)
+
+Rob: hired crew should be seen outside, flying with you on contracts, protecting you and
+attacking raiders. They can be killed, they can abandon you over repeated mistakes, and they
+grow loyal if you make them money. PIP should be upgradable. Crew should have audio: bleeps
+and vocoder-style voices.
+
+- **Escort** (src/modes/belt-run/wing.js). Every hand aboard flies their own small fighter,
+  striped in their colour, in formation ahead and off your shoulders so you see them through
+  the canopy. They join a few seconds after take-off.
+- **Fighting.** In a Dead Zone fight each picks the nearest raider, orbits it and shoots
+  (tracers, about two-thirds of your bolt damage). Their kills count toward your bounties.
+  They take raider shots that pass near them (they shield you) and draw fire while engaged.
+- **Damage and death.** Hull 100 each. Below 35 they fall back to formation and patch up
+  (slowly, faster in a breather, much faster with PIP Mk II). Shot down is final: the career
+  drops them at once (so a retry cannot undo it), the rest lose loyalty, and a fallen hand
+  never appears for hire again.
+- **Loyalty** (tycoon/crew.js, 0 to 100, starts 55). Each landing: profit (up to +8),
+  on time +2 or late -4, a cleared zone +4, rock hits beyond two cost up to -8, a hull under
+  40% -3. Your death: -10 each. Wingmate shot down: -6. Loyal (80+) hands hit 25% harder,
+  aim better and, when your hull is under 30%, stay in the fight to cover you instead of
+  falling back. Mutinous (under 30) hands shoot half as often. At 15 or below they quit at
+  the next landing. Loyal hands are the last to walk when wages run short. Shown on crew cards.
+- **Radio** (wingVoice.js). Squelch blips, then a vocoder voice: a buzzy carrier at each
+  hand's pitch through formant filters that follow the vowels of the subtitle line,
+  ring-modulated. Krug is deep and gravelly, Sparks high. Lines for forming up, engaging,
+  kills, praise, taking hits, falling back, covering you, going down, and grumbling at your
+  crashes.
+- **PIP Mk II** (market, Droid, 5,200 cr). Field repairs: patches your hull at 3 a second
+  after 4 s without a scrape, up to 30 a trip, and repairs the wing quickly between fights.
+
+Open: wingmen ignore rocks on the lane (they can pass through them); whether a wingman's
+perk should also need them alive in the fight; voice levels.

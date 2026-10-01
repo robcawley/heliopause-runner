@@ -53,7 +53,7 @@ const CARGO = [
   { what: 'Sealed crate', t: 2, job: 'Sealed consignment' },
   { what: 'Ore samples', t: 3, job: 'Assay run' },
 ];
-import { CLANS, ensureStrategy, hasCrew, raidFor, bountyPerKill, bountyClear, clansAfter, refreshHires, wagesOf, crewById, crewLines } from './crew.js';
+import { CLANS, ensureStrategy, hasCrew, raidFor, bountyPerKill, bountyClear, clansAfter, refreshHires, wagesOf, crewById, crewLines, wingOf, loyaltyAfter, loyaltyOf, LOYALTY } from './crew.js';
 
 const HEAVY = 4;                 // tonnes: heavy cargo shudders near giant rocks
 const HOLD = 2;                  // tonnes the ship carries without a cargo frame
@@ -151,6 +151,7 @@ export const tripOf = (k, c) => (k ? {
   origin: k.from, dest: k.to, distance: k.distance, density: k.density, heavy: !!k.heavy,
   raid: k.raid ? { ...CLANS[k.raid.clan], clan: k.raid.clan, threat: k.raid.threat } : null,
   crew: c ? crewLines(c) : {},
+  wing: c ? wingOf(c) : [],
 } : undefined);
 
 // Landed: work out the pay slip, pay it, move the pilot, raise standing, post new offers
@@ -178,12 +179,18 @@ export function settle(c, k, s) {
   // Wages you cannot cover: the best-paid hand walks off, unpaid
   const walked = [];
   while (c.crew.length && c.credits + total < 0) {
-    const m = c.crew.map(crewById).sort((a, b) => b.wage - a.wage)[0];
+    const m = c.crew.map(crewById).sort((a, b) => (loyaltyOf(c, a.id) >= LOYALTY.loyal) - (loyaltyOf(c, b.id) >= LOYALTY.loyal) || b.wage - a.wage)[0];
     c.crew = c.crew.filter((x) => x !== m.id);
     lines.push({ label: `${m.name} walked off`, note: 'unpaid', amount: m.wage });
     total += m.wage;
     walked.push(m.name);
   }
+
+    // The wing: who was shot down, and how the rest feel about the run (tycoon/crew.js)
+  const lost = (s.wingLost ?? []).map((id) => crewById(id)?.name).filter(Boolean);
+  for (const name of lost) lines.push({ label: `${name}, shot down`, note: 'killed in action', amount: 0 });
+  const mood = loyaltyAfter(c, s, { total, late, cleared });
+  for (const name of mood.quit) lines.push({ label: `${name} quit`, note: 'lost faith in you', amount: 0 });
 
   const before = c.credits;
   const openBefore = new Set(openTowns({ ...c, town: null }));
@@ -196,7 +203,7 @@ export function settle(c, k, s) {
   refreshHires(c);
   const unlocked = openTowns({ ...c, town: null }).filter((t) => !openBefore.has(t));
   c.offers = makeOffers(c);
-  return { contract: k, lines, total, before, after: c.credits, town: k.to, time: s.time, hull: s.hull, late, standing: standingIn(c, k.to), unlocked, walked, raid, cleared, kills };
+  return { contract: k, lines, total, before, after: c.credits, town: k.to, time: s.time, hull: s.hull, late, standing: standingIn(c, k.to), unlocked, walked, raid, cleared, kills, lost, quit: mood.quit, loyaltyDelta: mood.delta, wingKills: s.wingKills ?? 0 };
 }
 
 // ---- The shipwright's market ------------------------------------------------------------
@@ -209,6 +216,7 @@ export const UPGRADES = [
   { id: 'coolant', cat: 'Guns', name: 'Coolant loop', stat: 'Blaster heat', from: '100%', to: '80%', note: 'Longer bursts before the guns lock up.', price: 2600 },
   { id: 'hold', cat: 'Hold', name: 'Cargo frame', stat: 'Hold', from: `${HOLD} t`, to: '8 t', note: 'Carry heavy freight: coolant, ice, parts and ore.', price: 5500 },
   { id: 'quarters', cat: 'Crew', name: 'Crew quarters', stat: 'Berths', from: '2', to: '4', note: 'Bunks, a galley and a door that locks. Room for four crew.', price: 7500 },
+    { id: 'pip', cat: 'Droid', name: 'PIP Mk II', stat: 'PIP', from: 'Mk I', to: 'Mk II', note: 'Field repairs: PIP patches your hull between scrapes, up to 30 a trip, and keeps your wing flying.', price: 5200 },
   { id: 'bypass', cat: 'Licences', name: 'Jammer bypass licence', stat: 'Guns in dock limits', from: 'Jammed', to: 'Live', note: 'Your guns work inside settlement no-fire zones.', price: 24000, needsTrusted: 3 },
 ];
 export const trustedTowns = (c) => Object.values(c.standing).filter((r) => r >= 2).length;
@@ -246,5 +254,6 @@ export function applyLoadout(config, c) {
   config.blasters.damage = b.damage * (has('krug') ? 1.3 : 1);
   config.raiders.telegraphScale = b.telegraph * (has('tanaka') ? 1.35 : 1);
   config.deadZone.waveRepair = b.waveRepair * (has('mags') ? 2 : 1);
-  config.settlement.jamBlasters = o.bypass ? false : b.jam;
+    config.settlement.jamBlasters = o.bypass ? false : b.jam;
+  config.droid.mk2 = !!o.pip;
 }

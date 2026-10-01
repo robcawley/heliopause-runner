@@ -605,7 +605,8 @@ export function createDeadZone({ config, audio, hudParent, host }) {
   const distC = (p) => Math.hypot(p.x - center.x, p.y - center.y, p.z - center.z);
 
   return {
-    group, hud, raiders, wrecks, reset, update, raycast, damage,
+        group, hud, raiders, wrecks, fire, fx, reset, update, raycast, damage,
+    get aggression() { return world.aggression; },
     // Rocks, gates and traffic stay out of the wreck field
     clears: (p, r = 0) => wrecks.built && distC(p) < Z.radius + r + 60,
     blocksGate: (p) => wrecks.built && distC(p) < Z.radius + 40,

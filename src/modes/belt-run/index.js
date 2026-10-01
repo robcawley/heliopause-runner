@@ -18,6 +18,7 @@ import { createSettlement } from './settlement.js';
 import { createBlasters } from './blasters.js';
 import { createDeadZone } from './deadzone/index.js';
 import { createDroid } from './droid.js';
+import { createWing } from './wing.js';
 import { createSfx } from './sfx.js';
 import { createHud } from './hud.js';
 import musicUrl from './assets/audio/sidewinding.mp3';
@@ -166,7 +167,18 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       emit: (name, data) => events.emit(name, data),
     },
   });
-  scene.add(dz.group);
+    scene.add(dz.group);
+
+  // ---- The wing: hired crew flying escort (wing.js) ----
+  const wing = createWing(config, {
+    ship, dz, audio,
+    hull: () => g.hull / config.hull.max,
+    pipMk2: () => !!config.droid.mk2,
+    say: (who, text, s) => hud.say(who, text, s),
+    callout: (text, side, big) => hud.callout(text, side, big),
+    emit: (name, data) => events.emit(name, data),
+  });
+  scene.add(wing.group);
   const beltHudEl = hudParent.querySelector('.belt-hud');
   const fogBase = scene.fog.color.clone(), fogDead = new THREE.Color(0x140806);
   const hemiBase = hemi.intensity, sunBase = sun.intensity, sunCol = sun.color.clone(), sunDead = new THREE.Color(0xff9a70);
@@ -180,7 +192,12 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       if (!r) return z;
       return z.dist <= a.distanceTo(r.point) ? z : r;
     },
-    damage: (rock, amount, s) => (rock.zoneHit || rock.zoneOrb ? dz.damage(rock, amount) : rocks.damage(rock, amount, s)),
+    damage: (rock, amount, s) => {
+      if (!(rock.zoneHit || rock.zoneOrb)) return rocks.damage(rock, amount, s);
+      const out = dz.damage(rock, amount);
+      if (dz.lastKilled) wing.onPlayerKill();
+      return out;
+    },
   };
 
   // ---- State ----------------------------------------------------------
@@ -203,12 +220,13 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     score: g.score, distance: ship.distance, laneProgress: ship.laneProgress, time: g.tripTime,
     hull: Math.round((g.hull / config.hull.max) * 100),
     nearMisses: g.nearMisses, bestChain: g.bestChain, gates: g.gates, hits: g.hits, rolls: g.rolls,
-    rocksDestroyed: g.rocksDestroyed, shots: blasters.state.shots, shotsHit: blasters.state.hits, pipRescues: g.pipRescues, settlements: g.settlements, raidersKilled: dz.kills, zonesCleared: dz.cleared,
+    rocksDestroyed: g.rocksDestroyed, shots: blasters.state.shots, shotsHit: blasters.state.hits, pipRescues: g.pipRescues, settlements: g.settlements, raidersKilled: dz.kills, wingLost: wing.lost.slice(), wingKills: wing.kills, zonesCleared: dz.cleared,
     cause: g.deathCause, laneOffset: Math.max(0, Math.hypot(ship.pos.x, ship.pos.y) - config.lane.safeRadius),
   });
 
   function damage(amount, cause) {
-    const before = g.hull;
+        const before = g.hull;
+    g.sinceHit = 0;
     g.hull = Math.max(0, g.hull - amount);
     if (before >= 30 && g.hull < 30 && g.hull > 0) say('hullLow', true);
     if (g.hull <= 0 && g.mode === 'flying') die(cause);
@@ -264,7 +282,9 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     shards.burst(ship.pos.clone().addScaledVector(toRock, 3), r.vel, r.size);
     hud.callout('Hull hit', 1);
     damage(Math.min(config.hull.rockDamageMax ?? Infinity, config.hull.rockDamageBase + r.size * config.hull.rockDamagePerSize), 'rock');
-    events.emit('hit', { hull: g.hull });
+        events.emit('hit', { hull: g.hull });
+    wing.onPlayerHit();
+
     return 'destroy';
   };
 
@@ -565,7 +585,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     debris.reset(ship);
     traffic.reset(ship);
     lane.reset();
-    dz.reset(mode === 'flying' ? settlement.routeRemaining(ship) : 0, config.run.density, trip);
+        dz.reset(mode === 'flying' ? settlement.routeRemaining(ship) : 0, config.run.density, trip);
+    wing.reset(mode === 'flying' ? trip : null);
     if (dzFlightSaved) { for (const k of Object.keys(config.deadZone.flight)) config.flight[k] = dzFlightSaved[k]; dzFlightSaved = null; }
     dzRules = false;
     beltHudEl?.classList.remove('dead');
@@ -665,6 +686,14 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     }
     // Dead Zone: the fight, the hazards, and the rules and mood changing around it
     dz.update(realDt, dt, g.mode === 'flying' ? input.state : deadStick);
+    wing.update(realDt, dt, g.mode === 'flying');
+    // PIP Mk II: field repairs once you have gone a few seconds without a scrape, up to 30 a trip
+    g.sinceHit = (g.sinceHit ?? 99) + dt;
+    if (config.droid.mk2 && g.mode === 'flying' && g.sinceHit > 4 && g.hull < config.hull.max && (g.pipPatch ?? 0) < 30) {
+      const n = Math.min(3 * dt, 30 - (g.pipPatch ?? 0), config.hull.max - g.hull);
+      g.hull += n; g.pipPatch = (g.pipPatch ?? 0) + n;
+      if (!g.pipPatchSaid && g.pipPatch > 1) { g.pipPatchSaid = true; hud.say('PIP', 'Patching the hull. Hold still. Ish.', 3); }
+    }
     lane.setDim(dz.dim);
     dust.setCalm(dz.mood * config.deadZone.dustCalm);
     if (dz.rulesOff !== dzRules) {

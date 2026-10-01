@@ -2,7 +2,7 @@
 //   Crew     who is aboard (berths, wages), who is for hire in this town
 //   Wanted   the four raider warlords, their strength, their ground and their bounties
 // Rules live in crew.js; this file only draws them.
-import { CLANS, crewById, berths, hireState, wagesOf, strengthOf, bountyPerKill, bountyClear, clanOf, MAX_THREAT } from './crew.js';
+import { CLANS, crewById, berths, hireState, wagesOf, strengthOf, bountyPerKill, bountyClear, clanOf, MAX_THREAT, loyaltyOf, loyaltyLabel } from './crew.js';
 import { TOWNS } from './career.js';
 
 export const portrait = (id) => `${import.meta.env.BASE_URL}portraits/${id}.jpg`;
@@ -25,7 +25,10 @@ export function raidRow(c, k, esc) {
 export function slipNotes(s, esc) {
   const out = [];
   if (s.cleared && s.raid) out.push(`${esc(CLANS[s.raid.clan].name)} driven back. Their lanes are quieter for now.`);
-  if (s.walked?.length) out.push(`${s.walked.map(esc).join(' and ')} walked off: the wages were not there.`);
+    if (s.walked?.length) out.push(`${s.walked.map(esc).join(' and ')} walked off: the wages were not there.`);
+  if (s.lost?.length) out.push(`${s.lost.map(esc).join(' and ')} did not come home. Shot down flying your wing.`);
+  if (s.quit?.length) out.push(`${s.quit.map(esc).join(' and ')} quit: they have lost faith in you.`);
+  if (s.wingKills) out.push(`Your wing shot down ${s.wingKills} raider${s.wingKills > 1 ? 's' : ''}.`);
   return out.map((t) => `<p class='slip-unlock'>${t}</p>`).join('');
 }
 
@@ -40,7 +43,8 @@ function crewCard(c, m, aboard, h) {
       <div class='crew-body'>
         <p class='crew-role'>${h.esc(m.role)}</p>
         <h3>${h.esc(m.name)}</h3>
-        <p class='crew-perk'>${h.esc(m.perk)}</p>
+                <p class='crew-perk'>${h.esc(m.perk)}</p>
+        ${aboard ? `<div class='crew-loyal' title='Loyalty'><span>${loyaltyLabel(loyaltyOf(c, m.id))}</span><i><b style='width:${loyaltyOf(c, m.id)}%'></b></i></div>` : ''}
         <p class='crew-bio'>${h.esc(m.bio)}</p>
         <div class='crew-foot'><span>Wage ${h.cr(m.wage)} cr a landing</span>${btn}</div>
       </div>

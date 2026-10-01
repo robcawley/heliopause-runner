@@ -24,6 +24,15 @@ export const CREW = [
   { id: 'mags', portrait: 'crew-9', name: 'Old Mags', role: 'Engineer', hire: 3000, wage: 240, perk: 'Blaster heat -20%; double salvage patches in a fight', bio: 'Built half the ships in the yards. Retired twice.' },
 ];
 export const crewById = (id) => CREW.find((m) => m.id === id);
+export const LOYALTY = { start: 55, loyal: 80, quit: 15 };   // see Loyalty below
+
+// How each hand looks and sounds flying escort (modes/belt-run/wing.js): fighter stripe,
+// radio voice pitch (Hz) and formant scale
+const LOOKS = {
+  varga: ['#d4b98a', 190, 1.12], teo: ['#e58a3a', 140, 0.98], okafor: ['#6fa58f', 175, 1.1],
+  sparks: ['#e0c040', 215, 1.15], brennan: ['#8fb0d0', 105, 0.9], osei: ['#d070a0', 200, 1.14],
+  tanaka: ['#70c0c0', 185, 1.12], krug: ['#c04a3a', 82, 0.8], mags: ['#b0a8a0', 160, 1.05],
+};
 
 export const CLANS = {
   rust: { name: 'The Rust Court', boss: 'Queen Rust', portrait: 'raiders-1', lieutenants: ['raiders-5', 'raiders-8'], style: 'Big mixed swarms, led from the back', extra: 'skirmisher', color: '#c0583a' },
@@ -42,7 +51,8 @@ const KNOCK = 1.3;         // a cleared Dead Zone knocks its clan back this far
 // Old saves gain the strategy fields
 export function ensureStrategy(c) {
   c.crew ??= [];
-  c.clans ??= { ...START };
+    c.clans ??= { ...START };
+  c.loyalty ??= {};
   if (!c.hireable?.length) refreshHires(c);
   return c;
 }
@@ -50,7 +60,7 @@ export const berths = (c) => (c.owned?.quarters ? 4 : 2);
 export const hasCrew = (c, id) => !!c.crew?.includes(id);
 export const wagesOf = (c) => (c.crew ?? []).reduce((n, id) => n + (crewById(id)?.wage ?? 0), 0);
 export function refreshHires(c) {
-  const free = CREW.filter((m) => !c.crew.includes(m.id)).sort(() => Math.random() - 0.5);
+  const free = CREW.filter((m) => !c.crew.includes(m.id) && !(c.fallen ?? []).includes(m.id)).sort(() => Math.random() - 0.5);
   c.hireable = free.slice(0, 3).map((m) => m.id);
 }
 export function hireState(c, m) {
@@ -63,12 +73,56 @@ export function hire(c, id) {
   const m = crewById(id);
   if (!m || hireState(c, m) !== 'hire') return false;
   c.credits -= m.hire;
-  c.crew = [...c.crew, id];
+    c.crew = [...c.crew, id];
+  c.loyalty = { ...(c.loyalty ?? {}), [id]: LOYALTY.start };
   c.hireable = c.hireable.filter((x) => x !== id);
   return true;
 }
 export function dismiss(c, id) {
   c.crew = c.crew.filter((x) => x !== id);
+}
+
+// ---- Loyalty: how the crew feel about flying with you ---------------------------------------
+// Every hand starts Steady. Profitable, clean, on-time runs and cleared zones raise it; crashes,
+// lateness, a battered hull, your deaths and wingmates shot down lower it. Loyal hands hit harder
+// and stay to cover you when your hull is failing; unhappy ones shoot less; at the bottom they
+// quit at the next landing. Loyal hands are also the last to walk when wages run short.
+export const loyaltyOf = (c, id) => Math.round(c.loyalty?.[id] ?? LOYALTY.start);
+export const loyaltyLabel = (n) => (n >= LOYALTY.loyal ? 'Loyal' : n >= 50 ? 'Steady' : n >= 30 ? 'Uneasy' : 'Mutinous');
+const bump = (c, id, n) => { c.loyalty ??= {}; c.loyalty[id] = Math.max(0, Math.min(100, loyaltyOf(c, id) + n)); };
+
+// The escort for a trip
+export const wingOf = (c) => (c.crew ?? []).map(crewById).filter(Boolean).map((m, i) => {
+  const [color, pitch, formant] = LOOKS[m.id] ?? ['#efe4d0', 150, 1];
+  return { id: m.id, name: m.name, role: m.role, color, voice: { pitch, formant, pan: i % 2 ? 0.55 : -0.55 }, loyalty: loyaltyOf(c, m.id) };
+});
+
+// Shot down in flight: gone for good, and the rest of the crew feel it
+export function loseCrew(c, id) {
+  if (!hasCrew(c, id)) return;
+  c.crew = c.crew.filter((x) => x !== id);
+  delete c.loyalty?.[id];
+  c.fallen = [...new Set([...(c.fallen ?? []), id])];
+  for (const o of c.crew) bump(c, o, -6);
+}
+
+// The pilot died: everyone's faith takes a knock
+export function crewOnDeath(c) { for (const id of c.crew ?? []) bump(c, id, -10); }
+
+// A landing, as the crew saw it. Returns the change and who quit.
+export function loyaltyAfter(c, s, { total, late, cleared }) {
+  const delta = Math.max(-4, Math.min(8, Math.round(total / 800))) + (late ? -4 : 2) + (cleared ? 4 : 0)
+    - Math.min(8, Math.max(0, (s.hits ?? 0) - 2)) - (s.hull < 40 ? 3 : 0);
+  const quit = [];
+  for (const id of [...(c.crew ?? [])]) {
+    bump(c, id, delta);
+    if (loyaltyOf(c, id) <= LOYALTY.quit) {
+      c.crew = c.crew.filter((x) => x !== id);
+      delete c.loyalty[id];
+      quit.push(crewById(id).name);
+    }
+  }
+  return { delta, quit };
 }
 
 // ---- Raider threat on a contract ---------------------------------------------------------

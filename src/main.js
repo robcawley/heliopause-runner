@@ -5,6 +5,7 @@ import { createBeltRun } from './modes/belt-run/index.js';
 import { createTuning } from './shell/tuning.js';
 import { createBoard } from './tycoon/board.js';
 import { loadCareer, saveCareer, newCareer, settle, tripOf, applyLoadout } from './tycoon/career.js';
+import { loseCrew, crewOnDeath } from './tycoon/crew.js';
 
 // The host shell: title, pause and debrief screens around one game mode.
 // In the bigger game this is the part that changes: it will own the menus,
@@ -167,7 +168,10 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
     ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
     setTimeout(() => { debrief.classList.add('on'); document.getElementById('again').focus(); }, 900);
   };
-  run.on('death', showDebrief);
+    run.on('death', showDebrief);
+  // The wing (modes/belt-run/wing.js): a hand shot down is gone at once, so a retry cannot undo it
+  run.on('wingLost', ({ id }) => { loseCrew(career, id); saveCareer(career); });
+  run.on('death', () => { crewOnDeath(career); saveCareer(career); });
   // Landed: pay the slip, move the pilot, then the board for the next job
   run.on('landed', (s) => {
     screen = 'board';
