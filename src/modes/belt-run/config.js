@@ -213,13 +213,14 @@ export const DEFAULTS = {
       { groups: [['skirmisher', 3]] },
       { groups: [['skirmisher', 2], ['gunner', 1]] },
       { groups: [['bulwark', 1], ['grappler', 1], ['skirmisher', 1]] },
-      { final: true, groups: [['boss', 1]], reinforce: [['skirmisher', 2]] },   // reinforcements at half health
+      { final: true, groups: [['boss', 1]], reinforce: [['skirmisher', 1]] },   // reinforcements at half health
     ],
     maxAttackers: 2,         // raiders allowed to telegraph or fire at the same time
     attackGap: 0.9,          // seconds between one attack starting and the next
     firstAttack: 1.8,        // a new raider waits this long before its first attack
     aggression: 1,           // higher = shorter cooldowns (a contract's difficulty scales it)
     telegraphScale: 1,       // longer telegraphs are fairer
+    bossPartScale: 1.6,      // Carrion's pods and core are this much easier to hit than they look
     offscreenExtra: 0.45,    // extra warning for an attacker outside the view
     aimAssist: 0.08,        // radians: bolts bend onto a raider this close to your line (x2.2 on touch and gamepad)
     hitRadiusScale: 1.7,    // your bolts count a little outside a raider's hull
@@ -238,7 +239,7 @@ export const DEFAULTS = {
       gunner: { hp: 4.5, speed: 40, accel: 35, radius: 2.8, range: 190, cooldown: 4.6, telegraph: 1.05, lock: 0.32, score: 400, knock: 3.5 },
       grappler: { hp: 5, speed: 48, accel: 40, radius: 3, range: 105, cooldown: 6.5, telegraph: 1.2, score: 500, knock: 3 },
       bulwark: { hp: 6, shield: 5, shieldRegen: 7, speed: 30, accel: 24, radius: 3.6, range: 170, cooldown: 4.2, telegraph: 1.1, score: 650, knock: 1.2 },
-      boss: { hp: 30, pods: 7, speed: 24, accel: 16, radius: 10, range: 230, cooldown: 3.4, telegraph: 1.3, score: 3000, knock: 0.15 },
+      boss: { hp: 22, pods: 5, speed: 24, accel: 16, radius: 10, range: 230, cooldown: 4.4, telegraph: 1.6, score: 3000, knock: 0.15 },
     },
   },
   hull: {

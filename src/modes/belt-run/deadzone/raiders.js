@@ -400,7 +400,7 @@ export function createRaiders(config, world) {
       for (const s of r.model.spheres) {
         if (s.part === 'podL' && r.pods[0] <= 0) continue;
         if (s.part === 'podR' && r.pods[1] <= 0) continue;
-        test(r.root.localToWorld(wc.copy(s.c)), s.r * (s.part === 'body' && r.type !== 'boss' ? scale : 1), r, s.part, false);
+        test(r.root.localToWorld(wc.copy(s.c)), s.r * (s.part === 'body' && r.type !== 'boss' ? scale : r.type === 'boss' && s.part !== 'body' ? (R.bossPartScale ?? 1) : 1), r, s.part, false);
       }
     }
     return best;
