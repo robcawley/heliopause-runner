@@ -80,6 +80,11 @@ export function createTuning(config, { onResize } = {}) {
     ['shakeOffset', 0, 0.4, 0.005],
     ['traumaDecay', 0.2, 5, 0.1],
   ]);
+  folder('Cargo shudder', config.cargo, [
+    ['shudderRange', 10, 250, 5, 'range from a giant rock'],
+    ['shudder', 0, 1, 0.05, 'strength'],
+    ['shudderFrequency', 2, 20, 0.5],
+  ]);
   folder('Belt', config.world, [
     ['pathRocks', 0, 150, 1, 'path rocks (restart)'],
     ['pathSpread', 5, 80, 1],

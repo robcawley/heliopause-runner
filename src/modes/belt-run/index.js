@@ -550,6 +550,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   // ---- Lifecycle ------------------------------------------------------
   function resetWorld(mode, trip) {
     g = fresh(mode);
+    g.heavy = !!trip?.heavy;                       // heavy cargo shudders near giant rocks
     setThrottle(false, false);
     ship.reset();
     rig.reset();
@@ -753,6 +754,21 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     if (g.chainTimer > 0 && (g.chainTimer -= realDt) <= 0) g.chain = 0;
     cockpit.setChain(Math.min(3, g.chain % config.nearMiss.daredevilChain || (g.chain ? 3 : 0)));
 
+    // Heavy cargo: the hold judders when a giant rock is close (docs/TYCOON.md: weight never
+    // changes handling, it's space, but the strain on the frame shows near big mass)
+    let strain = 0;
+    if (g.heavy && g.mode === 'flying') {
+      const C = config.cargo;
+      for (const r of rocks.rocks) {
+        if (!r.active || !r.giant) continue;
+        const d = r.pos.distanceTo(ship.pos) - r.radius;
+        if (d < C.shudderRange) strain = Math.max(strain, 1 - Math.max(0, d) / C.shudderRange);
+      }
+      if (strain > 0.45 && !g.cargoWarned) { g.cargoWarned = true; hud.callout('Cargo shifting', -1); sfx.impact(false); }
+      if (strain < 0.1) g.cargoWarned = false;
+      strain *= C.shudder;
+    }
+    rig.shudder += (strain - rig.shudder) * (1 - Math.exp(-5 * realDt));
     rig.update(realDt, g.phaseFx * config.phase.fovKick * 0.5);
     sky.update(ship);
     planets.update(ship);

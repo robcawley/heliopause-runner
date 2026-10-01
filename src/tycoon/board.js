@@ -1,8 +1,10 @@
 import './board.css';
 import './crew.css';
+import './chart.css';
+import { renderChart } from './board-chart.js';
 import { crewById, hire, dismiss } from './crew.js';
 import { raidRow, slipNotes, renderCrew, renderWanted } from './board-crew.js';
-import { POWERS, TOWNS, RANKS, UPGRADES, standingIn, clock, holdOf, upgradeState, buy, shipStats, trustedTowns } from './career.js';
+import { POWERS, TOWNS, RANKS, UPGRADES, standingIn, clock, holdOf, upgradeState, buy, shipStats, trustedTowns, makeFerry } from './career.js';
 
 // The settlement board: shown after every landing (with the pay slip) and at the start of a
 // career (without). Three contracts; pick one, then launch. The art follows docs/TYCOON.md:
@@ -38,10 +40,10 @@ export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) 
   parent.appendChild(el);
 
   let career = null, picked = null, current = null;
-  let view = 'board', category = 'All', toast = '';   // the market view's state
+  let view = 'board', category = 'All', toast = '', chartSel = null;   // the market view's state
 
   // The header every screen shares: brand, credits, and that screen's navigation
-  const NAV = '<button type="button" class="board-nav" data-go="crew">Crew</button><button type="button" class="board-nav" data-go="wanted">Wanted</button><button type="button" class="board-nav" data-go="market">Shipwright&#39;s market</button>';
+  const NAV = '<button type="button" class="board-nav" data-go="chart">Chart</button><button type="button" class="board-nav" data-go="crew">Crew</button><button type="button" class="board-nav" data-go="wanted">Wanted</button><button type="button" class="board-nav" data-go="market">Shipwright&#39;s market</button>';
   const BACK = '<button type="button" class="board-nav" data-go="board">← Contracts</button>';
   function top(nav) {
     return `<header class="board-top">
@@ -98,9 +100,10 @@ export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) 
   function render(slip) {
     if (view === 'market') return renderMarket();
     if (view === 'crew' || view === 'wanted') return renderStrategy();
+    if (view === 'chart') return renderChartView();
     const c = career, town = c.town, power = POWERS[TOWNS[town].power];
     const sub = slip
-      ? `${esc(slip.contract.cargo)} delivered \u00b7 ${(slip.contract.distance / 1000).toFixed(1)} km in ${clock(slip.time)} \u00b7 hull ${slip.hull}%${slip.late ? ' \u00b7 late' : ''}`
+      ? `${slip.contract.ferry ? 'Flew in empty' : `${esc(slip.contract.cargo)} delivered`} \u00b7  ${(slip.contract.distance / 1000).toFixed(1)} km in ${clock(slip.time)} \u00b7 hull ${slip.hull}%${slip.late ? ' \u00b7 late' : ''}`
       : `${esc(power.name)} ground. ${esc(RANKS[standingIn(c, town)])} here. Pick a job.`;
     const chosen = picked === null ? null : c.offers[picked];
     el.innerHTML = `${ART}
@@ -147,6 +150,31 @@ export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) 
       el.scrollTop = 0;
       el.querySelector('.board-nav')?.focus({ preventScroll: true });
     }));
+  }
+
+    // The navigation chart (board-chart.js): inspect a town, take its contract, or ferry there
+  function renderChartView() {
+    const names = Object.keys(TOWNS);
+    el.innerHTML = renderChart(career, { esc, cr, art: ART, top, back: BACK, toast }, chartSel);
+    wireNav();
+    el.querySelectorAll('.chart-town').forEach((b) => b.addEventListener('click', () => {
+      chartSel = names[Number(b.dataset.t)];
+      toast = '';
+      renderChartView();
+      el.querySelector(`.chart-town[data-t="${b.dataset.t}"]`)?.focus({ preventScroll: true });
+    }));
+    el.querySelector('.chart-take')?.addEventListener('click', (e) => {
+      picked = Number(e.currentTarget.dataset.i);
+      view = 'board';
+      render(current);
+      el.querySelector(`.board-card[data-i="${picked}"]`)?.focus();
+    });
+    el.querySelector('.chart-ferry')?.addEventListener('click', () => {
+      const k = makeFerry(career, chartSel);
+      if (!k) return;
+      if (!confirm(`Fly empty to ${chartSel}? About ${cr(k.fuel)} cr of fuel comes off the pay slip when you land. No fee, no standing.`)) return;
+      onLaunch(k);
+    });
   }
 
   // Crew quarters and the wanted board (board-crew.js draws them; crew.js holds the rules)
@@ -232,8 +260,9 @@ export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) 
     show(c, slip = null) {
       career = c;
       picked = null;
-      view = 'board';
+            view = 'board';
       toast = '';
+      chartSel = null;
       render(slip);
       el.scrollTop = 0;
       el.classList.add('on');

@@ -14,11 +14,11 @@ export function createCameraRig(camera, ship, config) {
   ship.group.add(camera);
   camera.position.set(0, 0, 0);
 
-  const r = { trauma: 0, fovPunch: 0, hx: 0, hy: 0, hvx: 0, hvy: 0, t: 0 };
+  const r = { trauma: 0, fovPunch: 0, hx: 0, hy: 0, hvx: 0, hvy: 0, t: 0, shudder: 0 };   // shudder: heavy cargo near a giant rock, 0..1
 
   r.addTrauma = (amount) => { r.trauma = Math.min(1, r.trauma + amount); };
   r.punch = (degrees) => { r.fovPunch += degrees; };
-  r.reset = () => { Object.assign(r, { trauma: 0, fovPunch: 0, hx: 0, hy: 0, hvx: 0, hvy: 0 }); };
+  r.reset = () => { Object.assign(r, { trauma: 0, fovPunch: 0, hx: 0, hy: 0, hvx: 0, hvy: 0, shudder: 0 }); };
 
   r.update = (dt, extraFov = 0) => {
     const c = config.camera, f = config.flight;
@@ -42,13 +42,17 @@ export function createCameraRig(camera, ship, config) {
     const rx = smoothNoise(n, 3.7) * c.shakeAngle * shake;
     const ry = smoothNoise(n, 5.2) * c.shakeAngle * shake;
     const rz = smoothNoise(n, 9.4) * c.shakeAngle * shake * 1.4;
+    // Cargo shudder: a slow, heavy judder with the hold straining, mostly vertical
+    const m = r.t * (config.cargo?.shudderFrequency ?? 9), q = r.shudder * r.shudder;
+    const ux = smoothNoise(m, 2.2) * c.shakeOffset * 0.35 * q, uy = smoothNoise(m * 1.4, 6.6) * c.shakeOffset * 0.7 * q;
+    const uz = smoothNoise(m, 4.4) * c.shakeAngle * 0.5 * q;
 
     const rollCounter = -ship.rollAngle * (1 - config.roll.cameraFollow);
     const lookYaw = ship.yawRate * c.lookIntoTurn;
     const lookPitch = ship.pitchRate * c.lookIntoTurn * 0.6;
 
-    camera.position.set(r.hx + sx, r.hy + sy, 0);
-    camera.rotation.set(rx - r.hy * 0.25 + lookPitch, ry + r.hx * 0.25 + lookYaw, rz + rollCounter);
+    camera.position.set(r.hx + sx + ux, r.hy + sy + uy, 0);
+    camera.rotation.set(rx - r.hy * 0.25 + lookPitch, ry + r.hx * 0.25 + lookYaw, rz + uz + rollCounter);
 
     // FOV
     const boostT = THREE.MathUtils.clamp((ship.speed - f.cruiseSpeed) / Math.max(1, f.boostSpeed - f.cruiseSpeed), 0, 1);

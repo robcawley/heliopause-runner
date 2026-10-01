@@ -1,0 +1,68 @@
+/* The navigation chart (board-chart.js), after the design canvas: a dark chart table under the
+   dust sky, belt bands around a far-off Sun, the heliopause in violet, routes out of here. */
+.chart-grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 22px; align-items: start; margin-top: 3vh; }
+.chart-panel { box-sizing: border-box; padding: 20px 22px; background: var(--b-panel); border: 1px solid var(--b-line); border-radius: 4px; backdrop-filter: blur(6px); }
+.chart-mapwrap { padding: 0; background: radial-gradient(ellipse at 30% 55%, rgba(120,96,70,.28) 0%, rgba(28,22,18,0) 70%), #211a15; overflow: hidden; }
+.chart-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+.chart-map { position: relative; min-width: 640px; aspect-ratio: 1000 / 748; }
+.chart-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.chart-svg .r-offer { stroke: var(--b-accent); stroke-width: 2.5; fill: none; stroke-dasharray: 9 6; }
+.chart-svg .r-open { stroke: var(--b-bone); stroke-width: 2; opacity: .45; fill: none; }
+.chart-svg .r-locked { stroke: var(--b-dim); stroke-width: 2; opacity: .55; fill: none; stroke-dasharray: 1 7; stroke-linecap: round; }
+.chart-svg .r-locked .lock { stroke-dasharray: none; fill: var(--b-soot); stroke-width: 1.6; opacity: 1; }
+.chart-svg .r-uncharted { stroke: #b9acd6; stroke-width: 1.5; opacity: .55; fill: none; stroke-dasharray: 10 10; }
+.chart-note { position: absolute; font-size: .8rem; line-height: 1.35; color: var(--b-soft); pointer-events: none; }
+.chart-note b { font-family: var(--b-mono); font-weight: 500; }
+.chart-note.sol { transform: translateY(-50%); }
+.chart-note.hp { transform: translate(-100%, -50%); text-align: right; color: #c9bde2; }
+.chart-note.hp b { font-family: var(--b-text); font-weight: 600; letter-spacing: .16em; text-transform: uppercase; }
+.chart-pay { position: absolute; left: 38px; top: 32px; padding: 2px 8px; white-space: nowrap; background: var(--b-soot);
+  border: 1px solid var(--b-accent); border-radius: 2px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: none; color: #f0b27a; }
+.chart-town.flip { flex-direction: row-reverse; transform: translate(calc(-100% + 16px), -16px); padding: 0 0 0 8px; }
+.chart-town.flip .chart-pay { left: auto; right: 38px; }
+.chart-town.below { flex-direction: column; height: auto; gap: 4px; padding: 0; transform: translate(-50%, -16px); }
+.chart-town { position: absolute; transform: translate(-16px, -16px); height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 0;
+  border: 0; background: transparent; color: var(--b-bone); font: 600 .86rem var(--b-text); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+.chart-dot { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--b-soot); transition: box-shadow .15s; }
+.chart-name { padding: 2px 6px; background: rgba(28,22,18,.8); }
+.chart-town.is-here .chart-dot { box-shadow: 0 0 0 2px var(--b-accent); }
+.chart-town.is-locked { color: #a8987f; }
+.chart-town.is-uncharted { color: #c9bde2; }
+.chart-town.sel .chart-dot { box-shadow: 0 0 0 2px var(--b-soot), 0 0 0 4px var(--b-bone); }
+.chart-town:hover .chart-name, .chart-town:focus-visible .chart-name { background: rgba(28,22,18,.96); color: #fff; }
+.chart-town:focus-visible { outline: none; }
+.chart-town:focus-visible .chart-dot { box-shadow: 0 0 0 2px var(--b-soot), 0 0 0 4px var(--b-accent); }
+.chart-key { display: grid; grid-template-columns: repeat(2, minmax(0, max-content)); gap: 8px 28px; padding: 14px 20px 18px; font-size: .82rem; color: var(--b-soft); }
+.chart-key span { display: flex; align-items: center; gap: 10px; }
+.chart-side { display: flex; flex-direction: column; gap: 18px; }
+.chart-inspect { display: flex; flex-direction: column; gap: 11px; }
+.chart-power { margin: 0; display: flex; align-items: center; gap: 8px; font-size: .74rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.chart-inspect h3 { margin: 0; font: 800 2rem/1 var(--b-title); text-transform: uppercase; }
+.chart-blurb { margin: 0; font-size: .95rem; line-height: 1.45; color: var(--b-soft); }
+.chart-dl { margin: 0; display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 8px 10px; font-size: .88rem; }
+.chart-dl dt { color: var(--b-dim); }
+.chart-dl dd { margin: 0; }
+.chart-dl .route-here { color: var(--b-accent); }
+.chart-dl .route-offer { color: #f0b27a; }
+.chart-dl .route-locked { color: var(--b-dim); }
+.chart-dl .route-uncharted { color: #c9bde2; }
+.chart-raid { display: inline-flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.chart-raid img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+.chart-act { min-height: 44px; padding: 0 16px; border: 0; border-radius: 3px; background: var(--b-accent); color: var(--b-soot);
+  font: 700 .9rem var(--b-text); letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.chart-act:disabled { background: rgba(239,228,208,.12); color: var(--b-dim); cursor: default; }
+.chart-act:not(:disabled):hover, .chart-act:focus-visible { background: #f09a4c; outline: none; }
+.chart-small { margin: 0; font-size: .8rem; color: var(--b-dim); }
+.chart-standing > div:first-child { display: flex; justify-content: space-between; font-size: .88rem; margin-bottom: 7px; }
+.chart-standing > div:first-child span:first-child { color: var(--b-dim); }
+.chart-pips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.chart-pips i { height: 6px; }
+.chart-h { margin: 0 0 10px; font: 800 1.35rem var(--b-title); letter-spacing: .06em; text-transform: uppercase; }
+.chart-pw { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; column-gap: 10px; row-gap: 2px; align-items: center; margin-bottom: 10px; }
+.chart-pw b { font-weight: 600; }
+.chart-pw > span:not(.chart-pw-note) { font-size: .8rem; color: var(--b-dim); }
+.chart-pw-note { grid-column: 2 / 4; font-size: .8rem; color: var(--b-dim); }
+@media (max-width: 980px) {
+  .chart-grid { grid-template-columns: minmax(0, 1fr); }
+  .chart-key { grid-template-columns: minmax(0, 1fr); }
+}

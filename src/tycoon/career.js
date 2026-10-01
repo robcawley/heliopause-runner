@@ -7,26 +7,26 @@
 // so an easy job can pay premium and a hard one can pay little and reward you in standing.
 
 export const POWERS = {
-  meridian: { name: 'Meridian', color: '#d4b98a', people: 'Free humans on Meridian contract' },
-  halcyon: { name: 'Halcyon', color: '#6fa58f', people: 'The Tailored, gene-modified' },
-  sable: { name: 'Sable', color: '#8f9aa6', people: 'The Threaded, AI-merged' },
-  free: { name: 'Free Holdings', color: '#efe4d0', people: 'Free humans' },
-  kindred: { name: 'The Kindred', color: '#b9acd6', people: 'The Kindred, alien hybrids' },
+    meridian: { name: 'Meridian', color: '#d4b98a', people: 'Free humans on Meridian contract', blurb: 'AI of a dead freight firm. Owns the beacon lanes.' },
+  halcyon: { name: 'Halcyon', color: '#6fa58f', people: 'The Tailored, gene-modified', blurb: 'Built to cure; now it breeds the Tailored.' },
+  sable: { name: 'Sable', color: '#8f9aa6', people: 'The Threaded, AI-merged', blurb: 'A mining AI that bought its miners\u2019 minds.' },
+  free: { name: 'Free Holdings', color: '#efe4d0', people: 'Free humans', blurb: 'No AI, little law. Remembers favours.' },
+  kindred: { name: 'The Kindred', color: '#b9acd6', people: 'The Kindred, alien hybrids', blurb: 'Humans who came back from the edge changed.' },
 };
 
 // Every settlement the flight mode can build, who holds it, and what standing opens it.
 // These names must match the settlement names in modes/belt-run/settlement.js.
 export const TOWNS = {
-  'Salacia Cut': { power: 'meridian' },
-  'Haumea Reach': { power: 'meridian' },
-  'Orcus Ward': { power: 'halcyon' },
-  'Makemake Drift': { power: 'halcyon', needs: { town: 'Orcus Ward', rank: 3 } },
-  'Quaoar Landing': { power: 'sable' },
-  'Ixion Row': { power: 'sable' },
-  'Sedna Lanterns': { power: 'free' },
-  'Varda Steps': { power: 'free' },
-  'Gonggong Narrows': { power: 'free', needs: { town: 'Sedna Lanterns', rank: 2 } },
-  'Arrokoth Market': { power: 'kindred', needs: { town: null, rank: 99 } },   // uncharted, for now
+  'Salacia Cut': { power: 'meridian', people: 'Free humans on Meridian contract', blurb: 'A refinery town cut into a split rock. Meridian\u2019s customs AI watches every pad.' },
+  'Haumea Reach': { power: 'meridian', people: 'Free humans, hospital staff', blurb: 'A hospital town on the old lane, short of everything but patience.' },
+  'Orcus Ward': { power: 'halcyon', people: 'The Tailored, gene-modified', blurb: 'Halcyon\u2019s cold nursery. The coolant keeps the vats alive.' },
+  'Makemake Drift': { power: 'halcyon', needs: { town: 'Orcus Ward', rank: 3 }, people: 'The Tailored', blurb: 'Where the Tailored are made. Outsiders come by invitation.' },
+  'Quaoar Landing': { power: 'sable', people: 'The Threaded, AI-merged', blurb: 'A foundry town. The Threaded work in silence and sing on the comms.' },
+  'Ixion Row': { power: 'sable', people: 'The Threaded', blurb: 'Ore docks strung along a fault line.' },
+  'Sedna Lanterns': { power: 'free', people: 'Free humans', blurb: 'A free town lit by a thousand salvaged lamps. It owes nobody.' },
+  'Varda Steps': { power: 'free', people: 'Free humans, traders', blurb: 'Habitats terraced up a sheer face. Traders, no questions.' },
+  'Gonggong Narrows': { power: 'free', needs: { town: 'Sedna Lanterns', rank: 2 }, people: 'Free humans, smugglers', blurb: 'A smugglers\u2019 pass the AIs pretend not to see.' },
+  'Arrokoth Market': { power: 'kindred', needs: { town: null, rank: 99 }, people: 'The Kindred, alien hybrids', blurb: 'A market past the heliopause that no two charts agree on.' },   // uncharted, for now
 };
 
 export const RANKS = ['Stranger', 'Known', 'Trusted', 'Respected', 'Honoured', 'Kin'];
@@ -99,6 +99,8 @@ export function isOpen(c, town) {
   return !needs || (needs.town !== null && standingIn(c, needs.town) >= needs.rank);
 }
 export const openTowns = (c) => Object.keys(TOWNS).filter((t) => t !== c.town && isOpen(c, t));
+// What standing in a town opens: the towns that wait on it, as [town, rank]
+export const opensFrom = (town) => Object.entries(TOWNS).filter(([, t]) => t.needs?.town === town).map(([name, t]) => [name, t.needs.rank]);
 
 export function makeOffers(c) {
   const dests = shuffle(openTowns(c)).slice(0, 3);
@@ -126,10 +128,27 @@ export function makeOffers(c) {
   });
 }
 
+// A ferry flight (from the navigation chart): fly empty to any open town and pay for the fuel.
+// No fee and no standing, but you go where the work is, or the crew you want, and the raiders
+// on that lane are still there, with their bounties.
+export const ferryFuel = (km) => Math.round((300 + km * 30) / 10) * 10;
+export function makeFerry(c, to) {
+  if (to === c.town || !isOpen(c, to)) return null;
+  const D = DIFFICULTIES.easy;
+  const distance = Math.round(between(D.km) * 10) * 100;
+  return {
+    id: `${Date.now().toString(36)}-f`, ferry: true, fuel: ferryFuel(distance / 1000),
+    tier: 'ferry', tierLabel: 'Ferry', difficulty: 'easy', difficultyLabel: D.label, level: D.level,
+    job: 'Ferry flight', from: c.town, to, distance, density: D.density, lane: 'Flying empty',
+    cargo: 'Empty hold', tons: 0, heavy: false, est: Math.round((distance / CRUISE + SEQUENCES) / 5) * 5, deadline: null,
+    raid: raidFor(c, to, D.level), pay: 0, standing: 0,
+  };
+}
+
 // What the flight mode needs to build the trip
 // raid: the clan on this lane and its threat (threat 0: no fight). crew: what the crew say in flight.
 export const tripOf = (k, c) => (k ? {
-  origin: k.from, dest: k.to, distance: k.distance, density: k.density,
+  origin: k.from, dest: k.to, distance: k.distance, density: k.density, heavy: !!k.heavy,
   raid: k.raid ? { ...CLANS[k.raid.clan], clan: k.raid.clan, threat: k.raid.threat } : null,
   crew: c ? crewLines(c) : {},
 } : undefined);
@@ -139,8 +158,11 @@ export function settle(c, k, s) {
   const lines = [];
   const late = !!k.deadline && s.time > k.deadline;
   const fee = Math.round((late ? k.pay / 2 : k.pay) * (hasCrew(c, 'varga') ? 1.1 : 1));
-  lines.push({ label: late ? 'Contract fee, late' : 'Contract fee', note: late ? 'half pay' : '', amount: fee });
-  lines.push({ label: 'Hull bonus', note: `${s.hull}%`, amount: Math.round(k.pay * 0.12 * (s.hull / 100)) });
+    if (k.ferry) lines.push({ label: 'Ferry fuel', note: 'flying empty', amount: -k.fuel });
+  else {
+    lines.push({ label: late ? 'Contract fee, late' : 'Contract fee', note: late ? 'half pay' : '', amount: fee });
+    lines.push({ label: 'Hull bonus', note: `${s.hull}%`, amount: Math.round(k.pay * 0.12 * (s.hull / 100)) });
+  }
   if (k.deadline && !late) lines.push({ label: 'On time', note: `${clock(s.time)} of ${clock(k.deadline)}`, amount: Math.round(k.pay * 0.1) });
   if (s.rocksDestroyed) lines.push({ label: 'Salvage', note: `${s.rocksDestroyed} rocks`, amount: s.rocksDestroyed * 20 });
   const raid = k.raid, kills = s.raidersKilled ?? 0, cleared = (s.zonesCleared ?? 0) > 0;
@@ -166,7 +188,7 @@ export function settle(c, k, s) {
   const before = c.credits;
   const openBefore = new Set(openTowns({ ...c, town: null }));
   c.credits = Math.max(0, c.credits + total);
-  c.standing[k.to] = Math.min(RANKS.length - 1, standingIn(c, k.to) + k.standing + (hasCrew(c, 'okafor') ? 1 : 0));
+  if (!k.ferry) c.standing[k.to] = Math.min(RANKS.length - 1, standingIn(c, k.to) + k.standing + (hasCrew(c, 'okafor') ? 1 : 0));
   clansAfter(c, raid, cleared);
   c.town = k.to;
   c.contract = null;
@@ -174,7 +196,7 @@ export function settle(c, k, s) {
   refreshHires(c);
   const unlocked = openTowns({ ...c, town: null }).filter((t) => !openBefore.has(t));
   c.offers = makeOffers(c);
-  return { contract: k, lines, total, before, after: c.credits, town: k.to, time: s.time, hull: s.hull, late, standing: c.standing[k.to], unlocked, walked, raid, cleared, kills };
+  return { contract: k, lines, total, before, after: c.credits, town: k.to, time: s.time, hull: s.hull, late, standing: standingIn(c, k.to), unlocked, walked, raid, cleared, kills };
 }
 
 // ---- The shipwright's market ------------------------------------------------------------

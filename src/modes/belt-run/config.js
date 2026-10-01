@@ -100,7 +100,12 @@ export const DEFAULTS = {
     traumaDecay: 1.5,
     shakeAngle: reducedMotion ? 0.02 : 0.055,
     shakeOffset: reducedMotion ? 0.03 : 0.09,
-    shakeFrequency: 24,
+        shakeFrequency: 24,
+  },
+  cargo: {
+    shudderRange: 90,        // metres from a giant rock's surface where heavy cargo starts to shudder
+    shudder: reducedMotion ? 0.25 : 0.7,   // 0..1 at the rock's surface
+    shudderFrequency: 9,     // slower and heavier than hit shake
   },
 
   world: {
