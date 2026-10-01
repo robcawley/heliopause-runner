@@ -152,7 +152,11 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
       ? `Clamps on, engines down. ${s.hull}% of the hull made it.`
       : s.cause === 'radiation'
       ? `Radiation burned through the hull, ${Math.round(s.laneOffset)} metres outside the beacon lane.`
-      : s.cause === 'wall' ? 'You tore the hull open on a canyon wall.' : 'The belt broke through the hull.';
+      : s.cause === 'wall' ? 'You tore the hull open on a canyon wall.'
+      : s.cause === 'raider' ? 'Raiders picked the hull apart.'
+      : s.cause === 'wreck' ? 'You ploughed into a dead ship.'
+      : s.cause === 'arc' || s.cause === 'coil' ? 'The old battlefield was still live.'
+      : s.cause === 'scrap' ? 'The scrap cloud stripped the hull.' : 'The belt broke through the hull.';
     const mins = Math.floor(s.time / 60), secs = Math.floor(s.time % 60).toString().padStart(2, '0');
     debrief.querySelector('.debrief-stats').innerHTML = [
       ['Score', s.score.toLocaleString()], ...(s.landed ? [['Landing bonus', `+${(s.landingBonus + s.hullBonus).toLocaleString()}`]] : []), ['Flight time', `${mins}:${secs}`],

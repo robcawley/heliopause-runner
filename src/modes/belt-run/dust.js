@@ -58,6 +58,7 @@ export function createDust(config) {
 
   const dir = new THREE.Vector3();
   const helper = new THREE.Vector3();
+  let calm = 0;   // 0..1: fewer, dimmer, shorter streaks (Dead Zones set it; config.world.dustCalm)
 
   return {
     mesh,
@@ -70,10 +71,12 @@ export function createDust(config) {
       if (Math.abs(dir.y) > 0.95) helper.set(1, 0, 0);
       uAxisX.value.crossVectors(helper, dir).normalize();
       uAxisY.value.crossVectors(dir, uAxisX.value).normalize();
-      uStreak.value = Math.max(0.3, speed * config.world.dustStreak);
+      const c = Math.max(calm, config.world.dustCalm ?? 0);
+      uStreak.value = Math.max(0.3, speed * config.world.dustStreak * (1 - 0.7 * c));
       uHalf.value = config.world.dustRange;
-      uGlow.value = 0.8 + (speed / config.flight.boostSpeed) * 0.9;
+      uGlow.value = (0.8 + (speed / config.flight.boostSpeed) * 0.9) * (1 - 0.85 * c);
     },
+    setCalm(k) { calm = k; },
     // Radiation turns the grit a sickly amber
     setRadiation(k) { uTint.value.setRGB(1 + k * 0.35, 1 + k * 0.15, 1 - k * 0.5); },
   };

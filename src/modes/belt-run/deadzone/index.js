@@ -519,7 +519,9 @@ export function createDeadZone({ config, audio, hudParent, host }) {
 
     // What the pilot needs to know right now
     hint = '';
-    if (phase === 'explore') hint = 'Dead Zone: no radiation, no rings. Fly anywhere, use the wrecks as cover.';
+    const dev = host.device();
+    const keys = dev === 'touch' ? 'Brake button' : dev === 'gamepad' ? 'hold LT' : 'hold X';
+    if (phase === 'explore') hint = `Dead Zone: slower flight, no radiation. ${keys} to brake and hang still while you aim.`;
     else if (phase === 'warning' || (phase === 'fight' && wave === 0 && t < 6)) hint = 'Red ! = winding up to fire at you. Dodge sideways or break line of sight.';
 
     if (rulesOff() || phase === 'exit' || phase === 'approach') updateMarks();
@@ -557,7 +559,7 @@ export function createDeadZone({ config, audio, hudParent, host }) {
       const along = n3.subVectors(r.pos, a).dot(dir);
       if (along < -r.T.radius || along > len + r.T.radius) continue;
       const off = n3.addScaledVector(dir, -along).length();
-      const allow = Math.min(r.T.radius * 3, r.T.radius * R.hitRadiusScale + r.pos.distanceTo(ship.pos) * assist);
+      const allow = Math.min(r.T.radius * 4, r.T.radius * R.hitRadiusScale + r.pos.distanceTo(ship.pos) * assist);
       if (off < allow && (!best || along < best.dist)) {
         const point = r.pos.clone().addScaledVector(dir, -r.T.radius * 0.8);
         const hit = { dist: Math.max(0, along), point, normal: dir.clone().negate(), raider: r, part: 'body', shield: false };
@@ -583,12 +585,15 @@ export function createDeadZone({ config, audio, hudParent, host }) {
     return null;
   }
 
+  // Callers may pass plain {x, y, z} points (lane gates do), not only vectors
+  const distC = (p) => Math.hypot(p.x - center.x, p.y - center.y, p.z - center.z);
+
   return {
     group, hud, raiders, wrecks, reset, update, raycast, damage,
     // Rocks, gates and traffic stay out of the wreck field
-    clears: (p, r = 0) => wrecks.built && p.distanceTo(center) < Z.radius + r + 60,
-    blocksGate: (p) => wrecks.built && p.distanceTo(center) < Z.radius + 40,
-    solid: (p) => wrecks.built && (rulesOff() || phase === 'exit' || p.distanceTo(center) < Z.radius + 80) && wrecks.solid(p),
+    clears: (p, r = 0) => wrecks.built && distC(p) < Z.radius + r + 60,
+    blocksGate: (p) => wrecks.built && distC(p) < Z.radius + 40,
+    solid: (p) => wrecks.built && (rulesOff() || phase === 'exit' || distC(p) < Z.radius + 80) && wrecks.solid(p),
     predictHit: (s, horizon) => (R.autoRollOrbs && fighting() ? fire.predictHit(s, horizon) : null),
     hitWreck: (p) => fx.hitWreck(p),
     get rulesOff() { return rulesOff(); },

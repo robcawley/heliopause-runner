@@ -197,17 +197,17 @@ export function createRaiders(config, world) {
     switch (r.type) {
       case 'skirmisher': {
         // Wasps: circling a point ahead of you, so they stay in view
-        const rad = r.state === 'recover' ? 70 : 42;
-        return out.copy(ship.pos).addScaledVector(ship.fwd, 75).addScaledVector(perpA, Math.cos(r.orbit) * rad).addScaledVector(perpB, Math.sin(r.orbit) * rad * 0.7);
+        const rad = r.state === 'recover' ? 50 : 30;
+        return out.copy(ship.pos).addScaledVector(ship.fwd, 60).addScaledVector(perpA, Math.cos(r.orbit) * rad).addScaledVector(perpB, Math.sin(r.orbit) * rad * 0.7);
       }
       case 'gunner':
-        return out.copy(ship.fwd).applyAxisAngle(perpB, r.offYaw).applyAxisAngle(perpA, r.offPitch).multiplyScalar(165).add(ship.pos);
+        return out.copy(ship.fwd).applyAxisAngle(perpB, r.offYaw).applyAxisAngle(perpA, r.offPitch).multiplyScalar(115).add(ship.pos);
       case 'grappler':
         return out.copy(ship.pos).addScaledVector(ship.fwd, 45).addScaledVector(perpA, Math.sign(r.offYaw) * 38).addScaledVector(perpB, r.offPitch * 20);
       case 'bulwark':
-        return out.copy(ship.pos).addScaledVector(ship.fwd, 115).addScaledVector(perpA, r.offYaw * 30);
+        return out.copy(ship.pos).addScaledVector(ship.fwd, 85).addScaledVector(perpA, r.offYaw * 30);
       case 'boss':
-        return out.copy(ship.pos).addScaledVector(ship.fwd, 175).addScaledVector(perpA, Math.cos(r.orbit) * 50).addScaledVector(perpB, Math.sin(r.orbit * 0.7) * 25);
+        return out.copy(ship.pos).addScaledVector(ship.fwd, 130).addScaledVector(perpA, Math.cos(r.orbit) * 50).addScaledVector(perpB, Math.sin(r.orbit * 0.7) * 25);
       default: return out.copy(ship.pos);
     }
   }
@@ -219,7 +219,7 @@ export function createRaiders(config, world) {
     if (r.state === 'emerge') {
       r.vel.multiplyScalar(Math.exp(-1.6 * dt));
     } else {
-      r.orbit += r.orbitDir * (r.type === 'boss' ? 0.22 : 0.9) * dt;
+      r.orbit += r.orbitDir * (r.type === 'boss' ? 0.22 : 0.55) * dt;
       goal(r, desired);
       steer.subVectors(desired, r.pos);
       const dd = steer.length();

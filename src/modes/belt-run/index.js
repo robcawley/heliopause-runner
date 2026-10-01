@@ -16,6 +16,7 @@ import { createShards } from './shards.js';
 import { createLane } from './lane.js';
 import { createSettlement } from './settlement.js';
 import { createBlasters } from './blasters.js';
+import { createDeadZone } from './deadzone/index.js';
 import { createDroid } from './droid.js';
 import { createSfx } from './sfx.js';
 import { createHud } from './hud.js';
@@ -90,7 +91,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   const sunDir = new THREE.Vector3(0.55, 0.38, -0.74).normalize();
   const sun = new THREE.DirectionalLight(0xffe2b8, 3.2);
   sun.position.copy(sunDir).multiplyScalar(100);
-  scene.add(sun, sun.target, new THREE.HemisphereLight(0x324a70, 0x07090f, 0.55));
+  const hemi = new THREE.HemisphereLight(0x324a70, 0x07090f, 0.55);
+  scene.add(sun, sun.target, hemi);
 
   const input = createInput(engine.canvas, config.input);
   const ship = createShip(config);
@@ -112,10 +114,10 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   const pip = createDroid(config);
   scene.add(sky.mesh, planets.group, dust.mesh, debris.group, traffic.group, rocks.mesh, shards.mesh, lane.group, blasters.group, settlement.group);
   // A settlement clears its own airspace: no belt rocks or repair gates inside, and bolts stop at its rock
-  rocks.setExclusion((p, r) => settlement.clears(p, r));
-  lane.handlers.blocked = (p) => settlement.blocksGate(p);
-  blasters.handlers.blocked = (p) => settlement.solid(p);
-  traffic.handlers.blocked = (p) => settlement.clears(p, 10);
+  rocks.setExclusion((p, r) => settlement.clears(p, r) || dz.clears(p, r));
+  lane.handlers.blocked = (p) => settlement.blocksGate(p) || dz.blocksGate(p);
+  blasters.handlers.blocked = (p) => settlement.solid(p) || (dz.solid(p) && (dz.hitWreck(p), true));
+  traffic.handlers.blocked = (p) => settlement.clears(p, 10) || dz.clears(p, 10);
   ship.group.add(blasters.muzzleGroup, pip.group);
 
   // Keep the lane's sunward side lit: the light follows the ship
@@ -132,6 +134,43 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   const post = createPost(renderer, scene, camera, config.fx);
   const sfx = createSfx(audio, config);
   const hud = createHud(hudParent);
+
+  // ---- Dead Zones: self-contained fights in old wreck fields, between stretches of lane ----
+  // Inside one the lane's rules are off (no radiation, fly anywhere). See deadzone/index.js.
+  const dz = createDeadZone({
+    config, audio, hudParent,
+    host: {
+      ship, camera,
+      flying: () => g.mode === 'flying',
+      invulnerable: () => g.phaseTime > 0,
+      device: () => input.state.device,
+      damage: (n, cause) => { if (g.mode === 'flying') { damage(n, cause); g.chain = 0; g.chainTimer = 0; } },
+      heal: (n) => { if (g.mode === 'flying') g.hull = Math.min(config.hull.max, g.hull + n); },
+      trauma: (k) => rig.addTrauma(k),
+      flash: (k) => { g.hitFlash = Math.max(g.hitFlash, k); },
+      score: (n) => { if (g.mode === 'flying') g.score += n; },
+      callout: (text, side, big) => { if (text) hud.callout(text, side, big); },
+      say: (who, text, s) => { hud.say(who, text, s); g.micaCooldown = 6; },
+      slowmo: (s, scale) => { g.slowmo = s; g.slowmoScale = scale; },
+      emit: (name, data) => events.emit(name, data),
+    },
+  });
+  scene.add(dz.group);
+  const beltHudEl = hudParent.querySelector('.belt-hud');
+  const fogBase = scene.fog.color.clone(), fogDead = new THREE.Color(0x140806);
+  const hemiBase = hemi.intensity, sunBase = sun.intensity, sunCol = sun.color.clone(), sunDead = new THREE.Color(0xff9a70);
+  let dzRules = false, dzFlightSaved = null;
+  // Player bolts hit rocks and, in a Dead Zone, raiders and their plasma orbs
+  const targets = {
+    raycast(a, b) {
+      const r = rocks.raycast(a, b);
+      const z = dz.raycast(a, b);
+      if (!z) return r;
+      if (!r) return z;
+      return z.dist <= a.distanceTo(r.point) ? z : r;
+    },
+    damage: (rock, amount, s) => (rock.zoneHit || rock.zoneOrb ? dz.damage(rock, amount) : rocks.damage(rock, amount, s)),
+  };
 
   // ---- State ----------------------------------------------------------
   const fresh = (mode) => ({
@@ -161,7 +200,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     score: g.score, distance: ship.distance, laneProgress: ship.laneProgress, time: g.tripTime,
     hull: Math.round((g.hull / config.hull.max) * 100),
     nearMisses: g.nearMisses, bestChain: g.bestChain, gates: g.gates, hits: g.hits, rolls: g.rolls,
-    rocksDestroyed: g.rocksDestroyed, shots: blasters.state.shots, shotsHit: blasters.state.hits, pipRescues: g.pipRescues, settlements: g.settlements,
+    rocksDestroyed: g.rocksDestroyed, shots: blasters.state.shots, shotsHit: blasters.state.hits, pipRescues: g.pipRescues, settlements: g.settlements, raidersKilled: dz.kills,
     cause: g.deathCause, laneOffset: Math.max(0, Math.hypot(ship.pos.x, ship.pos.y) - config.lane.safeRadius),
   });
 
@@ -283,6 +322,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     hud.callout('Traffic passing', side);
   };
   blasters.handlers.onImpact = (hit, destroyed) => {
+    if (hit.rock.zoneHit || hit.rock.zoneOrb) { hud.hitConfirm(dz.lastKilled); return; }
     hud.hitConfirm(!!destroyed);
     if (destroyed) {
       g.rocksDestroyed++;
@@ -521,6 +561,10 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     debris.reset(ship);
     traffic.reset(ship);
     lane.reset();
+    dz.reset(mode === 'flying' ? settlement.routeRemaining(ship) : 0, config.run.density);
+    if (dzFlightSaved) { for (const k of Object.keys(config.deadZone.flight)) config.flight[k] = dzFlightSaved[k]; dzFlightSaved = null; }
+    dzRules = false;
+    beltHudEl?.classList.remove('dead');
   }
 
   const attractStick = { stickX: 0, stickY: 0, roll: 0, boost: false, brake: false };
@@ -582,7 +626,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     }
     const inTown = settlement.inZone(ship.pos);
     const jammed = inTown && config.settlement.jamBlasters;
-    blasters.update(realDt, dt, ship, g.mode === 'flying' && input.state.fire && !jammed, rocks);
+    blasters.update(realDt, dt, ship, g.mode === 'flying' && input.state.fire && !jammed, targets);
     if (g.mode === 'flying') {
       if (inTown !== g.inSettlement) {
         g.inSettlement = inTown;
@@ -615,6 +659,24 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
         g.micaTimer = Math.max(g.micaTimer, 18);
       }
     }
+    // Dead Zone: the fight, the hazards, and the rules and mood changing around it
+    dz.update(realDt, dt, g.mode === 'flying' ? input.state : deadStick);
+    lane.setDim(dz.dim);
+    dust.setCalm(dz.mood * config.deadZone.dustCalm);
+    if (dz.rulesOff !== dzRules) {
+      dzRules = dz.rulesOff;
+      beltHudEl?.classList.toggle('dead', dzRules);
+      if (dzRules) { g.exposure = 0; g.wasOutside = false; }
+      // Fight speeds inside, the lane's own (with any upgrades) restored on the way out
+      if (dzRules) { dzFlightSaved = { ...config.flight }; Object.assign(config.flight, config.deadZone.flight); }
+      else if (dzFlightSaved) { for (const k of Object.keys(config.deadZone.flight)) config.flight[k] = dzFlightSaved[k]; dzFlightSaved = null; }
+    }
+    if (dz.relit) g.micaTimer = 30;
+    scene.fog.color.lerpColors(fogBase, fogDead, dz.mood * 0.85);
+    hemi.intensity = hemiBase * (1 - dz.mood * 0.45);
+    sun.intensity = sunBase * (1 - dz.mood * 0.5);
+    sun.color.lerpColors(sunCol, sunDead, dz.mood * 0.6);
+
     rocks.update(realDt, dt, ship);
     debris.update(dt, ship);
     traffic.update(dt, ship, g.mode === 'flying');
@@ -627,14 +689,15 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     // ---- The beacon lane: radiation outside, repair near the centre ----
     const L = config.lane, R = config.radiation;
     const laneDist = Math.hypot(ship.pos.x, ship.pos.y);
-    const outside = laneDist - L.safeRadius;
-    pip.update(realDt, ship, laneDist, g.mode === 'flying', input.state);
+    const outside = dz.rulesOff ? -1 : laneDist - L.safeRadius;   // no radiation in a Dead Zone
+    pip.update(realDt, ship, dz.rulesOff ? 0 : laneDist, g.mode === 'flying', input.state);
 
     // Dodging: on a predicted hit the ship barrel-rolls away by itself (config.roll.auto), as long
     // as it has a roll charge. PIP, when it is flying, phases through first if the drive is ready.
     g.autoRollWait = Math.max(0, g.autoRollWait - realDt);
     if (g.mode === 'flying' && g.phaseTime <= 0 && g.autoRollWait <= 0 && (pip.driving || config.roll.auto)) {
-      const threat = rocks.predictHit(ship, pip.driving ? 0.35 : config.roll.autoLookahead);
+      const look = pip.driving ? 0.35 : config.roll.autoLookahead;
+      const threat = rocks.predictHit(ship, look) || dz.predictHit(ship, look);
       if (threat) {
         if (pip.driving && g.phaseCooldown <= 0) { tryPhase(); sfx.chirp('drive'); }
         else if (tryRoll(threat.side > 0 ? -1 : 1)) g.autoRollWait = config.roll.duration + 0.1;   // one roll per threat
@@ -667,11 +730,11 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       if (hurting) hud.setWarning('Hull burning. Return to the lane', 2);
       else if (outside > 0 && g.exposure > R.damageFrom * 0.5) hud.setWarning('Radiation rising', 1);
       else if (g.hull < 25) hud.setWarning('Hull critical', 2);
-      else hud.setWarning('');
+      else hud.setWarning(dz.warning, 1);
 
       // Heading away from the beacon for a while gets a dry word from MICA
       const along = ship.vel.dot(laneFwd) / Math.max(1, ship.vel.length());
-      g.wrongWayTime = along < -0.5 ? g.wrongWayTime + realDt : 0;
+      g.wrongWayTime = along < -0.5 && !dz.rulesOff ? g.wrongWayTime + realDt : 0;
       if (g.wrongWayTime > 5) { say('wrongWay'); g.wrongWayTime = -20; }
     }
     g.radFx += ((outside > 0 ? 0.15 : 0) + (g.exposure / 100) * 0.85 - g.radFx) * (1 - Math.exp(-3 * realDt));
@@ -710,14 +773,14 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     audio.update();
 
     // MICA, occasionally, when nothing else is going on
-    if (g.mode === 'flying' && outside <= 0 && (g.micaTimer -= realDt) <= 0) {
+    if (g.mode === 'flying' && outside <= 0 && !dz.rulesOff && (g.micaTimer -= realDt) <= 0) {
       hud.say('MICA', MICA.idle[g.micaIdle++ % MICA.idle.length], 5);
       g.micaTimer = 24 + Math.random() * 14;
     }
 
     // ---- HUD ----
     ship.group.updateMatrixWorld(true);
-    const showGuide = g.mode === 'flying' && laneDist > L.warnRadius;
+    const showGuide = g.mode === 'flying' && laneDist > L.warnRadius && !dz.rulesOff;
     if (showGuide) {
       // Aim at the nearest point on the lane's edge, a little ahead
       const k = config.lane.safeRadius * 0.7 / Math.max(1, laneDist);
@@ -794,7 +857,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       else if (g.flightTime < 12) tutorial = touch ? 'Hold BOOST for speed; use PHASE to pass through rocks.' : input.state.device === 'gamepad' ? 'A phases through rocks. B or X boosts; left trigger brakes.' : 'Space phases through danger. Shift boosts; X brakes.';
       else if (g.flightTime < 18) tutorial = config.roll.auto ? 'Your ship rolls clear of rocks by itself. Close calls still score.' : touch ? 'Tap ↶ or ↷ to dodge sideways.' : input.state.device === 'gamepad' ? 'Hold bumpers to roll; double-tap to dodge.' : 'Double-tap Q or E for a barrel roll.';
     }
-    hud.setHint(wantsCapture ? 'Click the view to take the controls. Esc releases the mouse.' : tutorial);
+    hud.setHint(wantsCapture ? 'Click the view to take the controls. Esc releases the mouse.' : (dz.hint || tutorial));
 
     const missionProgress = { distance: Math.max(0, ship.laneProgress), misses: g.nearMisses, rocks: g.rocksDestroyed };
     const missionDone = missionProgress.distance >= 2000 && missionProgress.misses >= 3 && missionProgress.rocks >= 5;
@@ -821,6 +884,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     get backend() { return engine.backend; },
 
     attract() { resetWorld('attract'); hud.setVisible(false); },
+    debug: () => ({ ship, dz, g, config, blasters }),   // for tests and the console
     start(trip) {
       resetWorld('flying', trip);
       hud.setVisible(true);
@@ -849,6 +913,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     dispose() {
       input.dispose();
       hud.dispose();
+      dz.dispose();
       untrack();
       events.clear();
       rocks.dispose();

@@ -43,7 +43,8 @@ export function createLane(config) {
   });
 
   const collected = new Set();
-  const handlers = { onGate: () => {}, blocked: () => false };   // blocked(p): something (a settlement) sits here
+  const handlers = { onGate: () => {}, blocked: () => false };
+  let dim = 0;   // 0..1: a Dead Zone darkens the rings   // blocked(p): something (a settlement) sits here
 
   // Gate i (i >= 0) sits at z = -(i + 1) * gateSpacing
   const gatePos = (i) => {
@@ -64,7 +65,7 @@ export function createLane(config) {
       ring.scale.setScalar(L.safeRadius);
       // Distance to the nearest point on the hoop, not its centre (the hoops are huge)
       const d = Math.hypot(ship.pos.z - z, Math.hypot(ship.pos.x, ship.pos.y) - L.safeRadius);
-      ring.material.opacity = 0.9 * (1 - ss(d, far * 0.45, far)) * ss(d, 4, 30);
+      ring.material.opacity = 0.9 * (1 - ss(d, far * 0.45, far)) * ss(d, 4, 30) * (1 - dim);
     });
 
     // Gates nearest the ship
@@ -93,5 +94,5 @@ export function createLane(config) {
 
   function reset() { collected.clear(); }
 
-  return { group, update, reset, handlers };
+  return { group, update, reset, handlers, setDim(v) { dim = v; } };
 }

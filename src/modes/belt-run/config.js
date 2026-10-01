@@ -107,6 +107,7 @@ export const DEFAULTS = {
     dustCount: 3200,
     dustRange: 48,           // dust fills a box this far around the pilot
     dustStreak: 0.03,        // streak length per unit of speed
+    dustCalm: 0,             // 0..1 comfort setting: calms the streaks everywhere (Dead Zones calm them anyway)
     fieldRadius: 420,        // the belt is simulated in a sphere this big around the ship
     ambientRocks: 650,       // scattered through the whole sphere: scenery, parallax, stray hazards
     pathRocks: 44,           // placed along where you are heading: the dodging
@@ -190,6 +191,8 @@ export const DEFAULTS = {
     clearedHold: 4.5,        // the victory beat before the beacons relight
     waveRepair: 12,          // hull patched from salvage after each wave
     clearBonus: 2500,
+    flight: { cruiseSpeed: 36, boostSpeed: 85, brakeSpeed: 8, speedResponse: 3.5 },   // replaces the lane's speeds inside
+    dustCalm: 0.85,          // how much the speed streaks calm down inside
     wrecks: 11,              // broken hulls (solid)
     machinery: 16,           // drifting engines, turrets and containers (solid)
     scrapClouds: 4,          // clouds of loose plating: rattle the hull, hide you from raider guns
@@ -217,8 +220,8 @@ export const DEFAULTS = {
     aggression: 1,           // higher = shorter cooldowns (a contract's difficulty scales it)
     telegraphScale: 1,       // longer telegraphs are fairer
     offscreenExtra: 0.45,    // extra warning for an attacker outside the view
-    aimAssist: 0.035,        // radians: bolts bend onto a raider this close to your line (x2.2 on touch and gamepad)
-    hitRadiusScale: 1.25,    // your bolts count a little outside a raider's hull
+    aimAssist: 0.08,        // radians: bolts bend onto a raider this close to your line (x2.2 on touch and gamepad)
+    hitRadiusScale: 1.7,    // your bolts count a little outside a raider's hull
     boltSpeed: 170, boltDamage: 4,
     lanceSpeed: 290, lanceDamage: 4,
     orbSpeed: 48, orbDamage: 10, orbKnock: 26,
@@ -230,11 +233,11 @@ export const DEFAULTS = {
     grapplePull: 120,        // how hard the tether drags you
     autoRollOrbs: true,      // automatic dodge rolls also dodge heavy orbs (never bolts or claws)
     types: {
-      skirmisher: { hp: 3.5, speed: 92, accel: 80, radius: 2.4, range: 170, cooldown: 3.4, telegraph: 0.75, score: 250, knock: 7 },
-      gunner: { hp: 6, speed: 58, accel: 45, radius: 2.8, range: 260, cooldown: 4.6, telegraph: 1.05, lock: 0.32, score: 400, knock: 3.5 },
-      grappler: { hp: 7, speed: 72, accel: 55, radius: 3, range: 105, cooldown: 6.5, telegraph: 1.2, score: 500, knock: 3 },
-      bulwark: { hp: 8, shield: 7, shieldRegen: 6, speed: 40, accel: 30, radius: 3.6, range: 240, cooldown: 4.2, telegraph: 1.1, score: 650, knock: 1.2 },
-      boss: { hp: 40, pods: 9, speed: 30, accel: 18, radius: 10, range: 320, cooldown: 3.4, telegraph: 1.3, score: 3000, knock: 0.15 },
+      skirmisher: { hp: 2.5, speed: 55, accel: 50, radius: 2.4, range: 130, cooldown: 3.4, telegraph: 0.75, score: 250, knock: 7 },
+      gunner: { hp: 4.5, speed: 40, accel: 35, radius: 2.8, range: 190, cooldown: 4.6, telegraph: 1.05, lock: 0.32, score: 400, knock: 3.5 },
+      grappler: { hp: 5, speed: 48, accel: 40, radius: 3, range: 105, cooldown: 6.5, telegraph: 1.2, score: 500, knock: 3 },
+      bulwark: { hp: 6, shield: 5, shieldRegen: 7, speed: 30, accel: 24, radius: 3.6, range: 170, cooldown: 4.2, telegraph: 1.1, score: 650, knock: 1.2 },
+      boss: { hp: 30, pods: 7, speed: 24, accel: 16, radius: 10, range: 230, cooldown: 3.4, telegraph: 1.3, score: 3000, knock: 0.15 },
     },
   },
   hull: {
