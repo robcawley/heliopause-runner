@@ -224,3 +224,21 @@ Makemake Drift.
 
 To judge: do the three offers feel like a real choice? Is 1.6× rocks on a hard job hard, or
 just busy? Is the deadline fair at around 8% under cruise time?
+
+## 2026-10-01 — Dead Zones go in, and the first playtest
+
+The Dead Zone is wired into the run (see GAME-DESIGN, Dead Zones). Launch crashed at first: lane
+gates pass plain {x, y, z} points and the zone check called a vector method on them; fixed.
+
+Rob's first play: the star trails nearly made him sick, there was no speed control, and the
+raiders were too hard to hit. Changes:
+- Speed streaks inside a zone fade to about 15% brightness and get much shorter
+  (deadZone.dustCalm 0.85). A new comfort setting, world.dustCalm, calms them everywhere.
+- Fight speeds inside: cruise 36 m/s (lane 70), brake to 8, boost 85. The lane's speeds,
+  upgrades included, come back on the way out. A hint names the brake for the device in use.
+- Raiders 35–40% slower and sitting 25–30% nearer; Needles circle tighter and slower. Aim
+  assist 0.035 to 0.08, hit radius scale 1.25 to 1.7. Needles 2 shots, others softer; Carrion
+  hp 40 to 30, pods 9 to 7.
+
+To judge: is the zone comfortable to turn in now? Does braking to aim feel good, or should
+brake be the default speed in a fight? Is it now too easy?

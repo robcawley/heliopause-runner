@@ -54,6 +54,14 @@ export function createDeadZone({ config, audio, hudParent, host }) {
   const gain = (p) => clamp(1.15 - p.distanceTo(ship.pos) / 450, 0.12, 1);
   const sideOf = (p) => (tmp2.subVectors(p, ship.pos).dot(ship.right) >= 0 ? 1 : -1);
 
+  let zones = [], zi = 0;
+  let phase = 'idle', t = 0, wave = -1, mood = 0, dim = 0, flicker = 0;
+  let spawnQueue = [];
+  let tether = null, tetherGrace = 0, ramCd = 0, arcCd = 0, bumpCd = 0, creakT = 2;
+  let kills = 0, hookSaid = false, scrapSaid = false, bossRef = null;
+  let warning = '', hint = '', lastKilled = false, relitPulse = false;
+  let lastStick = { x: 0, y: 0, boost: false };
+
   const world = {
     ship, fx, fire, sfx, wrecks, pan, gain, aggression: 1,
     grappled: () => !!tether,
@@ -62,14 +70,6 @@ export function createDeadZone({ config, audio, hudParent, host }) {
   };
   const raiders = createRaiders(config, world);
   group.add(wrecks.group, raiders.group, fire.group, fx.group);
-
-  let zones = [], zi = 0;
-  let phase = 'idle', t = 0, wave = -1, mood = 0, dim = 0, flicker = 0;
-  let spawnQueue = [];
-  let tether = null, tetherGrace = 0, ramCd = 0, arcCd = 0, bumpCd = 0, creakT = 2;
-  let kills = 0, hookSaid = false, scrapSaid = false, bossRef = null;
-  let warning = '', hint = '', lastKilled = false, relitPulse = false;
-  let lastStick = { x: 0, y: 0, boost: false };
 
   const fighting = () => phase === 'warning' || phase === 'fight' || phase === 'breather';
   const rulesOff = () => phase === 'explore' || fighting() || phase === 'cleared';
@@ -119,6 +119,7 @@ export function createDeadZone({ config, audio, hudParent, host }) {
     hud.glitch();
     hud.banner('Raiders', 'Contacts in the wrecks', 'warn', 3);
   }
+  const waveName = (W) => W.groups.map(([type, n]) => `${n} ${LOOK[type].name}${n > 1 ? 's' : ''}`).join(' · ');
   function startWave(i) {
     wave = i; t = 0; phase = 'fight';
     const W = R.waves[i];
@@ -129,7 +130,6 @@ export function createDeadZone({ config, audio, hudParent, host }) {
     } else hud.banner(`Wave ${i + 1}`, waveName(W), 'small', 2.2);
     queueGroups(W.groups, W.final ? 1.2 : 0.3);
   }
-  const waveName = (W) => W.groups.map(([type, n]) => `${n} ${LOOK[type].name}${n > 1 ? 's' : ''}`).join(' · ');
   function queueGroups(groups, delay) {
     // Each group bursts from its own hatch, members a beat apart: a small swarm you can read
     let at = delay;
@@ -426,7 +426,7 @@ export function createDeadZone({ config, audio, hudParent, host }) {
     hud.setEdges(edges);
     const W2 = R.waves[wave];
     const left = aliveCount() + spawnQueue.length;
-    if (phase === 'fight' || phase === 'breather') hud.setWave(W2?.final ? 'Final threat' : `Wave ${wave + 1} of ${R.waves.length}`, left);
+    if (phase === 'fight' || phase === 'breather') hud.setWave(W2?.final ? 'Final threat' : `Wave ${wave + 1} of ${R.waves.length - (R.waves[R.waves.length - 1].final ? 1 : 0)}`, left);
     if (bossRef?.alive) {
       const pods = (bossRef.pods[0] > 0 ? 1 : 0) + (bossRef.pods[1] > 0 ? 1 : 0);
       hud.setBoss(true, pods, bossRef.hp / bossRef.maxHp, pods ? 'Shoot the glowing shield pods' : 'Core exposed · shoot the core');

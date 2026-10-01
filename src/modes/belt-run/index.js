@@ -113,11 +113,6 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   const blasters = createBlasters(config);
   const pip = createDroid(config);
   scene.add(sky.mesh, planets.group, dust.mesh, debris.group, traffic.group, rocks.mesh, shards.mesh, lane.group, blasters.group, settlement.group);
-  // A settlement clears its own airspace: no belt rocks or repair gates inside, and bolts stop at its rock
-  rocks.setExclusion((p, r) => settlement.clears(p, r) || dz.clears(p, r));
-  lane.handlers.blocked = (p) => settlement.blocksGate(p) || dz.blocksGate(p);
-  blasters.handlers.blocked = (p) => settlement.solid(p) || (dz.solid(p) && (dz.hitWreck(p), true));
-  traffic.handlers.blocked = (p) => settlement.clears(p, 10) || dz.clears(p, 10);
   ship.group.add(blasters.muzzleGroup, pip.group);
 
   // Keep the lane's sunward side lit: the light follows the ship
@@ -134,6 +129,22 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   const post = createPost(renderer, scene, camera, config.fx);
   const sfx = createSfx(audio, config);
   const hud = createHud(hudParent);
+
+  const fresh = (mode) => ({
+    mode,                     // 'attract' | 'flying' | 'dead'
+    paused: false,
+    score: 0, chain: 0, chainTimer: 0,
+    nearMisses: 0, hits: 0, bestChain: 0, gates: 0, rolls: 0, rocksDestroyed: 0, pipRescues: 0,
+    hull: config.hull.max, exposure: 0, deathCause: '', flightTime: 0, tripTime: 0,
+    wasOutside: false, alarmTimer: 0, micaCooldown: 0, micaTimer: 18, micaIdle: 0, wrongWayTime: 0,
+    radFx: 0,
+    phaseTime: 0, phaseCooldown: 0,
+    missionComplete: false, autoRollWait: 0,
+    settlements: 0, inSettlement: false, jamWarned: false, jamClick: 0, wallCooldown: 0, townAnnounced: -1,
+    hitStop: 0, slowmo: 0, slowmoScale: 1, timeScale: 1,
+    aberrationKick: 0, hitFlash: 0, phaseFx: 0, fade: 0,
+  });
+  let g = fresh('attract');
 
   // ---- Dead Zones: self-contained fights in old wreck fields, between stretches of lane ----
   // Inside one the lane's rules are off (no radiation, fly anywhere). See deadzone/index.js.
@@ -173,21 +184,13 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   };
 
   // ---- State ----------------------------------------------------------
-  const fresh = (mode) => ({
-    mode,                     // 'attract' | 'flying' | 'dead'
-    paused: false,
-    score: 0, chain: 0, chainTimer: 0,
-    nearMisses: 0, hits: 0, bestChain: 0, gates: 0, rolls: 0, rocksDestroyed: 0, pipRescues: 0,
-    hull: config.hull.max, exposure: 0, deathCause: '', flightTime: 0, tripTime: 0,
-    wasOutside: false, alarmTimer: 0, micaCooldown: 0, micaTimer: 18, micaIdle: 0, wrongWayTime: 0,
-    radFx: 0,
-    phaseTime: 0, phaseCooldown: 0,
-    missionComplete: false, autoRollWait: 0,
-    settlements: 0, inSettlement: false, jamWarned: false, jamClick: 0, wallCooldown: 0, townAnnounced: -1,
-    hitStop: 0, slowmo: 0, slowmoScale: 1, timeScale: 1,
-    aberrationKick: 0, hitFlash: 0, phaseFx: 0, fade: 0,
-  });
-  let g = fresh('attract');
+  // A settlement or a wreck field clears its own airspace: no belt rocks, repair gates or
+  // traffic inside, and bolts stop at a settlement's rock or a wreck's hull
+  rocks.setExclusion((p, r) => settlement.clears(p, r) || dz.clears(p, r));
+  lane.handlers.blocked = (p) => settlement.blocksGate(p) || dz.blocksGate(p);
+  blasters.handlers.blocked = (p) => settlement.solid(p) || (dz.solid(p) && (dz.hitWreck(p), true));
+  traffic.handlers.blocked = (p) => settlement.clears(p, 10) || dz.clears(p, 10);
+
 
   const say = (key, force = false) => {
     if (g.mode !== 'flying' || (!force && g.micaCooldown > 0)) return;

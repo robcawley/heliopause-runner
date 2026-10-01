@@ -7,7 +7,6 @@ import {
 // Helpers for building scrap-built models out of primitives. Parts are merged per material,
 // so a whole raider or a broken capital ship is only a few draw calls.
 
-const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
 const _p = new THREE.Vector3();

@@ -184,6 +184,30 @@ reputation loss, injured crew, temporary route closures, ship destruction.
 Insurance, escape pods, reserve ships, and emergency loans prevent most failures from becoming
 permanent dead ends.
 
+## Dead Zones
+
+A trip alternates the lane with Dead Zones: self-contained fights in the wreck field of an old
+battle (one per trip at present, at least 2.5 km short of the destination). Inside, the lane's
+rules are off: no radiation, no rings, fly anywhere. The change is announced three ways at once:
+the beacons ahead flicker and die, the light turns rusty and dim with a low drone, and the HUD
+glitches, shows DEAD ZONE and greys out the radiation meter. The ship flies at fight speed
+(cruise 36 m/s, brake to 8 so you can hang and aim, boost 85); the speed streaks calm down.
+
+The arc: approach (beacons fail), eerie exploration, a klaxon, three waves of raiders, Carrion
+(the final threat: two shield pods, then the core, calls reinforcements at half), a Cleared beat,
+then the beacons relight and the lane's rules and speeds return.
+
+Raiders come out of hatches in the wrecks in small swarms. Needles (fast skirmishers),
+Lancers (blaster ships, charged shots), Hooks (grapplers: a claw tethers you for at most a couple
+of seconds; shake the stick, tap Boost, or shoot the Hook to break free), Bulwarks (shielded from
+the front, so flank them). Every attack is telegraphed: a red ! bracket while one winds up, and
+edge arrows for raiders off-screen. Hazards make routes: solid hulls (bumps scrape, hard hits
+cost hull), scrap clouds (raider guns cannot lock you, but the hull wears), live arcs (flicker
+first), mag coils (charge, then throw everything away and snap a tether).
+
+Code: src/modes/belt-run/deadzone/ (index.js is the director); tuning in config.js under
+deadZone and raiders. Add ?deadzone to the URL to meet a zone about 1 km after take-off.
+
 ## Camera and presentation
 
 - First-person cockpit during flight
