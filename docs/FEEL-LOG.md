@@ -283,3 +283,17 @@ lights with a deep whump; braking fires a retro burst; turns puff manoeuvring th
 
 To judge: overall engine level (config.audio.engine, 0.22) may want raising now the saws are gone;
 thruster puffs: too busy or not enough? Phone speakers lose the sub, so check on headphones too.
+
+## 2026-10-02 — wing QA: formation and survival
+
+Escorts matched position but damped against zero velocity, so at cruise the front slots actually
+trailed behind the pilot. Formation now matches the ship's velocity; slots sit higher and farther
+ahead (-/+12 m, 5 m up, 30 m forward; rear pair -/+24 m, 7 m up, 48 m forward).
+They look 0.7 s ahead for nearby rocks and keep 4.5 m of fighter clearance. Retreating hands now
+patch up during a fight instead of having to wait for a breather. Incidental fire falls from
+0.25 chances/s at 3–7 hull to 0.12 at 3–5 hull; loyal cover uses 0.28 when the pilot is failing.
+Mutinous firing starts below 30 as documented. Wing radio output 0.5 to 0.38 and pew 0.09 to
+0.06 to leave room for the pilot's guns and music; the engine stays at 0.22.
+
+To judge by ear and hand: canopy framing in hard banks, radio readability over Sidewinding,
+and whether the lower attrition still makes a covering hand's risk apparent.

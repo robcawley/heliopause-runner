@@ -247,6 +247,12 @@ export const DEFAULTS = {
       boss: { hp: 14, pods: 3, speed: 24, accel: 16, radius: 10, range: 230, cooldown: 4.4, telegraph: 1.6, score: 3000, knock: 0.15 },
     },
   },
+  wing: {
+    clearance: 4.5,         // metres around an escort; avoids wings clipping a rock
+    lookAhead: 0.7,         // seconds of velocity to check ahead
+    attrition: 0.12,        // chances per second of taking incidental fire while engaged
+    coverAttrition: 0.28,   // loyal hands draw more fire when covering a failing pilot
+  },
   hull: {
     max: 100,
     rockDamageBase: 8,

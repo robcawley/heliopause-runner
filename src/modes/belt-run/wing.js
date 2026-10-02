@@ -19,7 +19,7 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 // Formation slots in the ship's frame: x right, y up, z forward (metres). Ahead of you, so you
 // can see them through the canopy.
-const SLOTS = [[-15, 2.5, 22], [15, 2.5, 22], [-28, -2, 36], [28, -2, 36]];
+const SLOTS = [[-12, 5, 30], [12, 5, 30], [-24, 7, 48], [24, 7, 48]];
 
 const LINES = {
   form: ['Forming up on your wing.', 'On your wing, boss.', 'Escort in position.', 'With you all the way.'],
@@ -63,6 +63,7 @@ export function createWing(config, host) {
   const group = new THREE.Group();
   const voice = createWingVoice(host.audio);
   const tmp = new V3(), tmp2 = new V3(), want = new V3(), aim = new V3(), dir = new V3();
+  const accel = new V3();
   const qLook = new THREE.Quaternion(), qBank = new THREE.Quaternion(), m4 = new THREE.Matrix4();
   const Z_AXIS = new V3(0, 0, 1), ORIGIN = new V3();
   const pan = (p) => clamp(tmp2.subVectors(p, ship.pos).normalize().dot(ship.right), -1, 1) * 0.8;
@@ -90,18 +91,29 @@ export function createWing(config, host) {
   }
   const anyone = (filter = () => true) => pick(wing.filter((w) => w.state !== 'dead' && filter(w)));
 
+  function clearFighters() {
+    voice.reset();
+    for (const w of wing) {
+      group.remove(w.model.root);
+      w.model.root.traverse((o) => o.geometry?.dispose());
+      w.model.mats.forEach((m) => m.dispose());
+    }
+    wing = [];
+  }
+
   function reset(trip) {
-    for (const w of wing) { group.remove(w.model.root); w.model.mats.forEach((m) => m.dispose()); }
+    clearFighters();
     wing = []; lost = []; kills = 0; flightT = 0; spokeForm = false; chatter = 2; rockGrumbles = 0;
     for (const t of tracers) t.life = 0;
+    drawTracers();
     (trip?.wing ?? []).slice(0, SLOTS.length).forEach((m, i) => {
       const model = buildFighter(new THREE.Color(m.color));
       group.add(model.root);
       const slot = new V3(...SLOTS[i]);
       const w = {
         ...m, model, slot, hull: 100, state: 'form', target: null, retarget: 0, cool: 1 + Math.random(), orbit: Math.random() * 6.28,
-        pos: model.root.position, vel: new V3(), quat: model.root.quaternion, hurtSaid: 0, bob: Math.random() * 6.28,
-        loyal: m.loyalty >= 80, sulky: m.loyalty < 35,
+        pos: model.root.position, prev: new V3(), vel: new V3(), quat: model.root.quaternion, hurtSaid: 0, bob: Math.random() * 6.28,
+        loyal: m.loyalty >= 80, sulky: m.loyalty < 30,
       };
       model.root.visible = false;                       // they join you once you are clear of the pad
       wing.push(w);
@@ -169,6 +181,12 @@ export function createWing(config, host) {
     host.callout(`${w.name} is down`, Math.sign(tmp.subVectors(w.pos, ship.pos).dot(ship.right)) || 1, true);
     w.model.root.visible = false;
     lost.push(w.id);
+    for (const other of wing) {
+      if (other.state === 'dead') continue;
+      other.loyalty = Math.max(0, other.loyalty - 6);
+      other.loyal = other.loyalty >= 80;
+      other.sulky = other.loyalty < 30;
+    }
     host.emit('wingLost', { id: w.id, name: w.name });
   }
 
@@ -197,11 +215,11 @@ export function createWing(config, host) {
       w.bob += dt * 0.9;
       w.hurtSaid -= dt;
       // Repairs: PIP Mk II patches the wing while it is quiet; a breather patches everyone a little
-      if (quiet && w.hull < 100) w.hull = Math.min(100, w.hull + dt * ((host.pipMk2?.() ? 4 : 0) + (host.dz.phase === 'breather' ? 3 : 0.4)));
+      if ((quiet || w.state === 'retreat') && w.hull < 100) w.hull = Math.min(100, w.hull + dt * ((host.pipMk2?.() ? 4 : 0) + (host.dz.phase === 'breather' ? 3 : 0.4)));
       if (w.state === 'retreat' && w.hull > 70) { w.state = 'form'; say(w, 'back'); }
 
       // Decide
-      if (raidersUp && w.state !== 'retreat') {
+      if (raidersUp && (w.state !== 'retreat' || (w.loyal && playerLow))) {
         if (w.hull < 35 && !(w.loyal && playerLow)) { w.state = 'retreat'; w.target = null; say(w, 'retreat'); }
         else {
           if ((w.retarget -= dt) <= 0 || !w.target?.alive) {
@@ -220,13 +238,20 @@ export function createWing(config, host) {
         tmp.set(Math.cos(w.orbit), Math.sin(w.orbit * 0.8) * 0.5, Math.sin(w.orbit)).multiplyScalar(48);
         want.copy(w.target.pos).add(tmp);
       } else slotWorld(w, want);
+      // Predict nearby rock crossings, then keep a fighter-sized clearance even on a slow frame.
+      host.rocks?.avoid(w.pos, w.vel, config.wing.clearance, config.wing.lookAhead, tmp);
+      if (host.rocks) want.add(tmp);
+      w.prev.copy(w.pos);
       const k = w.state === 'engage' ? 2.2 : 3.2;
       tmp.subVectors(want, w.pos);
-      const accel = tmp.multiplyScalar(k * k).addScaledVector(w.vel, -2 * k);
+      accel.copy(tmp).multiplyScalar(k * k).addScaledVector(w.vel, -2 * k);
+      // Match the moving slot's velocity: damping against zero left the wing behind the canopy.
+      if (w.state !== 'engage') accel.addScaledVector(ship.vel, 2 * k);
       w.vel.addScaledVector(accel, dt);
       const maxV = Math.max(90, ship.speed * 1.6);
       if (w.vel.length() > maxV) w.vel.setLength(maxV);
       w.pos.addScaledVector(w.vel, dt);
+      host.rocks?.keepClear(w.pos, config.wing.clearance);
 
       // Face: along the velocity when fighting, otherwise the ship's heading, banked into turns
       if (w.state === 'engage' && w.target) dir.subVectors(w.target.pos, w.pos).normalize();
@@ -253,14 +278,19 @@ export function createWing(config, host) {
         for (let i = list.length - 1; i >= 0; i--) {
           const p = list[i];
           if (p.kind === 'claw' || !p.pos) continue;
-          if (p.pos.distanceTo(w.pos) < 3.6) {
+          // Sweep both moving bodies: fast lances can cross an escort between frames.
+          tmp.subVectors(p.prev ?? p.pos, w.prev);
+          tmp2.subVectors(p.pos, w.pos);
+          dir.subVectors(tmp2, tmp);
+          const t = clamp(-tmp.dot(dir) / Math.max(1e-9, dir.lengthSq()), 0, 1);
+          if (tmp.addScaledVector(dir, t).length() < 3.2 + (p.r ?? 0.35)) {
             hurt(w, p.kind === 'orb' ? 22 : p.kind === 'lance' ? 12 : 6);
             host.dz.fx?.spark(p.pos, tmp.copy(p.vel).normalize().negate(), 8, 0xffb060, 26);
             host.dz.fire.free(p);
             if (w.state === 'dead') break;
           }
         }
-        if (w.state === 'engage' && Math.random() < dt * 0.25 * (host.dz.aggression ?? 1)) hurt(w, 3 + Math.random() * 4);
+        if (w.state === 'engage' && Math.random() < dt * (playerLow && w.loyal ? config.wing.coverAttrition : config.wing.attrition) * (host.dz.aggression ?? 1)) hurt(w, 3 + Math.random() * 2);
       }
     }
   }
@@ -287,7 +317,9 @@ export function createWing(config, host) {
   function onRepaired() { if (wing.some((w) => w.state !== 'dead' && w.hull < 60)) say(anyone(), 'repaired'); }
 
   return {
-    group, reset, update, onPlayerHit, onPlayerKill, onRepaired,
+    group, reset, update,
+    dispose() { clearFighters(); tracerGeo.dispose(); tracerLines.material.dispose(); },
+    get members() { return wing; }, onPlayerHit, onPlayerKill, onRepaired,
     get lost() { return lost; }, get kills() { return kills; }, get firing() { return firing; },
     get flying() { return wing.filter((w) => w.state !== 'dead').length; },
   };

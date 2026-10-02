@@ -171,7 +171,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
 
   // ---- The wing: hired crew flying escort (wing.js) ----
   const wing = createWing(config, {
-    ship, dz, audio,
+    ship, dz, audio, rocks,
     hull: () => g.hull / config.hull.max,
     pipMk2: () => !!config.droid.mk2,
     say: (who, text, s) => hud.say(who, text, s),
@@ -932,7 +932,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     get backend() { return engine.backend; },
 
     attract() { resetWorld('attract'); hud.setVisible(false); },
-    debug: () => ({ ship, dz, g, config, blasters }),   // for tests and the console
+    debug: () => ({ ship, dz, g, config, blasters, wing, rocks }),   // for tests and the console
     start(trip) {
       resetWorld('flying', trip);
       hud.setVisible(true);
@@ -961,6 +961,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     dispose() {
       input.dispose();
       hud.dispose();
+      wing.dispose();
       dz.dispose();
       untrack();
       events.clear();

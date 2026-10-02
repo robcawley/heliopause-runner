@@ -139,3 +139,9 @@ Ferry buttons reserve the maximum easy-lane fuel cost (590 cr); the confirmation
 show the generated fare. Flight creation also checks the actual fare and destination. Old saves
 gain an empty fallen list, and fallen hands are removed from stale hiring offers and cannot
 be hired through the career API. Ferry flights still earn no contract fee or standing.
+
+Wing QA: reset disposes every fighter's geometry as well as materials, clears tracers and
+cancels queued radio. Finished wing sounds disconnect their complete audio chains. Raider
+shots sweep against escorts between frames. A wingmate loss also changes the surviving
+fighters' in-flight loyalty immediately, matching the saved career. Retreat repairs continue
+in active combat. Formation matches the player's velocity and steers around nearby rock spheres.

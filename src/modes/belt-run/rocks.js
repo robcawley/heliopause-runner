@@ -352,5 +352,40 @@ export function createRocks(config) {
 
   function dispose() { mesh.geometry.dispose(); mesh.material.dispose(); }
 
-  return { mesh, init, update, handlers, rocks, raycast, damage, predictHit, dispose, setExclusion(fn) { exclude = fn; } };
+  // Escorts only need local sphere checks, not a mesh raycast or a second collision world.
+  const avoidDelta = new THREE.Vector3(), future = new THREE.Vector3();
+  function avoid(pos, vel, radius, horizon, out) {
+    out.set(0, 0, 0);
+    future.copy(vel).multiplyScalar(horizon);
+    const l2 = future.lengthSq();
+    for (const r of rocks) {
+      if (!r.active) continue;
+      avoidDelta.subVectors(pos, r.pos);
+      const t = THREE.MathUtils.clamp(-avoidDelta.dot(future) / Math.max(l2, 1e-9), 0, 1);
+      avoidDelta.addScaledVector(future, t);
+      const safe = r.radius + radius + 5;
+      const d = avoidDelta.length();
+      if (d >= safe) continue;
+      if (d < 1e-6) avoidDelta.set(1, 0, 0);
+      else avoidDelta.divideScalar(d);
+      out.addScaledVector(avoidDelta, safe - d + 12);
+    }
+    out.clampLength(0, 80);
+    return out;
+  }
+
+  function keepClear(pos, radius) {
+    for (const r of rocks) {
+      if (!r.active) continue;
+      avoidDelta.subVectors(pos, r.pos);
+      const safe = r.radius + radius;
+      const d = avoidDelta.length();
+      if (d >= safe) continue;
+      if (d < 1e-6) avoidDelta.set(1, 0, 0);
+      else avoidDelta.divideScalar(d);
+      pos.copy(r.pos).addScaledVector(avoidDelta, safe);
+    }
+  }
+
+  return { mesh, init, update, handlers, rocks, avoid, keepClear, raycast, damage, predictHit, dispose, setExclusion(fn) { exclude = fn; } };
 }
