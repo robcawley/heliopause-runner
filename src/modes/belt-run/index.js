@@ -24,7 +24,7 @@ import { createEnding } from './ending.js';
 import { createTutorial } from './tutorial.js';
 import { createSfx } from './sfx.js';
 import { createHud } from './hud.js';
-import musicUrl from './assets/audio/sidewinding.mp3';
+import { MUSIC } from './music.js';
 
 // ---------------------------------------------------------------------------
 // Belt Run: a self-contained game mode. The cockpit, the belt, the beacon
@@ -965,7 +965,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     start(trip) {
       resetWorld('flying', trip);
       hud.setVisible(true);
-      audio.playMusic(musicUrl);
+      audio.playMusic(MUSIC);
       sfx.start();
       sfx.revive();
       hud.say('MICA', pick(MICA.start), 5);
@@ -973,6 +973,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     },
     restart(trip) {
       resetWorld('flying', trip);
+      audio.playMusic(MUSIC);
       sfx.revive();
       hud.say('MICA', pick(MICA.restart), 4);
     },

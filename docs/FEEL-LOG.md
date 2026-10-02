@@ -341,3 +341,19 @@ All ten clips total 68,802 bytes (about 67 KiB), 91% smaller than the WAVs. The 
 live under docs/audio/robot-radio-masters for editing. The listening preview and download ZIP
 also have MP3 versions. All ten public files fetch and decode in Chromium Web Audio; lint and
 build pass. Rebuilding through the authoring script now produces compressed game assets.
+
+## 2026-10-02 — music variety
+
+Added Rob's Peshawar, Shankill and Somnum Europa from the unreleased masters alongside
+Sidewinding. New copies are stereo 44.1 kHz MP3 at 160 kbit/s, loudness matched to -16 LUFS
+with a -1.5 dBTP ceiling before encoding. Peshawar and Somnum Europa are downmixed from six
+channels. The originals are untouched. Together the new game files are 17.8 MB rather than
+624.9 MB of masters, and only the selected song streams.
+
+Every launch/retry draws from a shuffled four-song deck; all four play before reshuffling,
+with no immediate repeat across decks. Finished songs advance too. Track changes fade down
+briefly and fade back up once playback starts. Pause, mute, phase filtering and the ending's
+music hush continue through the same audio graph.
+
+To judge: the two stereo downmixes, song balance beside Sidewinding, and the shorter Shankill
+against the longer ambient trip through Somnum Europa.

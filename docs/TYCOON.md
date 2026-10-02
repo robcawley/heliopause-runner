@@ -188,3 +188,12 @@ Contract cards and the navigation chart name the region and its hazard. Rock col
 uniforms in rocks.js (setTint). Test: tests/qa-regions.cjs (ONLY=halcyon etc. for one).
 
 Next in the progression plan: pilot rank and licences, then warlord hunts, then the campaign arc.
+
+## 2026-10-02 — soundtrack rotation
+
+The flight selects a new song on launch/retry and advances when a song ends. A shuffle deck
+covers Sidewinding, Peshawar, Shankill and Somnum Europa before repeating. The engine accepts
+one URL or a list; it owns one streaming music element, a transition fade and a separate
+music-duck gain. The flight supplies its track list, so the engine remains mode independent.
+Music files are in public/audio/music; scripts/convert-game-music.py rebuilds the three new
+exports from Rob's existing masters using ffmpeg. Native playback regression: tests/qa-music.cjs.

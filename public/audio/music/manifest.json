@@ -1,0 +1,27 @@
+{
+  "format": "MP3, stereo, 44.1 kHz, 160 kbit/s",
+  "normalisation": "-16 LUFS, true peak limit -1.5 dBTP",
+  "tracks": [
+    {
+      "title": "Peshawar",
+      "file": "peshawar.mp3",
+      "artist": "Rob Cawley",
+      "duration": 248.0,
+      "bytes": 4961312
+    },
+    {
+      "title": "Shankill",
+      "file": "shankill.mp3",
+      "artist": "Rob Cawley",
+      "duration": 162.0,
+      "bytes": 3241410
+    },
+    {
+      "title": "Somnum Europa",
+      "file": "somnum-europa.mp3",
+      "artist": "Rob Cawley",
+      "duration": 480.0,
+      "bytes": 9601186
+    }
+  ]
+}
