@@ -40,3 +40,17 @@ const rocks=createRocks(config); rocks.init(ship); const rock=rocks.rocks[0];roc
 const steer=rocks.avoid(new THREE.Vector3(),new THREE.Vector3(0,0,-70),4.5,0.7,new THREE.Vector3()); assert(steer.length()>0);
 const inside=new THREE.Vector3(0,0,-20);rocks.keepClear(inside,4.5);assert(inside.distanceTo(rock.pos)>=14.5);rocks.dispose();
 console.log('Career, ferry, loyalty, formation, disposal, retreat, swept death and rock avoidance passed.');
+// Fight the real Carrion collision/damage model: centre shots hit permanent armour.
+const { createRaiders } = await import('../src/modes/belt-run/deadzone/raiders.js');
+const noop=()=>{};const effects=new Proxy({}, {get:()=>noop});
+const world={ship,fx:effects,sfx:effects,fire:{cancelOwner:noop},pan:()=>0,gain:()=>1,onPodDown:noop,onKill:noop};
+const raiders=createRaiders(config,world);const boss=raiders.spawn('boss',new THREE.Vector3(0,0,-80),new THREE.Vector3(0,0,1));
+ship.pos.set(0,0,0);ship.vel.set(0,0,0);ship.speed=0;
+const fighters=createWing(config,{ship,dz:{phase:'fight',rulesOff:true,raiders,fire:{list:[]},wrecks:{}},audio:{},hull:()=>1,say:noop,callout:noop,emit:noop});
+const random=Math.random;Math.random=()=>0.1;
+try {
+  fighters.reset({wing:Array.from({length:4},(_,i)=>({id:String(i),name:'Escort',color:'#ffffff',loyalty:90}))});
+  for(let i=0;i<6000&&boss.alive;i++)fighters.update(1/60,1/60,true);
+  assert(boss.pods.every(p=>p<=0),'escorts remove both shield pods');assert(!boss.alive,'escorts hit the exposed core');assert.equal(fighters.kills,1);
+} finally {Math.random=random;fighters.dispose();raiders.dispose()}
+console.log('Four escorts defeat real Carrion pods and core without pilot fire.');

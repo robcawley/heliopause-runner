@@ -306,3 +306,10 @@ turns fire once, with a 0.4 s cooldown. Boost, retro and RCS one-shots disconnec
 source ends; disposing the flight stops the engine and settlement ambience loops as well.
 
 To judge: whether 0.65 s feels like purposeful bursts on headphones and phone speakers.
+
+## 2026-10-02 — escorts recognise Carrion's weak points
+
+A long combat test exposed escorts firing at Carrion's armoured centre. They now aim at a live
+shield pod, then at the exposed core; facing checks follow that same point. A deterministic
+fight against the real raider collision and damage code confirms four escorts can strip both
+pods and kill Carrion without pilot shots. Boss hull, pod health and attack timing are unchanged.

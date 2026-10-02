@@ -141,12 +141,21 @@ export function createWing(config, host) {
     t.a.copy(a); t.b.copy(b); t.c.set(hex); t.life = 0.12;
   }
 
+  function targetPoint(r, out) {
+    if (r.type !== 'boss') return out.copy(r.pos);
+    // Carrion's centre is armour: escorts must strip its pods, then shoot the exposed core.
+    const part = r.pods[0] > 0 ? 'podL' : r.pods[1] > 0 ? 'podR' : 'core';
+    const sphere = r.model.spheres.find((s) => s.part === part);
+    r.root.updateMatrixWorld(true);
+    return r.root.localToWorld(out.copy(sphere.c));
+  }
+
   function shoot(w) {
     const r = w.target;
     w.model.root.updateMatrixWorld(true);
     const from = w.model.root.localToWorld(tmp.copy(w.model.muzzles[(w.shot = (w.shot ?? 0) + 1) % 2]));
     const hitChance = 0.5 + (w.loyal ? 0.15 : 0) - (w.sulky ? 0.15 : 0);
-    aim.copy(r.pos);
+    targetPoint(r, aim);
     if (Math.random() > hitChance) aim.add(tmp2.randomDirection().multiplyScalar(r.T.radius * 2.5 + 3));
     dir.subVectors(aim, from);
     const len = dir.length();
@@ -254,7 +263,7 @@ export function createWing(config, host) {
       host.rocks?.keepClear(w.pos, config.wing.clearance);
 
       // Face: along the velocity when fighting, otherwise the ship's heading, banked into turns
-      if (w.state === 'engage' && w.target) dir.subVectors(w.target.pos, w.pos).normalize();
+      if (w.state === 'engage' && w.target) dir.subVectors(targetPoint(w.target, aim), w.pos).normalize();
       else dir.copy(ship.fwd).lerp(tmp.copy(w.vel).normalize(), clamp(w.vel.length() / 200, 0, 0.4)).normalize();
       m4.lookAt(ORIGIN, dir, ship.up);
       qLook.setFromRotationMatrix(m4);
@@ -267,7 +276,7 @@ export function createWing(config, host) {
 
       // Fire
       if (w.state === 'engage' && w.target && (w.cool -= dt) <= 0) {
-        const facing = tmp.subVectors(w.target.pos, w.pos).normalize().dot(tmp2.set(0, 0, -1).applyQuaternion(w.quat));
+        const facing = tmp.subVectors(targetPoint(w.target, aim), w.pos).normalize().dot(tmp2.set(0, 0, -1).applyQuaternion(w.quat));
         if (facing > 0.8 && w.pos.distanceTo(w.target.pos) < 260) shoot(w);
         w.cool = (0.5 + Math.random() * 0.45) * (w.sulky ? 1.8 : 1);
       }
