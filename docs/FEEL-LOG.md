@@ -297,3 +297,12 @@ Mutinous firing starts below 30 as documented. Wing radio output 0.5 to 0.38 and
 
 To judge by ear and hand: canopy framing in hard banks, radio readability over Sidewinding,
 and whether the lower attrition still makes a covering hand's risk apparent.
+
+## 2026-10-02 — RCS pulse timing
+
+Thrusters now fire on yaw or pitch turn onset, with a separate release threshold so stick jitter
+does not chatter. A start during cooldown is remembered. Hard turns repeat every 0.65 s; moderate
+turns fire once, with a 0.4 s cooldown. Boost, retro and RCS one-shots disconnect after their last
+source ends; disposing the flight stops the engine and settlement ambience loops as well.
+
+To judge: whether 0.65 s feels like purposeful bursts on headphones and phone speakers.

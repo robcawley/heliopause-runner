@@ -815,7 +815,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     post.uniforms.fade.value = g.fade;
     renderer.toneMappingExposure = config.fx.exposure;
 
-    if (g.mode === 'flying' || g.mode === 'takeoff' || g.mode === 'landing') sfx.update(ship.speed, ship.yawRate / config.flight.yawRate);
+    if (g.mode === 'flying' || g.mode === 'takeoff' || g.mode === 'landing') sfx.update(ship.speed, ship.yawRate / config.flight.yawRate, ship.pitchRate / config.flight.pitchRate);
     else sfx.silence();
     sfx.ambience(g.mode === 'flying' || onRails() ? settlement.proximity(ship.pos) : 0);
     audio.update();
@@ -961,6 +961,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     dispose() {
       input.dispose();
       hud.dispose();
+      sfx.dispose();
       wing.dispose();
       dz.dispose();
       untrack();

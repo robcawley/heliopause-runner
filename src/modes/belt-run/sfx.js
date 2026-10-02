@@ -2,14 +2,33 @@
 // synthesised, so they tune alongside the feel with no asset files.
 export function createSfx(a, config) {
   let bus = null, engineGain, engineFilter, engineOscs, burnGain, throbLfo, throbDepth;
-  let wasBoost = false, wasBrake = false, rcsWait = 0, lastTurn = 0, lastT = 0;
-  let geigerDebt = 0;
+  let wasBoost = false, wasBrake = false, rcsWait = 0, turnSide = 0, rcsPending = false, lastT = null;
+  let geigerDebt = 0, amb = null;
+  const loops = [], active = new Set();
+  const keep = (nodes, node) => { nodes.push(node); return node; };
+  function releaseAfter(last, nodes) {
+    active.add(nodes);
+    last.onended = () => {
+      nodes.forEach((node) => node.disconnect());
+      active.delete(nodes);
+    };
+  }
+  function dispose() {
+    for (const nodes of [loops, ...active]) {
+      for (const node of nodes) {
+        if (node.stop) { try { node.stop(); } catch { /* already stopped */ } }
+        node.disconnect();
+      }
+    }
+    loops.length = 0; active.clear(); bus = null; amb = null;
+    wasBoost = false; wasBrake = false; rcsWait = 0; turnSide = 0; rcsPending = false; lastT = null;
+  }
 
   // Called once the engine's audio context exists
   function start() {
     if (bus || !a.ctx) return;
     const ctx = a.ctx;
-    bus = ctx.createGain();
+    bus = keep(loops, ctx.createGain());
     bus.connect(a.sfx);
 
     // Engine: a starfighter's burn heard through its own hull, not a jet. Nothing tonal climbs
@@ -19,29 +38,29 @@ export function createSfx(a, config) {
     //           the throttle opens it, roughens it and speeds the throb
     //   hull    a narrow resonance the frame rings at
     // Boost lights with a deep whump; manoeuvring thrusters puff as turns build (see update).
-    engineFilter = ctx.createBiquadFilter();
+    engineFilter = keep(loops, ctx.createBiquadFilter());
     engineFilter.type = 'lowpass'; engineFilter.frequency.value = 220; engineFilter.Q.value = 0.7;
-    engineGain = ctx.createGain(); engineGain.gain.value = 0;
+    engineGain = keep(loops, ctx.createGain()); engineGain.gain.value = 0;
     engineFilter.connect(engineGain).connect(bus);
     engineOscs = [[36, 'sine', 0.6], [54, 'triangle', 0.2]].map(([f, type, level]) => {
-      const o = ctx.createOscillator(); o.type = type; o.frequency.value = f;
-      const g = ctx.createGain(); g.gain.value = level;
+      const o = keep(loops, ctx.createOscillator()); o.type = type; o.frequency.value = f;
+      const g = keep(loops, ctx.createGain()); g.gain.value = level;
       o.connect(g).connect(engineGain); o.start();
       return o;
     });
-    const burn = ctx.createBufferSource(); burn.buffer = a.noise; burn.loop = true;
-    const pre = ctx.createBiquadFilter(); pre.type = 'lowpass'; pre.frequency.value = 420;
-    const drive = ctx.createGain(); drive.gain.value = 3;
-    const clip = ctx.createWaveShaper(); clip.curve = softClip(2.5); clip.oversample = '2x';
-    burnGain = ctx.createGain(); burnGain.gain.value = 0.4;
-    const throb = ctx.createGain(); throb.gain.value = 1;
-    throbLfo = ctx.createOscillator(); throbLfo.frequency.value = 8;
-    throbDepth = ctx.createGain(); throbDepth.gain.value = 0.12;
+    const burn = keep(loops, ctx.createBufferSource()); burn.buffer = a.noise; burn.loop = true;
+    const pre = keep(loops, ctx.createBiquadFilter()); pre.type = 'lowpass'; pre.frequency.value = 420;
+    const drive = keep(loops, ctx.createGain()); drive.gain.value = 3;
+    const clip = keep(loops, ctx.createWaveShaper()); clip.curve = softClip(2.5); clip.oversample = '2x';
+    burnGain = keep(loops, ctx.createGain()); burnGain.gain.value = 0.4;
+    const throb = keep(loops, ctx.createGain()); throb.gain.value = 1;
+    throbLfo = keep(loops, ctx.createOscillator()); throbLfo.frequency.value = 8;
+    throbDepth = keep(loops, ctx.createGain()); throbDepth.gain.value = 0.12;
     throbLfo.connect(throbDepth).connect(throb.gain); throbLfo.start();
     burn.connect(pre).connect(drive).connect(clip).connect(burnGain).connect(throb).connect(engineFilter); burn.start();
-    const hull = ctx.createBufferSource(); hull.buffer = a.noise; hull.loop = true;
-    const hb = ctx.createBiquadFilter(); hb.type = 'bandpass'; hb.frequency.value = 92; hb.Q.value = 6;
-    const hg = ctx.createGain(); hg.gain.value = 0.9;
+    const hull = keep(loops, ctx.createBufferSource()); hull.buffer = a.noise; hull.loop = true;
+    const hb = keep(loops, ctx.createBiquadFilter()); hb.type = 'bandpass'; hb.frequency.value = 92; hb.Q.value = 6;
+    const hg = keep(loops, ctx.createGain()); hg.gain.value = 0.9;
     hull.connect(hb).connect(hg).connect(engineGain); hull.start(0, 1.3);
   }
 
@@ -53,34 +72,38 @@ export function createSfx(a, config) {
 
   // Boost lights: a deep whump that drops in pitch, and a roar that closes down into the burn
   function ignite() {
+    const nodes = [];
     const ctx = a.ctx, t = ctx.currentTime;
-    const o = ctx.createOscillator(); o.type = 'sine';
+    const o = keep(nodes, ctx.createOscillator()); o.type = 'sine';
     o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(32, t + 0.4);
-    const g = ctx.createGain();
+    const g = keep(nodes, ctx.createGain());
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
     o.connect(g).connect(bus); o.start(t); o.stop(t + 0.6);
-    const n = ctx.createBufferSource(); n.buffer = a.noise;
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+    const n = keep(nodes, ctx.createBufferSource()); n.buffer = a.noise;
+    const lp = keep(nodes, ctx.createBiquadFilter()); lp.type = 'lowpass';
     lp.frequency.setValueAtTime(1800, t); lp.frequency.exponentialRampToValueAtTime(240, t + 0.9);
-    const ng = ctx.createGain();
+    const ng = keep(nodes, ctx.createGain());
     ng.gain.setValueAtTime(0.0001, t); ng.gain.exponentialRampToValueAtTime(0.55, t + 0.04); ng.gain.exponentialRampToValueAtTime(0.0001, t + 1);
     n.connect(lp).connect(ng).connect(bus); n.start(t, Math.random()); n.stop(t + 1.05);
+    releaseAfter(n, nodes);
   }
 
   // A manoeuvring thruster: a short hard puff of gas, panned to the side that fires.
   // long: the retro burst when you brake.
   function rcs(pan, level, long = false) {
     if (!bus) return;
+    const nodes = [];
     const ctx = a.ctx, t = ctx.currentTime, d = long ? 0.38 : 0.11;
-    const n = ctx.createBufferSource(); n.buffer = a.noise; n.playbackRate.value = 0.85 + Math.random() * 0.3;
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = long ? 1100 : 2400; bp.Q.value = 0.8;
-    const g = ctx.createGain();
+    const n = keep(nodes, ctx.createBufferSource()); n.buffer = a.noise; n.playbackRate.value = 0.85 + Math.random() * 0.3;
+    const bp = keep(nodes, ctx.createBiquadFilter()); bp.type = 'bandpass'; bp.frequency.value = long ? 1100 : 2400; bp.Q.value = 0.8;
+    const g = keep(nodes, ctx.createGain());
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.2 * level, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-    const p = ctx.createStereoPanner(); p.pan.value = pan * 0.6;
+    const p = keep(nodes, ctx.createStereoPanner()); p.pan.value = pan * 0.6;
     n.connect(bp).connect(g).connect(p).connect(bus); n.start(t, Math.random()); n.stop(t + d + 0.05);
-    const k = ctx.createOscillator(); k.type = 'sine'; k.frequency.setValueAtTime(120, t); k.frequency.exponentialRampToValueAtTime(50, t + 0.05);
-    const kg = ctx.createGain(); kg.gain.setValueAtTime(0.25 * level, t); kg.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+    const k = keep(nodes, ctx.createOscillator()); k.type = 'sine'; k.frequency.setValueAtTime(120, t); k.frequency.exponentialRampToValueAtTime(50, t + 0.05);
+    const kg = keep(nodes, ctx.createGain()); kg.gain.setValueAtTime(0.25 * level, t); kg.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
     k.connect(kg).connect(p); k.start(t); k.stop(t + 0.08);
+    releaseAfter(n, nodes);
   }
 
   // A pass: band-passed noise that swells as the rock closes, peaks at the
@@ -375,8 +398,8 @@ export function createSfx(a, config) {
     }
   }
 
-  // Engine pitch follows speed; a turn adds a little strain
-  function update(speed, turn = 0) {
+  // Throttle shapes the burn; turn onset and hard turns fire bounded thruster pulses
+  function update(speed, turn = 0, pitch = 0) {
     if (!bus) return;
     const f = config.flight;
     const k = Math.max(0, Math.min(1, (speed - f.brakeSpeed) / (f.boostSpeed - f.brakeSpeed)));
@@ -394,14 +417,18 @@ export function createSfx(a, config) {
     if (brake && !wasBrake) rcs(0, 1, true);
     wasBoost = boost; wasBrake = brake;
     // Manoeuvring thrusters puff as a turn builds, and keep puffing in a hard one
-    const dt = lastT ? Math.min(0.1, t - lastT) : 0; lastT = t;
+    const dt = lastT === null ? 0 : Math.min(0.1, Math.max(0, t - lastT)); lastT = t;
     rcsWait -= dt;
-    const at = Math.abs(turn);
-    if (rcsWait <= 0 && at > 0.3 && (Math.abs(lastTurn) <= 0.3 || at > 0.7)) {
+    const at = Math.min(1, Math.max(Math.abs(turn), Math.abs(pitch)));
+    const side = Math.abs(turn) >= Math.abs(pitch) ? Math.sign(turn) : 2 * Math.sign(pitch);
+    // Hysteresis prevents small stick jitter retriggering; remember starts during cooldown.
+    if (at < 0.2) { turnSide = 0; rcsPending = false; }
+    else if (at > 0.3 && side !== turnSide) { turnSide = side; rcsPending = true; }
+    if (rcsWait <= 0 && (rcsPending || (turnSide && at > 0.7))) {
       rcs(-Math.sign(turn), 0.5 + at * 0.5);
-      rcsWait = 0.3 + Math.random() * 0.2;
+      rcsPending = false;
+      rcsWait = at > 0.7 ? 0.65 : 0.4;
     }
-    lastTurn = turn;
   }
 
   // Hull grinding on canyon rock: a low scrape with a metal screech on top
@@ -449,16 +476,15 @@ export function createSfx(a, config) {
   }
 
   // The town's hum: air handlers and machinery, rising as you enter the canyon (level 0..1)
-  let amb = null;
   function ambience(level) {
     if (!bus) return;
     const ctx = a.ctx;
     if (!amb) {
-      const src = ctx.createBufferSource(); src.buffer = a.noise; src.loop = true;
-      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 340; bp.Q.value = 0.9;
-      const hum = ctx.createOscillator(); hum.type = 'triangle'; hum.frequency.value = 110;
-      const hg = ctx.createGain(); hg.gain.value = 0.12;
-      amb = ctx.createGain(); amb.gain.value = 0;
+      const src = keep(loops, ctx.createBufferSource()); src.buffer = a.noise; src.loop = true;
+      const bp = keep(loops, ctx.createBiquadFilter()); bp.type = 'bandpass'; bp.frequency.value = 340; bp.Q.value = 0.9;
+      const hum = keep(loops, ctx.createOscillator()); hum.type = 'triangle'; hum.frequency.value = 110;
+      const hg = keep(loops, ctx.createGain()); hg.gain.value = 0.12;
+      amb = keep(loops, ctx.createGain()); amb.gain.value = 0;
       src.connect(bp).connect(amb); hum.connect(hg).connect(amb); amb.connect(bus);
       src.start(); hum.start();
     }
@@ -470,5 +496,5 @@ export function createSfx(a, config) {
     if (amb) amb.gain.setTargetAtTime(0, a.ctx.currentTime, 0.3);
   }
 
-  return { start, whoosh, flyby, tick, daredevil, hit, phase, geiger, alarm, repair, roll, death, revive, laser, impact, rockBreak, overheat, chirp, update, silence, scrape, jammed, chime, ambience };
+  return { start, dispose, get activeCount() { return active.size; }, whoosh, flyby, tick, daredevil, hit, phase, geiger, alarm, repair, roll, death, revive, laser, impact, rockBreak, overheat, chirp, update, silence, scrape, jammed, chime, ambience };
 }
