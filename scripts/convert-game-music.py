@@ -20,7 +20,7 @@ def main():
         subprocess.run([
             "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(source),
             "-ac", "2", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-ar", "44100",
-            "-codec:a", "libmp3lame", "-b:a", "160k", "-map_metadata", "-1",
+            "-codec:a", "libmp3lame", "-q:a", "5", "-map_metadata", "-1",   # VBR, about 130 kbit/s
             "-metadata", f"title={title}", "-metadata", "artist=Rob Cawley", str(target),
         ], check=True)
         info = json.loads(subprocess.check_output([
@@ -31,7 +31,7 @@ def main():
                        "duration": round(float(info["format"]["duration"]), 2), "bytes": target.stat().st_size})
         print(f"{title}: {target.stat().st_size:,} bytes")
     (OUTPUT / "manifest.json").write_text(json.dumps({
-        "format": "MP3, stereo, 44.1 kHz, 160 kbit/s",
+        "format": "MP3, stereo, 44.1 kHz, VBR quality 5 (about 130 kbit/s)",
         "normalisation": "-16 LUFS, true peak limit -1.5 dBTP", "tracks": tracks,
     }, indent=2) + "\n")
 

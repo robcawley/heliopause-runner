@@ -3,7 +3,6 @@ const COARSE = matchMedia('(pointer: coarse)').matches;   // a touch-first devic
 import { createEngine } from './engine/renderer.js';
 import { createAudio } from './engine/audio.js';
 import { createBeltRun } from './modes/belt-run/index.js';
-import { createTuning } from './shell/tuning.js';
 import { createBoard } from './tycoon/board.js';
 import { playIntro, introSeen } from './shell/intro.js';
 import { loadCareer, saveCareer, newCareer, settle, tripOf, applyLoadout, makeOffers } from './tycoon/career.js';
@@ -50,7 +49,17 @@ for (const ev of ['selectstart', 'contextmenu', 'gesturestart']) {
 }
 window.addEventListener('gamepaddisconnected', () => { document.body.dataset.controls = matchMedia('(pointer: coarse)').matches ? 'touch' : 'keyboard'; });
 
-  const tuning = createTuning(run.config, { onResize: engine.resize });
+  // The feel-tuning panel (and lil-gui) loads only the first time someone opens it
+  let tuning = {
+    open: false,
+    toggle() {
+      import('./shell/tuning.js').then(({ createTuning }) => {
+        if (tuning.open !== false || tuning.toggle !== this.toggle) return;
+        tuning = createTuning(run.config, { onResize: engine.resize });
+        tuning.toggle();
+      });
+    },
+  };
 
   // ---- Screens --------------------------------------------------------
   const title = document.getElementById('title');

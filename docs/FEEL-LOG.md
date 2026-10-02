@@ -377,3 +377,16 @@ Native WebGPU checks decode all ten MP3s, exercise actual contact/kill/critical-
 and confirm pause, retry, death-mode cleanup and ending silence with no console/frame errors.
 To judge with headphones: intelligibility and level against all four songs, and whether four
 phrases per trip is sparse enough during long fights.
+
+## 2026-10-02 — Optimisation pass
+
+- three.js now builds into its own chunk (910 kB, 249 kB gzipped) separate from the game code
+  (256 kB, 92 kB gzipped), so returning players keep three cached when only the game updates.
+- The feel-tuning panel and lil-gui load only the first time the panel is opened (34 kB off
+  the start-up download).
+- Peshawar, Shankill and Somnum Europa re-encoded from the masters as VBR quality 5 (about
+  135 to 150 kbit/s) instead of 160 kbit/s CBR: 17.8 MB to 16.4 MB. Sidewinding was already
+  128 kbit/s. Music streams one song at a time, so this is bandwidth, not start-up time.
+- Measured in a desktop headless browser in flight with three escorts: median frame 8.3 ms,
+  95th percentile about 10 ms, 64 MB JS heap, no frame errors. Phone performance still to be
+  checked on a real device.
