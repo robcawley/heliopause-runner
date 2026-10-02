@@ -357,3 +357,23 @@ music hush continue through the same audio graph.
 
 To judge: the two stereo downmixes, song balance beside Sidewinding, and the shorter Shankill
 against the longer ambient trip through Somnum Europa.
+
+## 2026-10-02 — sparing recorded robot radio
+
+The ten short MP3s now punctuate flight events: formation, raider contact, engagement,
+kills, escort damage/retreat, rocks, critical hull, repair and a cleared Dead Zone. PIP
+provides pilot cues; a wing fighter provides its own cue from its stereo position. Recorded
+wing lines replace the matching synthetic phrase, and the two voice systems avoid overlap.
+
+One shared budget allows at most four recorded phrases per trip, at least 24 real audio
+seconds apart, with each phrase used once. Routine events have a 35% chance; critical hull
+and zone clear skip that roll but still obey the budget. Missed cues are never queued.
+Music dips to 65% during the phrase and returns smoothly. All values live in config.radio.
+Pause freezes audio; muted play spends no budget. Death, docking, retry and the ending's
+quiet section stop recorded speech. The existing character chatter remains in place.
+
+Logic checks cover caching, limits, priority, muted/paused/blocked cues and node disposal.
+Native WebGPU checks decode all ten MP3s, exercise actual contact/kill/critical-hull callbacks,
+and confirm pause, retry, death-mode cleanup and ending silence with no console/frame errors.
+To judge with headphones: intelligibility and level against all four songs, and whether four
+phrases per trip is sparse enough during long fights.

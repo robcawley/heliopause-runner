@@ -283,6 +283,16 @@ export const DEFAULTS = {
     resolutionScale: 1.0,
   },
 
+  radio: {
+    level: 0.9,
+    cooldown: 24,           // real audio seconds; shared by the wing and PIP
+    maxPerTrip: 4,
+    chance: 0.35,           // routine events; critical hull and zone clear skip this roll
+    minRepair: 10,          // a small repair does not need a spoken announcement
+    duck: 0.65,             // music multiplier while a recorded phrase is playing
+    duckAttack: 0.04,
+    duckRelease: 0.3,
+  },
   audio: {
     music: 0.55,
     sfx: 0.85,

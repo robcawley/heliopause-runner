@@ -20,6 +20,11 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 // Formation slots in the ship's frame: x right, y up, z forward (metres). Ahead of you, so you
 // can see them through the canopy.
 const SLOTS = [[-12, 5, 30], [12, 5, 30], [-24, 7, 48], [24, 7, 48]];
+const RADIO = {
+  form: 'on-your-wing', engage: 'weapons-free', kill: 'target-down', hurt: 'taking-fire',
+  retreat: 'falling-back', rock: 'watch-the-rocks', rockGrumble: 'watch-the-rocks',
+  back: 'hull-patched', repaired: 'hull-patched',
+};
 
 const LINES = {
     farewell: ['This is as far as we go. Come home, boss.', 'We cannot follow you past here.', 'Turning back. Good luck out there.'],
@@ -85,10 +90,11 @@ export function createWing(config, host) {
 
   function say(m, key, force = false) {
     if (!m || (!force && chatter > 0)) return;
-    const text = pick(LINES[key]);
+    const recorded = RADIO[key] && host.radio?.(RADIO[key], m.name.split(' ')[0], m.voice.pan);
+    const text = recorded ? recorded.text : pick(LINES[key]);
     chatter = force ? 2.5 : 4 + Math.random() * 2;
     host.say(m.name.split(' ')[0], text, 3.5);
-    voice.talk(m.voice, text);
+    if (!recorded && !host.radioBusy?.()) voice.talk(m.voice, text);
   }
   const anyone = (filter = () => true) => pick(wing.filter((w) => w.state !== 'dead' && filter(w)));
 
@@ -344,5 +350,6 @@ export function createWing(config, host) {
     get members() { return wing; }, onPlayerHit, onPlayerKill, onRepaired,
     get lost() { return lost; }, get kills() { return kills; }, get firing() { return firing; },
     get flying() { return wing.filter((w) => w.state !== 'dead').length; },
+    get speaking() { return voice.speaking; },
   };
 }

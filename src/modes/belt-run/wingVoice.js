@@ -136,5 +136,5 @@ export function createWingVoice(a, levels) {
     finish(nodes, n);
   }
 
-  return { talk, pew, boom, reset, get activeCount() { return active.size; } };
+  return { talk, pew, boom, reset, get speaking() { return !!a.ctx && a.ctx.currentTime < busy; }, get activeCount() { return active.size; } };
 }

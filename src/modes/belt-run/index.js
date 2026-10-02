@@ -25,6 +25,7 @@ import { createTutorial } from './tutorial.js';
 import { createSfx } from './sfx.js';
 import { createHud } from './hud.js';
 import { MUSIC } from './music.js';
+import { createRobotRadio } from './robotRadio.js';
 
 // ---------------------------------------------------------------------------
 // Belt Run: a self-contained game mode. The cockpit, the belt, the beacon
@@ -150,6 +151,13 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     aberrationKick: 0, hitFlash: 0, phaseFx: 0, fade: 0,
   });
   let g = fresh('attract');
+  const radio = createRobotRadio(audio, config.radio, {
+    canSpeak: radioAllowed,
+    onPlay: (clip, speaker) => {
+      // Keep MICA's longer instructions on screen while PIP adds a brief audible cue.
+      if (speaker === 'PIP') hud.callout(`PIP: ${clip.text}`, 1);
+    },
+  });
 
   // ---- Dead Zones: self-contained fights in old wreck fields, between stretches of lane ----
   // Inside one the lane's rules are off (no radiation, fly anywhere). See deadzone/index.js.
@@ -176,6 +184,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   // ---- The wing: hired crew flying escort (wing.js) ----
   const wing = createWing(config, {
     ship, dz, audio, rocks,
+    radio: (id, speaker, pan) => radio.play(id, { speaker, pan }),
+    radioBusy: () => radio.playing,
     hull: () => g.hull / config.hull.max,
     pipMk2: () => !!config.droid.mk2,
     say: (who, text, s) => hud.say(who, text, s),
@@ -197,6 +207,15 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     flash: (k) => { g.hitFlash = Math.max(g.hitFlash, k); },
     emit: (name) => events.emit(name, {}),
   });
+
+  function radioAllowed() {
+    return g.mode === 'flying' && !ending.clears() && !wing.speaking;
+  }
+  events.on('deadZone', ({ phase }) => {
+    if (phase === 'enter') radio.play('raiders-ahead');
+    if (phase === 'cleared') radio.play('zone-clear', { priority: true });
+  });
+  events.on('raiderKilled', () => radio.play('target-down'));
 
   let dzRules = false, dzFlightSaved = null;
   // Player bolts hit rocks and, in a Dead Zone, raiders and their plasma orbs
@@ -244,12 +263,16 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
         const before = g.hull;
     g.sinceHit = 0;
     g.hull = Math.max(0, g.hull - amount);
-    if (before >= 30 && g.hull < 30 && g.hull > 0) say('hullLow', true);
+    if (before >= 30 && g.hull < 30 && g.hull > 0) {
+      say('hullLow', true);
+      radio.play('hull-critical', { priority: true });
+    }
     if (g.hull <= 0 && g.mode === 'flying') die(cause);
   }
 
   function die(cause) {
     g.mode = 'dead';
+    radio.stop();
     g.deathCause = cause;
     rig.addTrauma(cause === 'rock' ? 1 : 0.6);
     g.hitFlash = cause === 'rock' ? 1.2 : 0.6;
@@ -300,6 +323,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     damage(Math.min(config.hull.rockDamageMax ?? Infinity, config.hull.rockDamageBase + r.size * config.hull.rockDamagePerSize), 'rock');
         events.emit('hit', { hull: g.hull });
     wing.onPlayerHit();
+    radio.play('watch-the-rocks');
 
     return 'destroy';
   };
@@ -346,6 +370,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     rig.punch(3);
     hud.callout(`Repaired +${Math.round(g.hull - before)}`, 1, true);
     if (g.gates === 1 || Math.random() < 0.3) say('gate');
+    if (g.hull - before >= config.radio.minRepair) radio.play('hull-patched');
     events.emit('gate', { index: i, hull: g.hull });
   };
 
@@ -576,6 +601,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   }
   function finishLanding() {
     g.mode = 'landed';
+    radio.stop();
     const landingBonus = config.run.landingBonus;
     const hullBonus = Math.round((g.hull / config.hull.max) * config.run.hullBonus);
     g.score += landingBonus + hullBonus;
@@ -585,6 +611,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
 
   // ---- Lifecycle ------------------------------------------------------
   function resetWorld(mode, trip) {
+    radio.reset();
     g = fresh(mode);
     g.heavy = !!trip?.heavy;                       // heavy cargo shudders near giant rocks
     setThrottle(false, false);
@@ -709,6 +736,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
         wing.update(realDt, dt, g.mode === 'flying');
         weather.update(dt, g.mode === 'flying' && !dz.rulesOff && !ending.clears());
         ending.update(dt, g.mode === 'flying');
+    if (g.mode !== 'flying' || ending.clears()) radio.stop();
     tutor.update(realDt, g.mode === 'flying', input.state,
       { phasing: g.phaseTime > 0, rocksDestroyed: g.rocksDestroyed, device: input.state.device },
       (text) => { hud.say('MICA', text, 5); g.micaTimer = Math.max(g.micaTimer, 18); });
@@ -722,6 +750,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       const n = Math.min(3 * dt, 30 - (g.pipPatch ?? 0), config.hull.max - g.hull);
       g.hull += n; g.pipPatch = (g.pipPatch ?? 0) + n;
       if (!g.pipPatchSaid && g.pipPatch > 1) { g.pipPatchSaid = true; hud.say('PIP', 'Patching the hull. Hold still. Ish.', 3); }
+      if (g.hull >= config.hull.max || g.pipPatch >= 30) radio.play('hull-patched');
     }
     lane.setDim(dz.dim);
     dust.setCalm(dz.mood * config.deadZone.dustCalm);
@@ -961,11 +990,12 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     get backend() { return engine.backend; },
 
     attract() { resetWorld('attract'); hud.setVisible(false); },
-    debug: () => ({ ship, dz, g, config, blasters, wing, rocks }),   // for tests and the console
+    debug: () => ({ ship, dz, g, config, blasters, wing, rocks, radio, audio }),   // for tests and the console
     start(trip) {
       resetWorld('flying', trip);
       hud.setVisible(true);
       audio.playMusic(MUSIC);
+      radio.prepare();
       sfx.start();
       sfx.revive();
       hud.say('MICA', pick(MICA.start), 5);
@@ -974,6 +1004,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     restart(trip) {
       resetWorld('flying', trip);
       audio.playMusic(MUSIC);
+      radio.prepare();
       sfx.revive();
       hud.say('MICA', pick(MICA.restart), 4);
     },
@@ -992,6 +1023,7 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
       input.dispose();
       hud.dispose();
       sfx.dispose();
+      radio.dispose();
       wing.dispose();
       dz.dispose();
       untrack();

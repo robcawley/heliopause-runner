@@ -197,3 +197,18 @@ one URL or a list; it owns one streaming music element, a transition fade and a 
 music-duck gain. The flight supplies its track list, so the engine remains mode independent.
 Music files are in public/audio/music; scripts/convert-game-music.py rebuilds the three new
 exports from Rob's existing masters using ffmpeg. Native playback regression: tests/qa-music.cjs.
+
+## 2026-10-02 — recorded radio integration
+
+src/modes/belt-run/robotRadio.js loads and decodes the ten public MP3s after audio starts,
+then caches them across trips. Flight and wing hooks share the same per-trip budget: four
+phrases maximum, a 24-second cooldown, no repeated phrase and a 35% routine-event chance.
+Critical hull and zone-clear cues bypass chance only. There is no playback queue, so a stale
+warning cannot surface after another voice finishes. Missing assets leave flight operational.
+The existing wing voice supplies character dialogue whenever a recorded cue is not selected.
+
+The recorded source, gain and stereo panner are disconnected on completion or interruption.
+Reset stops speech and clears the budget without decoding again; disposal aborts loading and
+clears the cache. The ending blocks these extra cues after the last beacon. Music ducking uses
+a separate engine gain, preserving the ending's music volume and the phase filter.
+Checks: node tests/qa-robot-radio.mjs and the native WebGPU tests/qa-radio.cjs.

@@ -27,3 +27,7 @@ runtime with NumPy. No packages are added to the game. The listening reel is in
 
 Lossless authoring masters are kept in `docs/audio/robot-radio-masters`; the public folder
 contains the compressed game assets. MP3 files work with HTML audio or Web Audio.
+
+The flight now uses these through `src/modes/belt-run/robotRadio.js`. `config.radio` controls
+the shared 24-second cooldown, four-phrase trip limit, routine-event chance and music dip.
+Clips load after audio starts and remain decoded across trips; skipped cues are not queued.
