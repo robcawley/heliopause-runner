@@ -14,6 +14,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "public/audio/robot-radio"
+MASTERS = ROOT / "docs/audio/robot-radio-masters"
 RATE = 48000
 LINES = [
     ("01-on-your-wing", "On your wing.", "Escorts form up after take-off"),
@@ -42,6 +43,14 @@ def write_wav(path, samples):
         target.setsampwidth(2)
         target.setframerate(RATE)
         target.writeframes(pcm.tobytes())
+
+
+def encode_mp3(source, destination):
+    subprocess.run([
+        "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(source),
+        "-codec:a", "libmp3lame", "-b:a", "64k", "-ar", str(RATE), "-ac", "1",
+        "-map_metadata", "-1", str(destination),
+    ], check=True)
 
 
 def fade(samples, milliseconds=8):
@@ -114,6 +123,7 @@ def vocode(speech, pitch, seed):
 
 def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
+    MASTERS.mkdir(parents=True, exist_ok=True)
     clips, manifest = [], []
     with tempfile.TemporaryDirectory(prefix="heliopause-radio-") as directory:
         temporary = Path(directory)
@@ -124,14 +134,18 @@ def main():
             clip = vocode(read_wav(decoded), pitch=[118, 132, 145][index % 3], seed=index + 1)
             assert 0.25 < len(clip) / RATE < 2.5
             assert np.isfinite(clip).all() and np.max(np.abs(clip)) < 1
-            write_wav(OUTPUT / f"{name}.wav", clip)
-            manifest.append({"id": name[3:], "file": f"{name}.wav", "text": text, "trigger": trigger, "duration": round(len(clip) / RATE, 3)})
+            master = MASTERS / f"{name}.wav"
+            asset = OUTPUT / f"{name}.mp3"
+            write_wav(master, clip)
+            encode_mp3(master, asset)
+            manifest.append({"id": name[3:], "file": f"{name}.mp3", "bytes": asset.stat().st_size, "text": text, "trigger": trigger, "duration": round(len(clip) / RATE, 3)})
             clips.append(clip)
             print(f"{name}: {len(clip) / RATE:.2f} s — {text}")
-    (OUTPUT / "manifest.json").write_text(json.dumps({"format": "PCM WAV, mono, 48 kHz, 16 bit", "clips": manifest}, indent=2) + "\n")
+    (OUTPUT / "manifest.json").write_text(json.dumps({"format": "MP3, mono, 48 kHz, 64 kbit/s", "clips": manifest}, indent=2) + "\n")
     preview = ROOT / "docs/audio/robot-radio-preview.wav"
     preview.parent.mkdir(parents=True, exist_ok=True)
     write_wav(preview, np.concatenate([part for clip in clips for part in (clip, np.zeros(int(RATE * 0.4)))]))
+    encode_mp3(preview, preview.with_suffix(".mp3"))
 
 
 if __name__ == "__main__":

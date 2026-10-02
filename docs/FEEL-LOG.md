@@ -335,3 +335,9 @@ triggers are in manifest.json. The authoring script adds no game dependencies.
 
 Preview: docs/audio/robot-radio-preview.wav. To judge: intelligibility of the very short words,
 and whether the metallic carrier and light radio static sit comfortably over Sidewinding.
+
+Robot radio web export: the public assets and manifest now use mono 48 kHz MP3 at 64 kbit/s.
+All ten clips total 68,802 bytes (about 67 KiB), 91% smaller than the WAVs. The lossless masters
+live under docs/audio/robot-radio-masters for editing. The listening preview and download ZIP
+also have MP3 versions. All ten public files fetch and decode in Chromium Web Audio; lint and
+build pass. Rebuilding through the authoring script now produces compressed game assets.

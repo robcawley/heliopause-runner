@@ -1,75 +1,85 @@
 {
-  "format": "PCM WAV, mono, 48 kHz, 16 bit",
+  "format": "MP3, mono, 48 kHz, 64 kbit/s",
   "clips": [
     {
       "id": "on-your-wing",
-      "file": "01-on-your-wing.wav",
+      "file": "01-on-your-wing.mp3",
       "text": "On your wing.",
       "trigger": "Escorts form up after take-off",
-      "duration": 0.702
+      "duration": 0.702,
+      "bytes": 6189
     },
     {
       "id": "raiders-ahead",
-      "file": "02-raiders-ahead.wav",
+      "file": "02-raiders-ahead.mp3",
       "text": "Raiders ahead.",
       "trigger": "Raider contact or Dead Zone warning",
-      "duration": 0.748
+      "duration": 0.748,
+      "bytes": 6573
     },
     {
       "id": "weapons-free",
-      "file": "03-weapons-free.wav",
+      "file": "03-weapons-free.mp3",
       "text": "Weapons free.",
       "trigger": "Combat begins",
-      "duration": 0.887
+      "duration": 0.887,
+      "bytes": 7533
     },
     {
       "id": "target-down",
-      "file": "04-target-down.wav",
+      "file": "04-target-down.mp3",
       "text": "Target down.",
       "trigger": "A raider is destroyed",
-      "duration": 0.841
+      "duration": 0.841,
+      "bytes": 7341
     },
     {
       "id": "taking-fire",
-      "file": "05-taking-fire.wav",
+      "file": "05-taking-fire.mp3",
       "text": "Taking fire.",
       "trigger": "An escort takes damage",
-      "duration": 0.737
+      "duration": 0.737,
+      "bytes": 6381
     },
     {
       "id": "hull-critical",
-      "file": "06-hull-critical.wav",
+      "file": "06-hull-critical.mp3",
       "text": "Hull critical.",
       "trigger": "Hull falls into the critical range",
-      "duration": 0.811
+      "duration": 0.811,
+      "bytes": 6957
     },
     {
       "id": "falling-back",
-      "file": "07-falling-back.wav",
+      "file": "07-falling-back.mp3",
       "text": "Falling back.",
       "trigger": "An escort retreats to repair",
-      "duration": 0.791
+      "duration": 0.791,
+      "bytes": 6765
     },
     {
       "id": "watch-the-rocks",
-      "file": "08-watch-the-rocks.wav",
+      "file": "08-watch-the-rocks.mp3",
       "text": "Watch the rocks.",
       "trigger": "Rock hit or close asteroid warning",
-      "duration": 0.887
+      "duration": 0.887,
+      "bytes": 7533
     },
     {
       "id": "hull-patched",
-      "file": "09-hull-patched.wav",
+      "file": "09-hull-patched.mp3",
       "text": "Hull patched.",
       "trigger": "PIP or an escort finishes repairs",
-      "duration": 0.753
+      "duration": 0.753,
+      "bytes": 6573
     },
     {
       "id": "zone-clear",
-      "file": "10-zone-clear.wav",
+      "file": "10-zone-clear.mp3",
       "text": "Zone clear.",
       "trigger": "The Dead Zone is cleared",
-      "duration": 0.799
+      "duration": 0.799,
+      "bytes": 6957
     }
   ]
 }
