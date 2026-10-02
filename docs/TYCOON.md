@@ -151,3 +151,20 @@ scroll area. At 640 px, an Orcus offer badge could overlap Ixion's name. DOM rec
 cover every reachable origin with offer labels at 1440, 1180 and 390 px viewport widths.
 Keyboard selection retains focus. Browser regression checks also cover old loyalty/fallen
 saves, immediate permanent death and retry, and PIP's four-second wait and 30-hull trip cap.
+
+### QA regression scripts (2 Oct 2026)
+
+- `node tests/qa-wing.mjs`: career/ferry/loyalty, formation, retreat, swept escort loss,
+  resource disposal, rock clearance, and four escorts defeating the real Carrion damage model.
+- `node tests/qa-audio.mjs`: scheduled audio graph release over 50 cycles, RCS pulse timing
+  and loop disposal. Uses a deterministic audio clock.
+- `node tests/qa-browser.cjs`: native WebGPU, chart rectangles and keyboard selection,
+  affordability/hold guards, old saves, PIP repair limits, death/retry and native audio endings.
+- `node tests/qa-trip.cjs`: complete threat-2, four-escort trip with an assisted pilot
+  (automatic aiming, lane centring, boost and invulnerability). Escort damage stays live.
+  Prints frame samples and writes screenshots under `/tmp`.
+
+Browser scripts use the supplied Chromium path and flags. Set `PLAYWRIGHT_PATH` to the installed
+Playwright module directory if it is not `/tmp/pwt/node_modules/playwright`; `QA_URL` defaults
+to `http://localhost:5173`. Use a fresh test browser profile: these scripts set up careers and
+control the flight directly. No game dependencies were added.

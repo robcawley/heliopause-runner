@@ -313,3 +313,11 @@ A long combat test exposed escorts firing at Carrion's armoured centre. They now
 shield pod, then at the exposed core; facing checks follow that same point. A deterministic
 fight against the real raider collision and damage code confirms four escorts can strip both
 pods and kill Carrion without pilot shots. Boss hull, pod health and attack timing are unchanged.
+
+QA result: an assisted WebGPU 9 km threat-2 trip landed in 1:42 with four escorts, 13 raider
+kills (2 by the wing), a cleared zone and the correct pay slip. No console/frame errors.
+Combat frame samples: median 8.3 ms, 95th percentile roughly 9–10 ms. An earlier prolonged
+fight showed damage, retreat, repair and rejoining; permanent death and retry were forced in
+a separate regression. Audio graph tests release all one-shots and stop/disconnect mode loops.
+Headless timing establishes capacity here; headphones, phone speakers, hard-bank visibility
+and natural loss rates over many unassisted trips still need Rob's judgement.
