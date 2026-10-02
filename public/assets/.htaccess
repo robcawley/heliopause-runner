@@ -1,0 +1,4 @@
+# Built code and styles: every file name carries a content hash, so they never change in place.
+<IfModule mod_headers.c>
+  Header set Cache-Control "public, max-age=31536000, immutable"
+</IfModule>

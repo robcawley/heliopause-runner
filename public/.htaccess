@@ -1,0 +1,14 @@
+# Heliopause Runner, on robcawley.com: caching for this folder only.
+# The site root has its own .htaccess (it protects HTTPS certificate renewal); this one does
+# not touch it. If this folder ever shows a 500 error after upload, delete this file: the game
+# works without it, it just re-downloads more.
+<IfModule mod_headers.c>
+  # The page itself: always check for a new version
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  # Music, portraits and voice clips: a week
+  <FilesMatch "\.(mp3|jpg|json)$">
+    Header set Cache-Control "public, max-age=604800"
+  </FilesMatch>
+</IfModule>
