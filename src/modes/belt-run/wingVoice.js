@@ -7,7 +7,7 @@
 
 const VOWELS = { a: [760, 1250, 2500], e: [430, 1900, 2550], i: [300, 2250, 3000], o: [520, 900, 2400], u: [340, 820, 2300], y: [320, 2000, 2800] };
 
-export function createWingVoice(a) {
+export function createWingVoice(a, levels) {
   let busy = 0;
   const active = new Set();
   const keep = (nodes, node) => { nodes.push(node); return node; };
@@ -61,7 +61,7 @@ export function createWingVoice(a) {
     const nodes = [];
     const now = ctx.currentTime;
     const t0 = Math.max(now, busy) + 0.03;
-    const out = radioChain(ctx, nodes, v.pan ?? 0, 0.38);
+    const out = radioChain(ctx, nodes, v.pan ?? 0, levels.radioLevel);
     blip(ctx, nodes, out, t0, 1500, 1900, 0.05);
     blip(ctx, nodes, out, t0 + 0.06, 2100, 2100, 0.04, 0.16);
     const sylls = (text.toLowerCase().match(/[^aeiouy\s]*[aeiouy]+/g) ?? ['a']).slice(0, 18);
@@ -114,7 +114,7 @@ export function createWingVoice(a) {
     const p = keep(nodes, ctx.createStereoPanner()); p.pan.value = pan; p.connect(a.sfx);
     const o = keep(nodes, ctx.createOscillator()); o.type = 'sawtooth';
     o.frequency.setValueAtTime(1600 + Math.random() * 300, t); o.frequency.exponentialRampToValueAtTime(260, t + 0.11);
-    const g = keep(nodes, ctx.createGain()); g.gain.setValueAtTime(0.06 * gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    const g = keep(nodes, ctx.createGain()); g.gain.setValueAtTime(levels.shotLevel * gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
     o.connect(g).connect(p); o.start(t); o.stop(t + 0.13);
     finish(nodes, o);
   }

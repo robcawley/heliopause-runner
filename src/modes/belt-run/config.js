@@ -251,6 +251,8 @@ export const DEFAULTS = {
     clearance: 4.5,         // metres around an escort; avoids wings clipping a rock
     lookAhead: 0.7,         // seconds of velocity to check ahead
     attrition: 0.12,        // chances per second of taking incidental fire while engaged
+    radioLevel: 0.38,
+    shotLevel: 0.06,
     coverAttrition: 0.28,   // loyal hands draw more fire when covering a failing pilot
   },
   hull: {
@@ -285,6 +287,8 @@ export const DEFAULTS = {
     music: 0.55,
     sfx: 0.85,
     engine: 0.22,
+    rcsRepeat: 0.65,       // seconds between puffs during a sustained hard turn
+    rcsCooldown: 0.4,     // seconds before a fresh moderate turn can puff
   },
 };
 

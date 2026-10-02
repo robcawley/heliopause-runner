@@ -5,9 +5,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   let errors = [];
   page.on('console', m => {
-    if (m.type() === 'error')errors.push(m.text())
-  }
-  );
+    if (m.type() === 'error')errors.push(m.text());
+  });
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(process.env.QA_URL || 'http://localhost:5173');
   await page.waitForSelector('body.ready');
@@ -25,8 +24,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
     c.offers[0].distance = 9000;
     c.offers[0].density = 0.7;
     c.offers[0].raid.threat = 2;
-  }
-  );
+  });
   await page.click('.board-card[data-i="0"]');
   await page.click('.board-launch');
   await page.evaluate(async() => {
@@ -34,9 +32,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
     const d = __game.run.debug();
     window.qa = { dt: [], states: new Set(), damaged: false, dead: false, landed: false };
     __game.run.on('landed', s => {
-      qa.landed = s
-    }
-    );
+      qa.landed = s;
+    });
     let last = performance.now();
     const aim = new T.Vector3();
     const matrix = new T.Matrix4();
@@ -48,9 +45,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
       const { g, ship, dz, wing } = d;
       wing.members.forEach(w => {
         qa.states.add(w.state);
-        if (w.hull < 99)qa.damaged = true
-      }
-      );
+        if (w.hull < 99)qa.damaged = true;
+      });
       if (g.mode === 'flying') {
         g.phaseTime = 1;
         const r = dz.raiders.all.find(r => r.alive && !r.dying);
@@ -71,19 +67,17 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
         }
       }
       if (g.mode === 'landed' || g.mode === 'dead') return;
-      requestAnimationFrame(assist)
+      requestAnimationFrame(assist);
     }
-    requestAnimationFrame(assist)
-  }
-  );
+    requestAnimationFrame(assist);
+  });
   for (let i = 0; i < 60; i++) {
     await page.waitForTimeout(10000);
     const state = await page.evaluate(() => {
       const { g, dz, wing, ship } = __game.run.debug();
       const sorted = qa.dt.slice(-600).sort((a, b) => a - b);
-      return { mode: g.mode, time: g.time, z: ship.pos.z, phase: dz.phase, kills: dz.kills, wing: wing.members.map(w => ({ id: w.id, state: w.state, hull: w.hull, pos: w.pos.toArray() })), states: [...qa.states], median: sorted[Math.floor(sorted.length / 2)], p95: sorted[Math.floor(sorted.length * .95)], damage: qa.damaged, landed: qa.landed }
-    }
-    );
+      return { mode: g.mode, time: g.time, z: ship.pos.z, phase: dz.phase, kills: dz.kills, wing: wing.members.map(w => ({ id: w.id, state: w.state, hull: w.hull, pos: w.pos.toArray() })), states: [...qa.states], median: sorted[Math.floor(sorted.length / 2)], p95: sorted[Math.floor(sorted.length * .95)], damage: qa.damaged, landed: qa.landed };
+    });
     console.log(JSON.stringify(state));
     if (i === 1 || state.phase === 'fight' && i === 4) await page.screenshot({ path: '/tmp/heliopause-flight-' + i + '.png' });
     if (state.mode === 'landed' || state.mode === 'dead') break;
@@ -93,6 +87,6 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
   assert(await page.evaluate(() => !!qa.landed), 'trip must land');
   console.log('ERRORS', errors);
   await page.screenshot({ path: '/tmp/heliopause-trip-end.png' });
-  await browser.close()
+  await browser.close();
 }
 )();

@@ -427,7 +427,7 @@ export function createSfx(a, config) {
     if (rcsWait <= 0 && (rcsPending || (turnSide && at > 0.7))) {
       rcs(-Math.sign(turn), 0.5 + at * 0.5);
       rcsPending = false;
-      rcsWait = at > 0.7 ? 0.65 : 0.4;
+      rcsWait = at > 0.7 ? config.audio.rcsRepeat : config.audio.rcsCooldown;
     }
   }
 

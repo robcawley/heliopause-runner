@@ -321,3 +321,6 @@ fight showed damage, retreat, repair and rejoining; permanent death and retry we
 a separate regression. Audio graph tests release all one-shots and stop/disconnect mode loops.
 Headless timing establishes capacity here; headphones, phone speakers, hard-bank visibility
 and natural loss rates over many unassisted trips still need Rob's judgement.
+
+The new radio/escort-shot levels (`config.wing`) and RCS pulse intervals (`config.audio`) live
+in config.js alongside the other feel numbers, so tuning does not require editing sound logic.

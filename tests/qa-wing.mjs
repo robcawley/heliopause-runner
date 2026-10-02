@@ -38,20 +38,16 @@ assert.deepEqual(poor.crew, ['teo']);
 const config = makeConfig();
 const ship = { pos: new THREE.Vector3(), vel: new THREE.Vector3(0, 0, -70), speed: 70, right: new THREE.Vector3(1, 0, 0), up: new THREE.Vector3(0, 1, 0), fwd: new THREE.Vector3(0, 0, -1), quat: new THREE.Quaternion() };
 const dz = { phase: 'idle', rulesOff: false, raiders: { all: [] }, fire: { list: [], free(p) {
-  this.list.splice(this.list.indexOf(p), 1)
+  this.list.splice(this.list.indexOf(p), 1);
 }
 }, wrecks: {} };
 const events = [];
-const wing = createWing(config, { ship, dz, audio: {}, hull: () => 1, say() {
-}
-, callout() {
-}
-, emit: (...e) => events.push(e) });
+const wing = createWing(config, { ship, dz, audio: {}, hull: () => 1, say() {}, callout() {}, emit: (...e) => events.push(e) });
 const trip = { wing: [{ id: 'teo', name: 'Teo', color: '#ffffff', loyalty: 90 }, { id: 'krug', name: 'Krug', color: '#ffffff', loyalty: 55 }] };
 wing.reset(trip);
 for (let i = 0; i < 600; i++) {
   ship.pos.addScaledVector(ship.vel, 1 / 60);
-  wing.update(1 / 60, 1 / 60, true)
+  wing.update(1 / 60, 1 / 60, true);
 }
 assert(wing.members[0].pos.clone().sub(ship.pos).dot(ship.fwd) > 25, 'formation must stay ahead at cruise');
 let disposed = 0;
@@ -90,9 +86,7 @@ rocks.dispose();
 console.log('Career, ferry, loyalty, formation, disposal, retreat, swept death and rock avoidance passed.');
 // Fight the real Carrion collision/damage model: centre shots hit permanent armour.
 const { createRaiders } = await import('../src/modes/belt-run/deadzone/raiders.js');
-const noop = () => {
-}
-;
+const noop = () => {};
 const effects = new Proxy({}, { get: () => noop });
 const world = { ship, fx: effects, sfx: effects, fire: { cancelOwner: noop }, pan: () => 0, gain: () => 1, onPodDown: noop, onKill: noop };
 const raiders = createRaiders(config, world);
@@ -113,6 +107,6 @@ try {
 } finally {
   Math.random = random;
   fighters.dispose();
-  raiders.dispose()
+  raiders.dispose();
 }
 console.log('Four escorts defeat real Carrion pods and core without pilot fire.');

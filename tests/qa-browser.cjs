@@ -6,9 +6,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => {
-    if (m.type() === 'error')errors.push(m.text())
-  }
-  );
+    if (m.type() === 'error')errors.push(m.text());
+  });
   await page.goto(process.env.QA_URL || 'http://localhost:5173');
   await page.waitForSelector('body.ready');
   await page.evaluate(() => __game.engine.renderer.setAnimationLoop(null));
@@ -29,14 +28,13 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
         const a = [...document.querySelectorAll('.chart-name,.chart-pay,.chart-note')].map(e => ({ text: e.textContent, r: e.getBoundingClientRect() }));
         for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) {
           const x = a[i].r, y = a[j].r;
-          if (x.left < y.right && y.left < x.right && x.top < y.bottom && y.top < x.bottom)bad.push([town, a[i].text, a[j].text])
+          if (x.left < y.right && y.left < x.right && x.top < y.bottom && y.top < x.bottom)bad.push([town, a[i].text, a[j].text]);
         }
 
       }
       return bad;
 
-    }
-    );
+    });
     assert.deepEqual(bad, [], `chart overlaps at ${width}`);
 
   }
@@ -52,8 +50,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
     document.querySelector('#board').innerHTML = renderChart(copy, h, copy.offers[0].to);
     return { ferry, heavy: document.querySelector('.chart-take').disabled };
 
-  }
-  );
+  });
   assert.deepEqual(guards, { ferry: true, heavy: true });
   await page.reload();
   await page.waitForSelector('body.ready');
@@ -84,9 +81,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
     run.config.lane.coreRepair = 0;
     run.config.lane.gateRepair = 0;
     run.start(tripOf(c.offers[0], c));
-    engine.renderer.render = () => {
-    }
-    ;
+    engine.renderer.render = () => {};
     const d = run.debug();
     d.g.mode = 'flying';
     d.g.hull = 50;
@@ -112,8 +107,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
     const retry = run.debug().wing.members.map(w => w.id);
     return { before, repaired, capped, gone, retry, backend: engine.backend };
 
-  }
-  );
+  });
   assert.equal(result.before, 50);
   assert.equal(result.repaired, 30);
   assert.equal(result.capped, 40);
@@ -129,7 +123,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
     await ctx.resume();
     const a = { ctx, sfx: ctx.createGain(), noise: ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate) };
     a.sfx.connect(ctx.destination);
-    const voice = createWingVoice(a), sfx = createSfx(a, makeConfig());
+    const voice = createWingVoice(a, makeConfig().wing), sfx = createSfx(a, makeConfig());
     sfx.start();
     for (let i = 0; i < 40; i++)voice.pew(0, 1);
     voice.talk({ pitch: 150, formant: 1 }, 'On your wing.');
@@ -143,8 +137,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
     await ctx.close();
     return active;
 
-  }
-  );
+  });
   assert.deepEqual(audio, [0, 0]);
   assert.deepEqual(errors, []);
   console.log('WebGPU: chart at 1440/1180/390, keyboard focus, old saves, PIP 4 s/30 hull, permanent loss/retry and native audio cleanup passed.', result);
@@ -153,6 +146,5 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/tmp/pwt/node_modul
 }
 )().catch(e => {
   console.error(e);
-  process.exit(1)
-}
-);
+  process.exit(1);
+});

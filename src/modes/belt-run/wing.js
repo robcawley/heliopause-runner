@@ -61,7 +61,7 @@ function buildFighter(accentHex) {
 export function createWing(config, host) {
   const { ship } = host;
   const group = new THREE.Group();
-  const voice = createWingVoice(host.audio);
+  const voice = createWingVoice(host.audio, config.wing);
   const tmp = new V3(), tmp2 = new V3(), want = new V3(), aim = new V3(), dir = new V3();
   const accel = new V3();
   const qLook = new THREE.Quaternion(), qBank = new THREE.Quaternion(), m4 = new THREE.Matrix4();
