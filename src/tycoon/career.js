@@ -152,6 +152,7 @@ export function makeFerry(c, to) {
 // raid: the clan on this lane and its threat (threat 0: no fight). crew: what the crew say in flight.
 export const tripOf = (k, c) => (k ? {
   origin: k.from, dest: k.to, distance: k.distance, density: k.density, heavy: !!k.heavy,
+  region: TOWNS[k.to]?.power ?? 'meridian', level: k.level ?? 1,
   raid: k.raid ? { ...CLANS[k.raid.clan], clan: k.raid.clan, threat: k.raid.threat } : null,
   crew: c ? crewLines(c) : {},
   wing: c ? wingOf(c) : [],

@@ -5,6 +5,7 @@
 import { POWERS, TOWNS, RANKS, standingIn, isOpen, opensFrom, ferryFuel, FERRY_MAX_KM, holdOf } from './career.js';
 import { CLANS, clanOf, strengthOf, MAX_THREAT } from './crew.js';
 import { threatPips } from './board-crew.js';
+import { REGIONS } from '../modes/belt-run/regions.js';
 
 const face = (id) => `${import.meta.env?.BASE_URL ?? '/'}portraits/${id}.jpg`;
 
@@ -96,7 +97,8 @@ function inspector(c, t, h) {
     <h3>${h.esc(uncharted ? `${t.split(' ')[0]}?` : t)}</h3>
     <p class='chart-blurb'>${h.esc(T.blurb ?? '')}</p>
     <dl class='chart-dl'>
-      <dt>People</dt><dd>${h.esc(T.people ?? p.people)}</dd>
+            <dt>People</dt><dd>${h.esc(T.people ?? p.people)}</dd>
+      <dt>Lanes</dt><dd>${uncharted ? 'Unknown' : `${h.esc(REGIONS[T.power].name)}: ${h.esc(REGIONS[T.power].hazard.toLowerCase())}`}</dd>
       <dt>Route</dt><dd class='route-${st}'>${route}</dd>
       <dt>Raiders</dt><dd>${raid}</dd>
       ${opens.length ? `<dt>Opens</dt><dd>${opens.join('<br>')}</dd>` : ''}

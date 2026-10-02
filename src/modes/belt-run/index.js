@@ -19,6 +19,7 @@ import { createBlasters } from './blasters.js';
 import { createDeadZone } from './deadzone/index.js';
 import { createDroid } from './droid.js';
 import { createWing } from './wing.js';
+import { createWeather } from './regions.js';
 import { createSfx } from './sfx.js';
 import { createHud } from './hud.js';
 import musicUrl from './assets/audio/sidewinding.mp3';
@@ -182,6 +183,9 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
   const beltHudEl = hudParent.querySelector('.belt-hud');
   const fogBase = scene.fog.color.clone(), fogDead = new THREE.Color(0x140806);
   const hemiBase = hemi.intensity, sunBase = sun.intensity, sunCol = sun.color.clone(), sunDead = new THREE.Color(0xff9a70);
+    // ---- Regions: each power's lanes look and fly differently (regions.js) ----
+  const weather = createWeather({ config, scene, ship, rocks, hud, rig, sfx, fogBase, sunCol, flash: (k) => { g.hitFlash = Math.max(g.hitFlash, k); } });
+
   let dzRules = false, dzFlightSaved = null;
   // Player bolts hit rocks and, in a Dead Zone, raiders and their plasma orbs
   const targets = {
@@ -577,7 +581,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     shards.clear();
     blasters.reset();
     pip.reset();
-    config.run.density = trip?.density ?? 1;       // a contract's difficulty: rocks on your line
+        config.run.density = trip?.density ?? 1;       // a contract's difficulty: rocks on your line
+    weather.reset(mode === 'flying' ? trip : null); // the region's look, rock and hazard
     settlement.setRoute(mode === 'flying' ? newRoute(trip) : null);
     settlement.reset(ship);
     if (mode === 'flying') beginTakeoff();
@@ -686,7 +691,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     }
     // Dead Zone: the fight, the hazards, and the rules and mood changing around it
     dz.update(realDt, dt, g.mode === 'flying' ? input.state : deadStick);
-    wing.update(realDt, dt, g.mode === 'flying');
+        wing.update(realDt, dt, g.mode === 'flying');
+    weather.update(dt, g.mode === 'flying' && !dz.rulesOff);
     // PIP Mk II: field repairs once you have gone a few seconds without a scrape, up to 30 a trip
     g.sinceHit = (g.sinceHit ?? 99) + dt;
     if (config.droid.mk2 && g.mode === 'flying' && g.sinceHit > 4 && g.hull < config.hull.max && (g.pipPatch ?? 0) < 30) {

@@ -168,3 +168,23 @@ Browser scripts use the supplied Chromium path and flags. Set `PLAYWRIGHT_PATH` 
 Playwright module directory if it is not `/tmp/pwt/node_modules/playwright`; `QA_URL` defaults
 to `http://localhost:5173`. Use a fresh test browser profile: these scripts set up careers and
 control the flight directly. No game dependencies were added.
+
+## Regions as levels (built 2 Oct 2026)
+
+Rob asked for more levels and progression; regions first. Every contract now flies the region
+of its destination's power, with its own look and one signature hazard
+(src/modes/belt-run/regions.js). Harder contracts (level 1 to 3) push the hazard further.
+
+| Power | Region | Look | Hazard |
+|---|---|---|---|
+| Meridian | The Beacon Lanes | the original dark blue, ice rock | none: clear, well-kept lanes, the place to learn |
+| Halcyon | The Cold Nursery | pale ice fog, white rock, short view | whiteouts: warned, then the fog closes in for 7 to 11 s |
+| Sable | The Foundry Storm | rust-dark, iron rock, orange rim | magnetic surges: warned with direction, then a 3.5 to 5.5 s sideways drag |
+| Free Holdings | The Narrows | brown rock | 35% more rock, 25% bigger |
+| Kindred | The Heliopause | violet | look only, for now (Arrokoth is still uncharted) |
+
+MICA introduces each region a few seconds after take-off. Weather is off inside Dead Zones.
+Contract cards and the navigation chart name the region and its hazard. Rock colours are
+uniforms in rocks.js (setTint). Test: tests/qa-regions.cjs (ONLY=halcyon etc. for one).
+
+Next in the progression plan: pilot rank and licences, then warlord hunts, then the campaign arc.

@@ -1,8 +1,15 @@
 import * as THREE from 'three/webgpu';
 import {
   Fn, vec3, float, positionLocal, normalView, positionViewDirection, dot, pow,
-  saturate, mix, mx_noise_float, oneMinus,
+  saturate, mix, mx_noise_float, oneMinus, uniform,
 } from 'three/tsl';
+
+// Rock colours, set per region (regions.js): ice, carbon streaks and the rim light
+const TINT = {
+  ice: uniform(new THREE.Color(0.46, 0.52, 0.6)),
+  carbon: uniform(new THREE.Color(0.09, 0.085, 0.09)),
+  rim: uniform(new THREE.Color(0.25, 0.55, 0.75)),
+};
 
 // The belt, simulated in a sphere around the ship.
 //
@@ -53,14 +60,14 @@ function rockMaterial() {
   m.colorNode = Fn(() => {
     const n = mx_noise_float(positionLocal.mul(2.4)).mul(0.5).add(0.5);
     const streak = mx_noise_float(positionLocal.mul(vec3(0.8, 6.0, 0.8))).mul(0.5).add(0.5);
-    const ice = vec3(0.46, 0.52, 0.6);
-    const carbon = vec3(0.09, 0.085, 0.09);
+    const ice = TINT.ice;
+    const carbon = TINT.carbon;
     return mix(carbon, ice, saturate(n.mul(1.3).sub(streak.mul(0.4))));
   })();
   // A cold rim so silhouettes read against black space, even on the shadow side
   m.emissiveNode = Fn(() => {
     const facing = saturate(dot(normalView, positionViewDirection));
-    return vec3(0.25, 0.55, 0.75).mul(pow(oneMinus(facing), float(3.0))).mul(0.55);
+    return TINT.rim.mul(pow(oneMinus(facing), float(3.0))).mul(0.55);
   })();
   return m;
 }
@@ -387,5 +394,6 @@ export function createRocks(config) {
     }
   }
 
-  return { mesh, init, update, handlers, rocks, avoid, keepClear, raycast, damage, predictHit, dispose, setExclusion(fn) { exclude = fn; } };
+  return { mesh, init, update, handlers, rocks, avoid, keepClear, raycast, damage, predictHit, dispose, setExclusion(fn) { exclude = fn; },
+    setTint(t) { TINT.ice.value.setRGB(...t.ice); TINT.carbon.value.setRGB(...t.carbon); TINT.rim.value.setRGB(...t.rim); } };
 }

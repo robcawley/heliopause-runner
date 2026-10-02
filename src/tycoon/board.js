@@ -1,6 +1,8 @@
 import './board.css';
 import './crew.css';
 import './chart.css';
+import { REGIONS } from '../modes/belt-run/regions.js';
+
 import { renderChart } from './board-chart.js';
 import { crewById, hire, dismiss } from './crew.js';
 import { raidRow, slipNotes, renderCrew, renderWanted } from './board-crew.js';
@@ -67,6 +69,7 @@ export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) 
         <span class="k">Held by</span><span><i class="swatch" style="background:${power.color}"></i>${esc(power.name)}</span>
         <span class="k">Cargo</span><span>${esc(k.cargo)}, ${k.tons} t${k.heavy ? '. <em>Heavy: shudders near giant rocks</em>' : ''}</span>
         <span class="k">Lane</span><span>${esc(k.lane)}</span>
+        <span class="k">Region</span><span>${esc(REGIONS[TOWNS[k.to]?.power]?.name ?? '')}: ${esc((REGIONS[TOWNS[k.to]?.power]?.hazard ?? '').toLowerCase())}</span>
         ${raidRow(career, k, esc)}
         <span class="k">Time</span><span${k.deadline ? ' class="urgent"' : ''}>${time}${k.deadline ? ' or half pay' : ''}</span>
         <span class="k">Standing</span><span>+${k.standing} ${esc(k.to)}</span>
