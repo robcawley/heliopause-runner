@@ -1,4 +1,5 @@
 import './shell/shell.css';
+const COARSE = matchMedia('(pointer: coarse)').matches;   // a touch-first device
 import { createEngine } from './engine/renderer.js';
 import { createAudio } from './engine/audio.js';
 import { createBeltRun } from './modes/belt-run/index.js';
@@ -30,6 +31,9 @@ async function boot() {
   const audio = createAudio(levels);
 
   run = createBeltRun({ engine, audio, hudParent: document.body });
+  // Phones render at a lower pixel density: twice the screen's resolution is too heavy for this
+  // kind of 3D on a phone GPU (the tuning panel's resolution scale still overrides it)
+  if (COARSE) { run.config.fx.resolutionScale = 0.7; dispatchEvent(new Event('resize')); }
   // Audio levels live in the mode's config so the tuning panel reaches them
   Object.defineProperties(levels, {
     music: { get: () => run.config.audio.music },
@@ -85,7 +89,13 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
 
   async function launch() {
     if (screen !== 'title') return;
-        await audio.start();
+    // Phones: go fullscreen and hold landscape where the browser allows it (Android does; iPhone
+    // Safari mostly does not). Must happen inside the tap, before anything is awaited.
+    if (COARSE) {
+      document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })
+        ?.then(() => window.screen.orientation?.lock?.('landscape')).catch(() => {});
+    }
+    await audio.start();
     title.classList.add('gone');
     if (!introSeen()) { screen = 'intro'; await playIntro(audio); }   // shell/intro.js, once a session
     showBoard(null);
