@@ -2,7 +2,7 @@
 // chart). Every town, the power that holds it, the routes out of where you are, who raids
 // them and what your standing opens. Tap a town to inspect it, then take its contract from
 // here, or fly there empty on a ferry flight. Rules live in career.js and crew.js.
-import { POWERS, TOWNS, RANKS, standingIn, isOpen, opensFrom, ferryFuel, holdOf } from './career.js';
+import { POWERS, TOWNS, RANKS, standingIn, isOpen, opensFrom, ferryFuel, FERRY_MAX_KM, holdOf } from './career.js';
 import { CLANS, clanOf, strengthOf, MAX_THREAT } from './crew.js';
 import { threatPips } from './board-crew.js';
 
@@ -17,7 +17,7 @@ export const CHART = {
   'Arrokoth Market': [882, 216],
 };
 const W = 1000, H = 748, SUN = [-1548, 396];
-const FERRY_KM = 9.15;                      // a ferry flies an easy lane: about this far
+// Reserve enough credits for the longest easy lane, so the generated fare always fits.
 
 export function statusOf(c, t) {
   if (t === c.town) return 'here';
@@ -80,9 +80,9 @@ function inspector(c, t, h) {
     route = `On the board: ${h.esc(k.job.toLowerCase())}, ${h.cr(k.pay)} cr`;
     act = `<button type='button' class='chart-act chart-take' data-i='${i}'${heavy ? ' disabled' : ''}>${heavy ? 'Needs a cargo frame' : 'Take this contract'}</button>`;
   } else if (st === 'open') {
-    const fuel = ferryFuel(FERRY_KM), poor = c.credits < fuel;
+    const fuel = ferryFuel(FERRY_MAX_KM), poor = c.credits < fuel;
     route = 'Open. No contract out of here goes there today';
-    act = `<button type='button' class='chart-act chart-ferry'${poor ? ' disabled' : ''}>${poor ? `Ferry needs ${h.cr(fuel - c.credits)} more` : `Ferry flight \u00b7 about ${h.cr(fuel)} cr fuel`}</button>
+    act = `<button type='button' class='chart-act chart-ferry'${poor ? ' disabled' : ''}>${poor ? `Ferry needs ${h.cr(fuel - c.credits)} more` : `Ferry flight \u00b7 up to ${h.cr(fuel)} cr fuel`}</button>
       <p class='chart-small'>Fly there empty: no fee, no standing. Go where the work is.</p>`;
   } else if (st === 'locked') route = `Locked: ${RANKS[T.needs.rank]} with ${h.esc(T.needs.town)} (you are ${RANKS[standingIn(c, T.needs.town)]})`;
   else route = 'Uncharted. No two charts agree on it';

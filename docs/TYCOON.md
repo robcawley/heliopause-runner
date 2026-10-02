@@ -132,3 +132,10 @@ and vocoder-style voices.
 
 Open: wingmen ignore rocks on the lane (they can pass through them); whether a wingman's
 perk should also need them alive in the fight; voice levels.
+
+## 2026-10-02 — career QA
+
+Ferry buttons reserve the maximum easy-lane fuel cost (590 cr); the confirmation and pay slip
+show the generated fare. Flight creation also checks the actual fare and destination. Old saves
+gain an empty fallen list, and fallen hands are removed from stale hiring offers and cannot
+be hired through the career API. Ferry flights still earn no contract fee or standing.

@@ -131,13 +131,16 @@ export function makeOffers(c) {
 // A ferry flight (from the navigation chart): fly empty to any open town and pay for the fuel.
 // No fee and no standing, but you go where the work is, or the crew you want, and the raiders
 // on that lane are still there, with their bounties.
+export const FERRY_MAX_KM = DIFFICULTIES.easy.km[1];
 export const ferryFuel = (km) => Math.round((300 + km * 30) / 10) * 10;
 export function makeFerry(c, to) {
-  if (to === c.town || !isOpen(c, to)) return null;
+  if (!TOWNS[to] || to === c.town || !isOpen(c, to)) return null;
   const D = DIFFICULTIES.easy;
   const distance = Math.round(between(D.km) * 10) * 100;
+  const fuel = ferryFuel(distance / 1000);
+  if (c.credits < fuel) return null;
   return {
-    id: `${Date.now().toString(36)}-f`, ferry: true, fuel: ferryFuel(distance / 1000),
+    id: `${Date.now().toString(36)}-f`, ferry: true, fuel,
     tier: 'ferry', tierLabel: 'Ferry', difficulty: 'easy', difficultyLabel: D.label, level: D.level,
     job: 'Ferry flight', from: c.town, to, distance, density: D.density, lane: 'Flying empty',
     cargo: 'Empty hold', tons: 0, heavy: false, est: Math.round((distance / CRUISE + SEQUENCES) / 5) * 5, deadline: null,

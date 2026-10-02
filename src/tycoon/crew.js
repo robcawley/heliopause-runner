@@ -53,6 +53,8 @@ export function ensureStrategy(c) {
   c.crew ??= [];
     c.clans ??= { ...START };
   c.loyalty ??= {};
+  c.fallen ??= [];
+  c.hireable = c.hireable?.filter((id) => !c.fallen.includes(id));
   if (!c.hireable?.length) refreshHires(c);
   return c;
 }
@@ -64,6 +66,7 @@ export function refreshHires(c) {
   c.hireable = free.slice(0, 3).map((m) => m.id);
 }
 export function hireState(c, m) {
+  if (c.fallen?.includes(m.id)) return 'fallen';
   if (hasCrew(c, m.id)) return 'aboard';
   if (c.crew.length >= berths(c)) return 'full';
   if (c.credits < m.hire) return 'poor';
