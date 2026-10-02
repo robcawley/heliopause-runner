@@ -1,0 +1,75 @@
+{
+  "format": "PCM WAV, mono, 48 kHz, 16 bit",
+  "clips": [
+    {
+      "id": "on-your-wing",
+      "file": "01-on-your-wing.wav",
+      "text": "On your wing.",
+      "trigger": "Escorts form up after take-off",
+      "duration": 0.702
+    },
+    {
+      "id": "raiders-ahead",
+      "file": "02-raiders-ahead.wav",
+      "text": "Raiders ahead.",
+      "trigger": "Raider contact or Dead Zone warning",
+      "duration": 0.748
+    },
+    {
+      "id": "weapons-free",
+      "file": "03-weapons-free.wav",
+      "text": "Weapons free.",
+      "trigger": "Combat begins",
+      "duration": 0.887
+    },
+    {
+      "id": "target-down",
+      "file": "04-target-down.wav",
+      "text": "Target down.",
+      "trigger": "A raider is destroyed",
+      "duration": 0.841
+    },
+    {
+      "id": "taking-fire",
+      "file": "05-taking-fire.wav",
+      "text": "Taking fire.",
+      "trigger": "An escort takes damage",
+      "duration": 0.737
+    },
+    {
+      "id": "hull-critical",
+      "file": "06-hull-critical.wav",
+      "text": "Hull critical.",
+      "trigger": "Hull falls into the critical range",
+      "duration": 0.811
+    },
+    {
+      "id": "falling-back",
+      "file": "07-falling-back.wav",
+      "text": "Falling back.",
+      "trigger": "An escort retreats to repair",
+      "duration": 0.791
+    },
+    {
+      "id": "watch-the-rocks",
+      "file": "08-watch-the-rocks.wav",
+      "text": "Watch the rocks.",
+      "trigger": "Rock hit or close asteroid warning",
+      "duration": 0.887
+    },
+    {
+      "id": "hull-patched",
+      "file": "09-hull-patched.wav",
+      "text": "Hull patched.",
+      "trigger": "PIP or an escort finishes repairs",
+      "duration": 0.753
+    },
+    {
+      "id": "zone-clear",
+      "file": "10-zone-clear.wav",
+      "text": "Zone clear.",
+      "trigger": "The Dead Zone is cleared",
+      "duration": 0.799
+    }
+  ]
+}

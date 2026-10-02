@@ -324,3 +324,14 @@ and natural loss rates over many unassisted trips still need Rob's judgement.
 
 The new radio/escort-shot levels (`config.wing`) and RCS pulse intervals (`config.audio`) live
 in config.js alongside the other feel numbers, so tuning does not require editing sound logic.
+
+## 2026-10-02 — ten recorded robot radio callouts
+
+Created ten reusable mono 48 kHz WAV clips under public/audio/robot-radio, each 0.70–0.89 s:
+formation, raider contact, weapons free, target down, taking fire, critical hull, retreat,
+rocks, hull patched and zone clear. A real 24-band vocoder shapes electronic carriers with
+spoken syllables, with light ring modulation and short radio punctuation. Text and suggested
+triggers are in manifest.json. The authoring script adds no game dependencies.
+
+Preview: docs/audio/robot-radio-preview.wav. To judge: intelligibility of the very short words,
+and whether the metallic carrier and light radio static sit comfortably over Sidewinding.
