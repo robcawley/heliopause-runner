@@ -22,7 +22,7 @@ const W = 1000, H = 748, SUN = [-1548, 396];
 
 export function statusOf(c, t) {
   if (t === c.town) return 'here';
-  if (TOWNS[t].needs?.town === null) return 'uncharted';
+    if (TOWNS[t].needs?.town === null) return c.offers.some((k) => k.to === t && k.final) ? 'offer' : 'uncharted';
   if (!isOpen(c, t)) return 'locked';
   return c.offers.some((k) => k.to === t) ? 'offer' : 'open';
 }

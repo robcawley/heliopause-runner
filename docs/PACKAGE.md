@@ -44,7 +44,15 @@ Rob's direction is the line above. The rest is a first proposal for him to react
   nothing to shoot that matters. It speaks once, in a deep layered voice: humanity has its
   region; stay in it. Push on and you are turned gently back, however you fly.
 - **Look (Rob, 2 Oct 2026).** A slowly turning geometry of light with an eye-like centre.
-- **Words.** Inspired by the idea of boundary stones a neighbour must not move, without quoting
-  scripture. Drafts in progress; Rob chooses.
+- **Words (Rob chose draft 3).** Inspired by the boundary-stone idea, without quoting scripture:
+  *Before your sun was lit, the borders were drawn. / Yours ends here. / What waits past it does
+  not hate you. It will never notice you. / That is worse. Return.*
+- **Built 2 Oct 2026** (src/modes/belt-run/ending.js; contract in career.js; epilogue in main.js).
+  Unlock: Trusted with a town of every power, then the crossing contract appears (to Arrokoth).
+  Past 2.6 km the belt, lane and radiation go, the escorts turn back, music and engine fade,
+  and the entity resolves 2.6 km ahead: nested turning polyhedra of light, two rings, an eye
+  that follows you and sometimes blinks, a low drone. It speaks the four lines in a layered
+  three-pitch vocoder chorus; come within 1.1 km and you are turned away. Fade to white, then
+  black, then the epilogue (placeholder words for Rob to rewrite). Test: tests/qa-ending.cjs.
 - **After.** The way home, an epilogue for the crew who made it (and the fallen), and the chart
   redrawn with the heliopause as a boundary. Credits.

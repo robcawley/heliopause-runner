@@ -107,3 +107,16 @@ input, textarea, select, .lil-gui { -webkit-user-select: text; user-select: text
 #to-board { font: 500 1.1rem var(--font); color: var(--ice); background: transparent; border: 1px solid var(--ice-dim); border-radius: 999px; padding: 0.85rem 1.6rem; cursor: pointer; }
 #to-board:hover { border-color: var(--ice); }
 #to-board:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; }
+
+/* The epilogue after the crossing (main.js) */
+#epilogue { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; overflow-y: auto; background: #000; color: #efe4d0;
+  opacity: 0; pointer-events: none; transition: opacity 3s ease; }
+#epilogue.on { opacity: 1; pointer-events: auto; }
+.epi-inner { max-width: 34rem; padding: 3rem 1.5rem; text-align: center; font-size: 1.15rem; line-height: 1.65; }
+.epi-inner h2 { margin: 0 0 2rem; font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.epi-kicker { margin: 0 0 .6rem; font-size: .8rem; letter-spacing: .3em; text-transform: uppercase; color: #b9acd6; }
+.epi-dim { color: #a8987f; }
+.epi-credit { margin-top: 2.6rem; font-size: .9rem; letter-spacing: .14em; text-transform: uppercase; color: #a8987f; }
+.epi-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .8rem; margin-top: 2rem; }
+.epi-actions button { min-height: 44px; padding: 0 1.2rem; border: 1px solid #efe4d0; background: transparent; color: #efe4d0; font: inherit; font-size: .9rem; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+.epi-actions button:hover, .epi-actions button:focus-visible { background: #efe4d0; color: #000; outline: none; }

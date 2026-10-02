@@ -22,6 +22,7 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const SLOTS = [[-12, 5, 30], [12, 5, 30], [-24, 7, 48], [24, 7, 48]];
 
 const LINES = {
+    farewell: ['This is as far as we go. Come home, boss.', 'We cannot follow you past here.', 'Turning back. Good luck out there.'],
   form: ['Forming up on your wing.', 'On your wing, boss.', 'Escort in position.', 'With you all the way.'],
   engage: ['Bandits. I am on them.', 'Engaging.', 'Weapons free.', 'Picking one off the pack.'],
   kill: ['Splash one.', 'Got him!', 'Scratch one raider.', 'That one is done.'],
@@ -221,8 +222,15 @@ export function createWing(config, host) {
         w.vel.copy(ship.fwd).multiplyScalar(ship.speed);
         w.quat.copy(ship.quat);
       }
-      w.bob += dt * 0.9;
+            w.bob += dt * 0.9;
       w.hurtSaid -= dt;
+      if (w.state === 'home') {                         // the crossing: they turn back at the edge
+        w.homeT += dt;
+        w.vel.addScaledVector(ship.fwd, -55 * dt).addScaledVector(ship.up, 8 * dt);
+        w.pos.addScaledVector(w.vel, dt);
+        if (w.homeT > 9) w.model.root.visible = false;
+        continue;
+      }
       // Repairs: PIP Mk II patches the wing while it is quiet; a breather patches everyone a little
       if ((quiet || w.state === 'retreat') && w.hull < 100) w.hull = Math.min(100, w.hull + dt * ((host.pipMk2?.() ? 4 : 0) + (host.dz.phase === 'breather' ? 3 : 0.4)));
       if (w.state === 'retreat' && w.hull > 70) { w.state = 'form'; say(w, 'back'); }
@@ -326,7 +334,12 @@ export function createWing(config, host) {
   function onRepaired() { if (wing.some((w) => w.state !== 'dead' && w.hull < 60)) say(anyone(), 'repaired'); }
 
   return {
-    group, reset, update,
+        group, reset, update,
+    peelOff() {
+      const w = anyone();
+      if (w) say(w, 'farewell', true);
+      for (const m of wing) if (m.state !== 'dead') { m.state = 'home'; m.homeT = 0; }
+    },
     dispose() { clearFighters(); tracerGeo.dispose(); tracerLines.material.dispose(); },
     get members() { return wing; }, onPlayerHit, onPlayerKill, onRepaired,
     get lost() { return lost; }, get kills() { return kills; }, get firing() { return firing; },

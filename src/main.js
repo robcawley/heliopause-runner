@@ -4,7 +4,7 @@ import { createAudio } from './engine/audio.js';
 import { createBeltRun } from './modes/belt-run/index.js';
 import { createTuning } from './shell/tuning.js';
 import { createBoard } from './tycoon/board.js';
-import { loadCareer, saveCareer, newCareer, settle, tripOf, applyLoadout } from './tycoon/career.js';
+import { loadCareer, saveCareer, newCareer, settle, tripOf, applyLoadout, makeOffers } from './tycoon/career.js';
 import { loseCrew, crewOnDeath, crewById } from './tycoon/crew.js';
 
 // The host shell: title, pause and debrief screens around one game mode.
@@ -168,7 +168,41 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
     ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
     setTimeout(() => { debrief.classList.add('on'); document.getElementById('again').focus(); }, 900);
   };
-    run.on('death', showDebrief);
+      run.on('death', showDebrief);
+
+  // ---- The ending (modes/belt-run/ending.js, docs/PACKAGE.md): the epilogue after the crossing ----
+  // Placeholder words for Rob to rewrite.
+  const epilogue = document.createElement('section');
+  epilogue.id = 'epilogue';
+  epilogue.setAttribute('aria-live', 'assertive');
+  document.body.append(epilogue);
+  const andList = (a) => (a.length < 2 ? a.join('') : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`);
+  run.on('ending', () => {
+    screen = 'ending';
+    run.setCapture(false);
+    career.ended = true;
+    career.contract = null;
+    career.offers = makeOffers(career);
+    saveCareer(career);
+    const name = (id) => crewById(id)?.name;
+    const home = (career.crew ?? []).map(name).filter(Boolean);
+    const fallen = (career.fallen ?? []).map(name).filter(Boolean);
+    epilogue.innerHTML = `<div class="epi-inner">
+      <p class="epi-kicker">Beyond the heliopause</p>
+      <h2>The line is kept</h2>
+      <p>You turned for home. Nobody at Arrokoth asked what you saw. The Kindred already knew.</p>
+      <p>${home.length ? `${andList(home)} flew back with you.` : 'You flew back alone.'}</p>
+      ${fallen.length ? `<p class="epi-dim">Lost in the belt: ${andList(fallen)}. Remembered.</p>` : ''}
+      <p>The charts end at the heliopause now. Nobody argues with them.</p>
+      <p class="epi-credit">Heliopause Runner<br>A game by Rob Cawley</p>
+      <div class="epi-actions"><button type="button" id="epi-belt">Back to the belt</button><button type="button" id="epi-new">New career</button></div>
+    </div>`;
+    requestAnimationFrame(() => epilogue.classList.add('on'));
+    const close = () => { epilogue.classList.remove('on'); };
+    epilogue.querySelector('#epi-belt').addEventListener('click', () => { close(); showBoard(null); });
+    epilogue.querySelector('#epi-new').addEventListener('click', () => { close(); career = newCareer(); saveCareer(career); showBoard(null); });
+    setTimeout(() => epilogue.querySelector('#epi-belt')?.focus(), 2500);
+  });
   // The wing (modes/belt-run/wing.js): a hand shot down is gone at once, so a retry cannot undo it
   // A fallen hand's perk goes with them, mid-fight: refit the flight config without them
   run.on('wingLost', ({ id }) => {

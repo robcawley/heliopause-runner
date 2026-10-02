@@ -102,13 +102,31 @@ export const openTowns = (c) => Object.keys(TOWNS).filter((t) => t !== c.town &&
 // What standing in a town opens: the towns that wait on it, as [town, rank]
 export const opensFrom = (town) => Object.entries(TOWNS).filter(([, t]) => t.needs?.town === town).map(([name, t]) => [name, t.needs.rank]);
 
+// ---- The crossing (docs/PACKAGE.md) ------------------------------------------------------
+// Trusted with a town of every power and the Kindred make contact: one of them needs carrying
+// home, past the heliopause. That contract is the ending. After it, c.ended is set.
+const CROSSING_POWERS = ['meridian', 'halcyon', 'sable', 'free'];
+const CROSSING_RANK = 2;   // Trusted
+export const crossingProgress = (c) => CROSSING_POWERS.filter((p) => Object.keys(TOWNS).some((t) => TOWNS[t].power === p && standingIn(c, t) >= CROSSING_RANK)).length;
+export const CROSSING_NEEDS = CROSSING_POWERS.length;
+export const crossingOpen = (c) => !c.ended && crossingProgress(c) >= CROSSING_NEEDS;
+export function makeCrossing(c) {
+  const distance = 14000;
+  return {
+    id: `crossing-${c.runs}`, final: true, tier: 'final', tierLabel: 'The crossing', difficulty: 'easy', difficultyLabel: 'Unknown', level: 1,
+    job: 'Carry a Kindred passenger home', from: c.town, to: 'Arrokoth Market', distance, density: 0.6, lane: 'Past the last beacon. No lane.',
+    cargo: 'One Kindred passenger', tons: 0, heavy: false, est: Math.round((distance / CRUISE + SEQUENCES) / 5) * 5, deadline: null,
+    raid: { clan: 'coil', threat: 0, rumour: [0, 0] }, pay: 0, standing: 0,
+  };
+}
+
 export function makeOffers(c) {
   const dests = shuffle(openTowns(c)).slice(0, 3);
   const diffs = shuffle(Object.keys(DIFFICULTIES));
   // Always at least two jobs this ship can carry: without a cargo frame, heavy freight waits
   const fits = shuffle(CARGO.filter((k) => k.t <= holdOf(c)));
   const cargo = shuffle([...fits.slice(0, 2), ...shuffle(CARGO.filter((k) => !fits.slice(0, 2).includes(k))).slice(0, 1)]);
-  return Object.keys(TIERS).map((tier, i) => {
+    const offers = Object.keys(TIERS).map((tier, i) => {
     const T = TIERS[tier], D = DIFFICULTIES[diffs[i]], k = cargo[i];
     const distance = Math.round((between(D.km) * 1000) / 100) * 100;
     const est = distance / CRUISE + SEQUENCES;
@@ -123,9 +141,11 @@ export function makeOffers(c) {
       deadline: urgent ? Math.round((est * 0.92 * (hasCrew(c, 'brennan') ? 1.1 : 1)) / 5) * 5 : null,     // urgent jobs need some boosting
       raid: raidFor(c, dests[i], D.level),
       pay: Math.round((between(T.pay) * (urgent ? 1.1 : 1)) / 100) * 100,
-      standing: T.standing,
+            standing: T.standing,
     };
   });
+  if (crossingOpen(c)) offers.push(makeCrossing(c));
+  return offers;
 }
 
 // A ferry flight (from the navigation chart): fly empty to any open town and pay for the fuel.
@@ -152,7 +172,7 @@ export function makeFerry(c, to) {
 // raid: the clan on this lane and its threat (threat 0: no fight). crew: what the crew say in flight.
 export const tripOf = (k, c) => (k ? {
   origin: k.from, dest: k.to, distance: k.distance, density: k.density, heavy: !!k.heavy,
-  region: TOWNS[k.to]?.power ?? 'meridian', level: k.level ?? 1,
+  region: TOWNS[k.to]?.power ?? 'meridian', level: k.level ?? 1, final: !!k.final,
   raid: k.raid ? { ...CLANS[k.raid.clan], clan: k.raid.clan, threat: k.raid.threat } : null,
   crew: c ? crewLines(c) : {},
   wing: c ? wingOf(c) : [],
