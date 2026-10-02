@@ -145,3 +145,9 @@ cancels queued radio. Finished wing sounds disconnect their complete audio chain
 shots sweep against escorts between frames. A wingmate loss also changes the surviving
 fighters' in-flight loyalty immediately, matching the saved career. Retreat repairs continue
 in active combat. Formation matches the player's velocity and steers around nearby rock spheres.
+
+Chart QA: the map now keeps a minimum 770 px drawing width inside its existing horizontal
+scroll area. At 640 px, an Orcus offer badge could overlap Ixion's name. DOM rectangle checks
+cover every reachable origin with offer labels at 1440, 1180 and 390 px viewport widths.
+Keyboard selection retains focus. Browser regression checks also cover old loyalty/fallen
+saves, immediate permanent death and retry, and PIP's four-second wait and 30-hull trip cap.

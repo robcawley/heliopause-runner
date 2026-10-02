@@ -4,7 +4,7 @@
 .chart-panel { box-sizing: border-box; padding: 20px 22px; background: var(--b-panel); border: 1px solid var(--b-line); border-radius: 4px; backdrop-filter: blur(6px); }
 .chart-mapwrap { padding: 0; background: radial-gradient(ellipse at 30% 55%, rgba(120,96,70,.28) 0%, rgba(28,22,18,0) 70%), #211a15; overflow: hidden; }
 .chart-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
-.chart-map { position: relative; min-width: 640px; aspect-ratio: 1000 / 748; }
+.chart-map { position: relative; min-width: 770px; aspect-ratio: 1000 / 748; }
 .chart-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .chart-svg .r-offer { stroke: var(--b-accent); stroke-width: 2.5; fill: none; stroke-dasharray: 9 6; }
 .chart-svg .r-open { stroke: var(--b-bone); stroke-width: 2; opacity: .45; fill: none; }
