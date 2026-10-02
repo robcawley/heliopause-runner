@@ -21,6 +21,7 @@ import { createDroid } from './droid.js';
 import { createWing } from './wing.js';
 import { createWeather } from './regions.js';
 import { createEnding } from './ending.js';
+import { createTutorial } from './tutorial.js';
 import { createSfx } from './sfx.js';
 import { createHud } from './hud.js';
 import musicUrl from './assets/audio/sidewinding.mp3';
@@ -131,7 +132,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
 
   const post = createPost(renderer, scene, camera, config.fx);
   const sfx = createSfx(audio, config);
-  const hud = createHud(hudParent);
+    const hud = createHud(hudParent);
+  const tutor = createTutorial(hudParent);   // first-flight prompts (tutorial.js)
 
   const fresh = (mode) => ({
     mode,                     // 'attract' | 'flying' | 'dead'
@@ -593,7 +595,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     pip.reset();
         config.run.density = trip?.density ?? 1;       // a contract's difficulty: rocks on your line
         weather.reset(mode === 'flying' ? trip : null); // the region's look, rock and hazard
-    ending.reset(mode === 'flying' ? trip : null);
+        ending.reset(mode === 'flying' ? trip : null);
+    tutor.reset(mode === 'flying' ? trip : null);
     settlement.setRoute(mode === 'flying' ? newRoute(trip) : null);
     settlement.reset(ship);
     if (mode === 'flying') beginTakeoff();
@@ -601,7 +604,8 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     debris.reset(ship);
     traffic.reset(ship);
     lane.reset();
-        dz.reset(mode === 'flying' ? settlement.routeRemaining(ship) : 0, config.run.density, trip);
+        dz.reset(mode === 'flying' ? settlement.routeRemaining(ship) : 0, config.run.density,
+          trip?.tutorial ? { ...trip, raid: { ...trip.raid, threat: 0 } } : trip);   // the first flight is quiet
     wing.reset(mode === 'flying' ? trip : null);
     if (dzFlightSaved) { for (const k of Object.keys(config.deadZone.flight)) config.flight[k] = dzFlightSaved[k]; dzFlightSaved = null; }
     dzRules = false;
@@ -704,7 +708,10 @@ export function createBeltRun({ engine, audio, hudParent = document.body, overri
     dz.update(realDt, dt, g.mode === 'flying' ? input.state : deadStick);
         wing.update(realDt, dt, g.mode === 'flying');
         weather.update(dt, g.mode === 'flying' && !dz.rulesOff && !ending.clears());
-    ending.update(dt, g.mode === 'flying');
+        ending.update(dt, g.mode === 'flying');
+    tutor.update(realDt, g.mode === 'flying', input.state,
+      { phasing: g.phaseTime > 0, rocksDestroyed: g.rocksDestroyed, device: input.state.device },
+      (text) => { hud.say('MICA', text, 5); g.micaTimer = Math.max(g.micaTimer, 18); });
     {
       const gone = ending.clears();                      // past the last beacon: no belt, no lane
       rocks.mesh.visible = !gone; debris.group.visible = !gone; lane.group.visible = !gone;

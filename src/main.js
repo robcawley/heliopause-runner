@@ -4,6 +4,7 @@ import { createAudio } from './engine/audio.js';
 import { createBeltRun } from './modes/belt-run/index.js';
 import { createTuning } from './shell/tuning.js';
 import { createBoard } from './tycoon/board.js';
+import { playIntro, introSeen } from './shell/intro.js';
 import { loadCareer, saveCareer, newCareer, settle, tripOf, applyLoadout, makeOffers } from './tycoon/career.js';
 import { loseCrew, crewOnDeath, crewById } from './tycoon/crew.js';
 
@@ -84,8 +85,9 @@ window.addEventListener('gamepaddisconnected', () => { document.body.dataset.con
 
   async function launch() {
     if (screen !== 'title') return;
-    await audio.start();
+        await audio.start();
     title.classList.add('gone');
+    if (!introSeen()) { screen = 'intro'; await playIntro(audio); }   // shell/intro.js, once a session
     showBoard(null);
   }
   document.getElementById('launch').addEventListener('click', launch);

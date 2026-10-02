@@ -56,3 +56,18 @@ Rob's direction is the line above. The rest is a first proposal for him to react
   black, then the epilogue (placeholder words for Rob to rewrite). Test: tests/qa-ending.cjs.
 - **After.** The way home, an epilogue for the crew who made it (and the fallen), and the chart
   redrawn with the heliopause as a boundary. Credits.
+
+## Intro and onboarding (built 2 Oct 2026)
+
+- **Intro** (src/shell/intro.js, intro.css). Once a session, after Start: four lines of setting
+  over black with a rising synth, then the belt revealed behind a slammed title (blur and scale
+  in, chromatic glow, light sweep, white flash) with a sub drop, crack and echoing chord stab.
+  About 17 s; any key, click, tap or pad button skips. Placeholder words for Rob to rewrite.
+- **Board welcome** (board.js). First visit only: three points (pick a job, deliver, build up)
+  and a Got it button; remembered in the career (welcomed).
+- **First flight** (src/modes/belt-run/tutorial.js). A new career's first contract only, with the
+  lane kept quiet (no raiders). Seven prompt chips, each waiting for you to do it or timing out:
+  fly, boost, brake, fire and break a rock, phase, keep near the lane, PIP. MICA says each one.
+  Labels follow keyboard, gamepad or touch.
+- **Title screen** copy updated (no longer the field-test prototype).
+- Test: tests/qa-onboarding.cjs.

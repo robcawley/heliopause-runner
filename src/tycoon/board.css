@@ -185,3 +185,10 @@ body:has(#board.on) .belt-hud > * { opacity: 0; visibility: hidden; }
   .board-nav { padding: 0 12px; font-size: .78rem; }
   .ship-plan { max-width: 260px; align-self: center; }
 }
+
+/* First-visit welcome on the board */
+.board-welcome { margin: 2.5vh 0 0; padding: 18px 22px; max-width: 760px; background: var(--b-panel); border: 1px solid var(--b-accent); border-radius: 4px; }
+.board-welcome h3 { margin: 0 0 10px; font: 800 1.4rem var(--b-title); letter-spacing: .06em; text-transform: uppercase; }
+.board-welcome ol { margin: 0 0 14px; padding-left: 1.2rem; display: grid; gap: 6px; line-height: 1.45; color: var(--b-soft); }
+.board-welcome b { color: var(--b-bone); }
+.board-welcome button { min-height: 40px; padding: 0 16px; border: 0; border-radius: 3px; background: var(--b-accent); color: var(--b-soot); font: 700 .85rem var(--b-text); letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }

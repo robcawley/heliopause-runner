@@ -173,6 +173,7 @@ export function makeFerry(c, to) {
 export const tripOf = (k, c) => (k ? {
   origin: k.from, dest: k.to, distance: k.distance, density: k.density, heavy: !!k.heavy,
   region: TOWNS[k.to]?.power ?? 'meridian', level: k.level ?? 1, final: !!k.final,
+  tutorial: (c?.runs ?? 0) === 0 && !k.final,   // a new career's first flight teaches the controls
   raid: k.raid ? { ...CLANS[k.raid.clan], clan: k.raid.clan, threat: k.raid.threat } : null,
   crew: c ? crewLines(c) : {},
   wing: c ? wingOf(c) : [],

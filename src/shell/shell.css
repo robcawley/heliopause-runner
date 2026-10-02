@@ -120,3 +120,10 @@ input, textarea, select, .lil-gui { -webkit-user-select: text; user-select: text
 .epi-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .8rem; margin-top: 2rem; }
 .epi-actions button { min-height: 44px; padding: 0 1.2rem; border: 1px solid #efe4d0; background: transparent; color: #efe4d0; font: inherit; font-size: .9rem; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
 .epi-actions button:hover, .epi-actions button:focus-visible { background: #efe4d0; color: #000; outline: none; }
+
+/* First-flight prompt chip (modes/belt-run/tutorial.js) */
+.tutor-chip { position: fixed; left: 50%; bottom: calc(18vh + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 12px); display: flex; align-items: center; gap: .7rem;
+  padding: .55rem 1rem; background: rgba(8, 12, 22, .78); border: 1px solid rgba(239, 228, 208, .35); border-radius: 3px; color: #efe4d0;
+  font: 600 .95rem 'Barlow', system-ui, sans-serif; letter-spacing: .04em; opacity: 0; transition: opacity .35s, transform .35s; pointer-events: none; z-index: 20; }
+.tutor-chip.on { opacity: 1; transform: translate(-50%, 0); }
+.tutor-chip kbd { padding: .15rem .5rem; border: 1px solid #e58a3a; border-radius: 2px; color: #f0b27a; font: 600 .8rem 'IBM Plex Mono', monospace; }

@@ -115,8 +115,17 @@ export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) 
       <div class="board-hero">
         <p class="board-kicker">${slip ? 'Landed at' : 'Contracts at'}</p>
         <h2>${esc(town)}</h2>
-        <p class="board-sub">${sub}</p>
+                <p class="board-sub">${sub}</p>
       </div>
+      ${!c.welcomed && !slip ? `<section class="board-welcome" aria-label="Getting started">
+        <h3>You fly the courier</h3>
+        <ol>
+          <li><b>Pick a job.</b> Each card shows the pay, the distance, the risk, and who raids that lane.</li>
+          <li><b>Deliver.</b> On time and in one piece earns credits and standing. Standing opens new towns.</li>
+          <li><b>Build up.</b> Spend credits in the Market, hire escorts in Crew, plan routes on the Chart.</li>
+        </ol>
+        <button type="button">Got it</button>
+      </section>` : ''}
       <div class="board-grid${slip ? '' : ' no-slip'}">
         ${slip ? slipPanel(slip) : ''}
         <section class="board-offers" aria-label="Contracts">
@@ -138,7 +147,8 @@ export function createBoard(parent, { onLaunch, onReset, onChange = () => {} }) 
       render(slip);
       el.querySelector(`.board-card[data-i="${i}"]`)?.focus();
     }));
-    el.querySelector('.board-launch').addEventListener('click', launch);
+        el.querySelector('.board-launch').addEventListener('click', launch);
+    el.querySelector('.board-welcome button')?.addEventListener('click', () => { career.welcomed = true; onChange(); render(slip); });
     el.querySelector('.board-reset').addEventListener('click', () => {
       if (confirm('Start a new career? Credits and standing go back to the beginning.')) onReset();
     });
