@@ -43,5 +43,8 @@ Rob's direction is the line above. The rest is a first proposal for him to react
 - **The entity.** Vast, slow, beyond the scale of anything in the belt. Not a fight; there is
   nothing to shoot that matters. It speaks once, in a deep layered voice: humanity has its
   region; stay in it. Push on and you are turned gently back, however you fly.
+- **Look (Rob, 2 Oct 2026).** A slowly turning geometry of light with an eye-like centre.
+- **Words.** Inspired by the idea of boundary stones a neighbour must not move, without quoting
+  scripture. Drafts in progress; Rob chooses.
 - **After.** The way home, an epilogue for the crew who made it (and the fallen), and the chart
   redrawn with the heliopause as a boundary. Credits.
